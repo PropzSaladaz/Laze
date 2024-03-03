@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap, 
-    io::{BufReader, Write}, 
+    io::{BufReader, Read, Write}, 
     net::{SocketAddr, TcpListener, TcpStream}, 
     sync::{mpsc, Arc, Mutex}, 
     thread
@@ -10,8 +10,9 @@ use local_ip_address::local_ip;
 
 use super::messages::{NewClientResponse};
 
-const DEFAULT_PORT: u16 = 7878;
+const DEFAULT_PORT: u16 = 13555;
 
+/// Creates a TcpListener using the local machine's IP address
 fn create_socket(port: u16) -> TcpListener {
     println!("Created new socket: {port}");
     let local_ip = local_ip().unwrap();
@@ -22,8 +23,16 @@ pub trait Application: Sync + Send {
     fn handle(&self, input: &[u8]);
 }
 
-// SERVER ---------------------------------------
+//  ---------------------------------------
+//                  SERVER
+//  ---------------------------------------
 
+
+/// Represents the server configuration.
+///
+/// All new connections will start form the specified port
+/// increasing by 1 for each new connection until reaching
+/// the max_clients.
 pub struct ServerConfig {
     starting_port: u16,
     max_clients: usize,
@@ -50,6 +59,9 @@ pub struct Server<T: Application> {
 
 
 impl<T: Application + 'static> Server<T> {
+    /// Initialize server's internal structures.
+    ///
+    /// app: Is the application that will be called to handle incomming requests.
     pub fn build(config: ServerConfig, app: T) -> Result<Self, ServerError> {
         let (sender, receiver) = mpsc::channel();
         let clients = ClientPool {
@@ -64,6 +76,10 @@ impl<T: Application + 'static> Server<T> {
         })
     }
 
+    /// Run the server.
+    ///
+    /// This call is blocking, and allows the server to wait for
+    /// new client connection requests at port 7878.
     pub fn start(&mut self) {
         let socket = create_socket(DEFAULT_PORT);
         loop {
@@ -83,6 +99,12 @@ impl<T: Application + 'static> Server<T> {
     }
 }
 
+
+//  ---------------------------------------
+//            CLIENT CONNECTIONS
+//  ---------------------------------------
+
+/// Represents a pool of all client connections.
 struct ClientPool<T: Application> {
     clients: HashMap<SocketAddr, Client>,
     app: Arc<Mutex<T>>,
@@ -91,6 +113,9 @@ struct ClientPool<T: Application> {
 }
 
 impl<T: Application + 'static> ClientPool<T> where T: Application {
+    /// Add a new client connection to the pool.
+    ///
+    /// For each new client, the id increases by 1, as well as the port.
     pub fn add(&mut self, addr: SocketAddr) -> u16 {
         let new_client = Client::new(
             addr,
@@ -115,31 +140,44 @@ struct Client {
 }
 
 impl Client {
+    /// Creates a new client, which consists of a thread waiting for incomming packets.
+    ///
+    /// Upon receiving an incoming message, send it to the application to be parsed.
+    // All information sent/received is in bytes.
     fn new(address: SocketAddr, id: usize, app: Arc<Mutex<impl Application + 'static>>) -> Client {
         let port = DEFAULT_PORT + id as u16;
         let socket = create_socket(port);
+
         // Create thread
         let thread = thread::spawn(move || {
-            println!("socket {:#?}", socket);
-            for stream in socket.incoming() {
-                match stream {
-                    Ok(stream) => {
-                        println!("stream-client: {:#?}", stream);
-                        // convert received request into bytes & pass to application
-                        let buf_reader = BufReader::new(&stream);
-                        let bytes = buf_reader.buffer();
-                        app.lock().unwrap().handle(bytes);
-                    }
-                    Err(e) => {
-                        eprintln!("Could not parse stream in Client {id}: {}", e);
-                        break;
-                    }
+
+            match socket.accept() {
+                Ok((stream, _)) => {
+                    println!("client-Stream : {:?}", stream);
+                    Client::handle_request(stream, app);
                 }
-                println!("after match");
+                Err(e) => {
+                    eprintln!("Could not parse stream in Client {id}: {}", e);
+                }
             }
-            println!("after for");
+            println!("Stream is closed");
         });
+        println!("Returning the client");
         Client { address, id, port, thread }
+    }
+
+    fn handle_request(mut stream: TcpStream, app: Arc<Mutex<impl Application + 'static>>) {
+        println!("stream-client: {:#?}", stream);
+        stream.set_read_timeout(None); // make the reads blocking
+        loop {
+            let mut bytes = [0 ; 1024];
+            let bytes_size = stream.read(&mut bytes).unwrap();
+            let bytes = &bytes[..bytes_size];
+
+            if bytes.is_empty() { continue };
+            println!("bytes: {:?}", bytes);
+            // app.lock().unwrap().handle(bytes);
+        }
     }
 }
 

@@ -1,10 +1,13 @@
 use serde::{Deserialize, Serialize};
 
+/// Represents the response to a new connection request from a client.
 #[derive(Serialize, Deserialize)]
 pub struct NewClientResponse {
+    /// Port to be used by the new connection
     pub port: u16,
 }
 
+/// Represents a request for a new connection from some client.
 #[derive(Serialize, Deserialize)]
 pub struct NewClientRequest {
 }

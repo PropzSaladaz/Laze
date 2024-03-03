@@ -13,7 +13,7 @@ struct DeviceApp {
 // TODO
 impl server::Application for DeviceApp {
     fn handle(&self, input: &[u8]) {
-        println!("handled!!");
+        println!("handled: {:?}", input);
     }
 }
 
@@ -23,4 +23,7 @@ fn main() {
     let mut server = Server::build(config, app).unwrap();
     server.start();
 }
+
+
+
 
