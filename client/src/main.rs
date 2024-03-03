@@ -1,5 +1,9 @@
 use std::{
-    io::{self, BufReader, Read, Write}, net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream}, str::from_utf8, thread::sleep, time::Duration
+    io::{self, BufReader, Read, Write}, 
+    net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream}, 
+    str::from_utf8, 
+    thread::sleep, 
+    time::Duration
 };
 
 use serde::{Deserialize, Serialize};
@@ -65,22 +69,23 @@ fn is_open(host: Ipv4Addr, port: u16) -> Option<TcpStream> {
 
 fn handle_connection(mut stream: TcpStream) {
     println!("Connection: {:#?}", &stream);
-    let mut input = String::new();
 
     // remain open to test
     loop {
         println!("Sent data: {:?}", stream);
+        let mut input = String::new();
         match io::stdin().read_line(&mut input) {
             Ok(_) => {
+                println!("input: {}", input.trim());
                 let msg = match input.trim() {
-                    "a" => serde_json::to_vec(&Input { move_x: -1, move_y:  0}).unwrap(),
-                    "w" => serde_json::to_vec(&Input { move_x:  0, move_y: -1}).unwrap(),
-                    "s" => serde_json::to_vec(&Input { move_x:  0, move_y:  1}).unwrap(),
-                    "d" => serde_json::to_vec(&Input { move_x:  1, move_y:  0}).unwrap(),
+                    "a" => serde_json::to_vec(&Input { move_x: -10, move_y:  0}).unwrap(),
+                    "w" => serde_json::to_vec(&Input { move_x:  0, move_y: -10}).unwrap(),
+                    "s" => serde_json::to_vec(&Input { move_x:  0, move_y:  10}).unwrap(),
+                    "d" => serde_json::to_vec(&Input { move_x:  10, move_y:  0}).unwrap(),
                     _ => vec![]
                 };
 
-                match stream.write_all("hello world".as_bytes()) {
+                match stream.write_all(msg.as_slice()) {
                     Ok(_) => (),
                     Err(e) => eprintln!("Error writing to stream: {:#?}", e)
                 };

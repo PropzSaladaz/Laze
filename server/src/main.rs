@@ -1,5 +1,6 @@
 use server::{ServerConfig, Server};
 
+mod keybinds;
 mod ffi;
 mod device;
 mod server;

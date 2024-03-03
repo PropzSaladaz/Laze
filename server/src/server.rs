@@ -85,7 +85,6 @@ impl<T: Application + 'static> Server<T> {
         loop {
             match socket.accept() {
                 Ok((mut stream, addr)) => {
-                    println!("new socket: {:#?}", &stream);
                     let port = self.clients.add(addr);
                     let data = serde_json::to_vec(&NewClientResponse { port }).unwrap();
                     stream.write_all(data.as_slice())
@@ -153,30 +152,29 @@ impl Client {
 
             match socket.accept() {
                 Ok((stream, _)) => {
-                    println!("client-Stream : {:?}", stream);
                     Client::handle_request(stream, app);
                 }
                 Err(e) => {
                     eprintln!("Could not parse stream in Client {id}: {}", e);
                 }
             }
-            println!("Stream is closed");
         });
-        println!("Returning the client");
         Client { address, id, port, thread }
     }
 
+    /// Handle incomming client inputs.
+    ///
+    /// Sends the received bytes up to the application to handle the input
     fn handle_request(mut stream: TcpStream, app: Arc<Mutex<impl Application + 'static>>) {
-        println!("stream-client: {:#?}", stream);
-        stream.set_read_timeout(None); // make the reads blocking
+        // make the reads blocking - wait indefinetely for client input
+        stream.set_read_timeout(None).expect("Could not set read timeout."); 
         loop {
             let mut bytes = [0 ; 1024];
             let bytes_size = stream.read(&mut bytes).unwrap();
             let bytes = &bytes[..bytes_size];
 
             if bytes.is_empty() { continue };
-            println!("bytes: {:?}", bytes);
-            // app.lock().unwrap().handle(bytes);
+            app.lock().unwrap().handle(bytes);
         }
     }
 }
