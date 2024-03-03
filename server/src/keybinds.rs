@@ -72,3 +72,8 @@ pub const KEY_SCROLLDOWN:        u32 = 178;
 
 pub const KEY_BRIGHTNESS_CYCLE:  u32 = 243;
 
+pub const BTN_LEFT:              u32 = 272;
+pub const BTN_RIGHT:             u32 = 273;
+pub const BTN_FORWARD:           u32 = 277;
+pub const BTN_BACK:              u32 = 278;
+
