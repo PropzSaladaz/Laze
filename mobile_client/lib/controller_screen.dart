@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_client/client/server_connector.dart';
 import 'package:mobile_client/color_constants.dart';
 import 'package:mobile_client/mousepad.dart';
 import 'package:mobile_client/styled-button.dart';
@@ -11,10 +12,17 @@ class ControllerScreen extends StatefulWidget {
 }
 
 class _ControllerScreenState extends State<ControllerScreen> {
+  late ServerConnector connector;
   static const String NOT_CONNECTED = "NOT CONNECTED";
   static const String CONNECTED = "CONNECTED";
 
   String connectionStatus = NOT_CONNECTED;
+
+  @override
+  void initState() {
+    super.initState();
+    connector = ServerConnector();
+  }
 
   @override
   Widget build(BuildContext context) {

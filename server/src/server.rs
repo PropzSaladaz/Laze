@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap, 
-    io::{BufReader, Read, Write}, 
+    io::{Read, Write}, 
     net::{SocketAddr, TcpListener, TcpStream}, 
     sync::{mpsc, Arc, Mutex}, 
     thread
@@ -8,9 +8,9 @@ use std::{
 
 use local_ip_address::local_ip;
 
-use super::messages::{NewClientResponse};
+use super::messages::NewClientResponse;
 
-const DEFAULT_PORT: u16 = 13555;
+const DEFAULT_PORT: u16 = 7878;
 
 /// Creates a TcpListener using the local machine's IP address
 fn create_socket(port: u16) -> TcpListener {
@@ -81,8 +81,11 @@ impl<T: Application + 'static> Server<T> {
     /// This call is blocking, and allows the server to wait for
     /// new client connection requests at port 7878.
     pub fn start(&mut self) {
-        let socket = create_socket(DEFAULT_PORT);
+        let socket = create_socket(self.config.starting_port);
         loop {
+            // Upon receiving a new connection request, create a new client
+            // waiting on a new port and send the new socket's port dedicated
+            // to that connection to the client
             match socket.accept() {
                 Ok((mut stream, addr)) => {
                     let port = self.clients.add(addr);

@@ -8,7 +8,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-const PORT: u16 = 13555;
+const PORT: u16 = 7878;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Input {

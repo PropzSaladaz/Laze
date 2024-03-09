@@ -6,6 +6,18 @@ use super::keybinds::*;
 const KEY_TAP:  u32 = 1;
 const KEY_HOLD: u32 = 0;
 
+extern "C" {
+    fn set_device(dev: &FFIDevice) -> c_int;
+
+    fn device_move(dev: &FFIDevice, move_x: c_int, move_y: c_int);
+
+    fn press_key(dev: &FFIDevice, key_code: c_uint, key_tap: c_uint);
+
+    fn destroy_device(dev: &FFIDevice);
+}
+
+/// Represents the virtual device as a C struct to be sent
+/// when calling C Foreign Function Interface (FFI)
 #[repr(C)]
 pub struct FFIDevice {
     dev_file: *const c_char,
@@ -17,16 +29,6 @@ pub struct FFIDevice {
     move_delay: c_uint,
     // keyboard
     key_press_status: c_uchar, // set when dragging/maintaining key pressed
-}
-
-extern "C" {
-    fn set_device(dev: &FFIDevice) -> c_int;
-
-    fn device_move(dev: &FFIDevice, move_x: c_int, move_y: c_int);
-
-    fn press_key(dev: &FFIDevice, key_code: c_uint, key_tap: c_uint);
-
-    fn destroy_device(dev: &FFIDevice);
 }
 
 impl FFIDevice {
