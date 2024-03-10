@@ -13,6 +13,7 @@ class ControllerScreen extends StatefulWidget {
 
 class _ControllerScreenState extends State<ControllerScreen> {
   late ServerConnector connector;
+  late Future<bool> connected;
   static const String NOT_CONNECTED = "NOT CONNECTED";
   static const String CONNECTED = "CONNECTED";
 
@@ -22,6 +23,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
   void initState() {
     super.initState();
     connector = ServerConnector();
+    connected = connector.findServer();
   }
 
   @override
@@ -39,6 +41,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
           constraints: const BoxConstraints(maxWidth: 800),
           child: Column(
             children: [
+              // CONNECTION HEADER
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -62,7 +65,22 @@ class _ControllerScreenState extends State<ControllerScreen> {
               const SizedBox(
                 height: 23,
               ),
-              const MousePad(),
+
+              // BODY
+              FutureBuilder(
+                  future: connected,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator.adaptive();
+                    }
+                    if (snapshot.hasError) {
+                      return Text(snapshot.error.toString());
+                    }
+
+                    return MousePad(
+                      connector: connector,
+                    );
+                  }),
             ],
           ),
         ),

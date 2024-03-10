@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_client/client/dto/input.dart';
 import 'package:mobile_client/color_constants.dart';
 import 'dart:math' as math;
 
+import 'client/server_connector.dart';
+
 class MousePad extends StatelessWidget {
-  const MousePad({super.key});
+  ServerConnector connector;
+
+  MousePad({super.key, required this.connector});
 
   void handleMouseDrag(DragUpdateDetails details) {
     var offset = details.delta;
-    print("Offset: $offset");
+    Input input = Input(move_x: offset.dx.toInt(), move_y: offset.dy.toInt());
+    connector.sendInput(input);
   }
 
   @override

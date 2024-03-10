@@ -1,19 +1,21 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-enum ConnStatus { UNDEFINED, NOT_LISTENING, CONNECTED }
+import 'package:mobile_client/client/dto/new_client_response.dart';
 
-class Connection {
-  late Future<Null> connection;
-  ConnStatus status = ConnStatus.UNDEFINED;
-}
+import 'dto/input.dart';
 
 class ServerConnector {
   static const serverPort = 7878;
   late Socket server;
+  Map<String, Future<bool>> connections = {};
 
-  ServerConnector() {
-    findServer();
+  ServerConnector();
+
+  void sendInput(Input input) {
+    var json = jsonEncode(input.toJson());
+    server.add(utf8.encode(json));
   }
 
   Future<bool> findServer() async {
@@ -21,36 +23,45 @@ class ServerConnector {
     var subnetMask = 24;
     var totalLocalIpSuffixes = pow(2, 32 - subnetMask).toInt();
 
-    final List<Connection> connections =
-        List.filled(totalLocalIpSuffixes, Connection());
-
     for (int i = 0; i < totalLocalIpSuffixes; i++) {
-      print("init status: ${connections[i].status}");
       var testIp = _intToIp(baseIp | i);
-      connections[i].connection =
-          Socket.connect(testIp.address, serverPort).then((socket) {
-        connections[i].status = ConnStatus.CONNECTED;
-        print("Changing status: ${i} to ${connections[i].status}");
-        socket.listen(
-            (event) => print("Received: ${testIp.address} - ${event}"),
-            onDone: () => socket.destroy());
-        server = socket;
-      }).catchError((error) {
-        print("Error in connection with ${i} ${testIp.address} - ${error}");
-        connections[i].status = ConnStatus.NOT_LISTENING;
-      }); // ignore
+      connections[testIp.address] = _connectToHost(testIp.address);
     }
 
-    for (int i = 0; i < totalLocalIpSuffixes; i++) {
-      await connections[i].connection;
-      print(
-          "testing ${i} ${connections[i].connection} - ${connections[i].status}");
-      if (connections[i].status == ConnStatus.CONNECTED) {
-        print("Connected");
-        return true; // connected
+    for (var conn in connections.keys) {
+      var future = connections[conn];
+      if (future != null && await future) {
+        // Connection to server was made
+        // now wait for connection to the new dedicated port
+        sleep(const Duration(microseconds: 350));
+        // the new connection replaced the old one
+        var newConn = connections[conn];
+        if (newConn != null && await newConn) {
+          return true;
+        }
       }
     }
-    return false; // no server listening
+    return false;
+  }
+
+  Future<bool> _connectToHost(String ipAddress) async {
+    try {
+      var socket = await Socket.connect(ipAddress, serverPort,
+          timeout: const Duration(milliseconds: 100));
+
+      socket.listen((jsonBytes) async {
+        // upon receiving the new dedicated port
+        var json = jsonDecode(utf8.decode(jsonBytes));
+        NewClientResponse resp = NewClientResponse.fromJson(json);
+        // try connecting to it
+        var new_socket = await Socket.connect(ipAddress, resp.port);
+        print("Connected to : ${resp.port}");
+        server = new_socket;
+      }, onDone: () => socket.destroy());
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   int _ipToInt(String address) {

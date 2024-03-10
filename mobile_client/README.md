@@ -1,6 +1,9 @@
 # mobile_client
 
-A new Flutter project.
+run the following command to generate the json_serializable classes:
+```
+dart run build_runner build
+```
 
 ## Getting Started
 

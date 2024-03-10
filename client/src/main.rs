@@ -14,7 +14,7 @@ const PORT: u16 = 7878;
 pub struct Input {
     move_x: i32,
     move_y: i32,
-    key: i32,
+    // key: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
