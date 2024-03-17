@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mobile_client/client/server_connector.dart';
 import 'package:mobile_client/color_constants.dart';
 import 'package:mobile_client/mousepad.dart';
-import 'package:mobile_client/styled-button.dart';
+import 'package:mobile_client/buttons/styled_button.dart';
+
+import 'command_btns.dart';
 
 class ControllerScreen extends StatefulWidget {
   const ControllerScreen({super.key});
@@ -14,15 +16,17 @@ class ControllerScreen extends StatefulWidget {
 class _ControllerScreenState extends State<ControllerScreen> {
   late ServerConnector connector;
   late Future<bool> connected;
-  static const String NOT_CONNECTED = "NOT CONNECTED";
-  static const String CONNECTED = "CONNECTED";
 
-  String connectionStatus = NOT_CONNECTED;
+  String connectionStatus = ServerConnector.NOT_CONNECTED;
+
+  void setConnectionState(String state) {
+    setState(() => connectionStatus = state);
+  }
 
   @override
   void initState() {
     super.initState();
-    connector = ServerConnector();
+    connector = ServerConnector(setConnectionStatus: setConnectionState);
     connected = connector.findServer();
   }
 
@@ -77,8 +81,15 @@ class _ControllerScreenState extends State<ControllerScreen> {
                       return Text(snapshot.error.toString());
                     }
 
-                    return MousePad(
-                      connector: connector,
+                    return Column(
+                      children: [
+                        MousePad(
+                          connector: connector,
+                        ),
+                        CommandBtns(
+                          connector: connector,
+                        ),
+                      ],
                     );
                   }),
             ],

@@ -1,24 +1,29 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ffi::FFIDevice;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Input {
-    move_x: i32,
-    move_y: i32,
-}
+use crate::{ffi::FFIDevice, messages::Input};
 
 pub struct Device {
    device: FFIDevice,
 }
 
-trait InputHandler {
-    fn handle(&self, input: &Input);
+pub trait InputHandler: Send + Sync {
+    fn handle(&self, bytes: &[u8]) {
+        // TODO - Sometimes we read 2 or 3 inputs all joined together as a string
+        // from the socket stream, thus throwing an error.
+        // We are ignoring those, working only if we receive 1 at a time.
+        if let Ok(input) = serde_json::from_slice(bytes) {
+            self.handle_input(&input);
+        }
+        
+    } 
+    fn handle_input(&self, input: &Input);
 }
 
 impl InputHandler for Device {
-    fn handle(&self, input: &Input) {
+    fn handle_input(&self, input: &Input) {
+        println!("Received: {:?}", input);
         self.device.pos_move(input.move_x, input.move_y);
+        self.device.press_key(input.button);
     }
 }
 

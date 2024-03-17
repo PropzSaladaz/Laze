@@ -15,3 +15,10 @@ pub struct NewClientRequest {
 #[derive(Serialize, Deserialize)]
 pub struct DeviceInputRequest {
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Input {
+    pub move_x: i32,
+    pub move_y: i32,
+    pub button: u32,
+}

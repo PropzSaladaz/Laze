@@ -1,4 +1,7 @@
+use device::{Device, InputHandler};
 use server::{ServerConfig, Server};
+
+use crate::messages::Input;
 
 mod keybinds;
 mod ffi;
@@ -8,19 +11,24 @@ mod messages;
 
 const PORT: u16 = 7878;
 
-struct DeviceApp {
+struct DeviceApp<T: InputHandler> {
+    handler: T,
 }
 
-// TODO
-impl server::Application for DeviceApp {
+impl<T: InputHandler> server::Application for DeviceApp<T> {
     fn handle(&self, input: &[u8]) {
-        println!("handled: {:?}", input);
+        self.handler.handle(input);
     }
 }
 
 fn main() {
     let config = ServerConfig::new(PORT, 2);
-    let app = DeviceApp {};
+    let app = DeviceApp {
+        handler: Device::new(
+            "/dev/uinput",
+            "virtual-mouse", 
+            1, 1, 1500)
+    };
     let mut server = Server::build(config, app).unwrap();
     server.start();
 }

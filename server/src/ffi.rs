@@ -31,6 +31,9 @@ pub struct FFIDevice {
     key_press_status: c_uchar, // set when dragging/maintaining key pressed
 }
 
+unsafe impl Send for FFIDevice {}
+unsafe impl Sync for FFIDevice {}
+
 impl FFIDevice {
     pub fn new(
         dev_file: &'static str, 

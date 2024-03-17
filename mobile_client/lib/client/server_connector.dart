@@ -6,12 +6,19 @@ import 'package:mobile_client/client/dto/new_client_response.dart';
 
 import 'dto/input.dart';
 
+typedef Callback = void Function(String connectionStatus);
+
 class ServerConnector {
+  static const String NOT_CONNECTED = "NOT CONNECTED";
+  static const String CONNECTED = "CONNECTED";
+
   static const serverPort = 7878;
   late Socket server;
   Map<String, Future<bool>> connections = {};
+  // Used to inform application of current connection status
+  Callback setConnectionStatus;
 
-  ServerConnector();
+  ServerConnector({required this.setConnectionStatus});
 
   void sendInput(Input input) {
     var json = jsonEncode(input.toJson());
@@ -41,6 +48,7 @@ class ServerConnector {
         }
       }
     }
+    setConnectionStatus(NOT_CONNECTED);
     return false;
   }
 
@@ -55,11 +63,13 @@ class ServerConnector {
         NewClientResponse resp = NewClientResponse.fromJson(json);
         // try connecting to it
         var new_socket = await Socket.connect(ipAddress, resp.port);
+        setConnectionStatus(CONNECTED);
         print("Connected to : ${resp.port}");
         server = new_socket;
       }, onDone: () => socket.destroy());
       return true;
     } catch (e) {
+      setConnectionStatus(NOT_CONNECTED);
       return false;
     }
   }

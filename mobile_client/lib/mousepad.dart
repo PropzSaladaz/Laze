@@ -6,13 +6,18 @@ import 'dart:math' as math;
 import 'client/server_connector.dart';
 
 class MousePad extends StatelessWidget {
-  ServerConnector connector;
+  final ServerConnector connector;
 
-  MousePad({super.key, required this.connector});
+  const MousePad({super.key, required this.connector});
 
   void handleMouseDrag(DragUpdateDetails details) {
     var offset = details.delta;
     Input input = Input(move_x: offset.dx.toInt(), move_y: offset.dy.toInt());
+    connector.sendInput(input);
+  }
+
+  void handleMouseClick() {
+    Input input = Input.leftCick();
     connector.sendInput(input);
   }
 
@@ -25,6 +30,7 @@ class MousePad extends StatelessWidget {
         // MousePad
         GestureDetector(
           onPanUpdate: handleMouseDrag,
+          onTap: handleMouseClick,
           child: Stack(
             children: [
               // main mousepad
