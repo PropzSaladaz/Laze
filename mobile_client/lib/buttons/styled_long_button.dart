@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_client/color_constants.dart';
 
+typedef Callback = void Function();
+
 class StyledLongButton extends StatelessWidget {
   final IconData iconUp;
   final IconData iconDown;
+  final Callback onPressedUp;
+  final Callback onPressedDown;
   final String description;
   final bool? vertical;
   const StyledLongButton({
@@ -11,6 +15,8 @@ class StyledLongButton extends StatelessWidget {
     required this.iconUp,
     required this.iconDown,
     required this.description,
+    required this.onPressedUp,
+    required this.onPressedDown,
     this.vertical,
   });
 
@@ -40,7 +46,7 @@ class StyledLongButton extends StatelessWidget {
       child: _autoLayout(
         children: [
           IconButton(
-            onPressed: () {},
+            onPressed: onPressedUp,
             icon: Icon(iconUp),
             iconSize: 45,
             color: ColorConstants.mainText,
@@ -50,7 +56,7 @@ class StyledLongButton extends StatelessWidget {
             style: const TextStyle(color: ColorConstants.mainText),
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: onPressedDown,
             icon: Icon(iconDown),
             iconSize: 45,
             color: ColorConstants.mainText,

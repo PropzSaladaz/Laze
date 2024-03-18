@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_client/color_constants.dart';
 
+typedef Callback = void Function();
+
 class StyledButton extends StatelessWidget {
   final IconData icon;
+  final Callback onPressed;
+
   const StyledButton({
     super.key,
     required this.icon,
+    required this.onPressed,
   });
 
   @override
@@ -30,7 +35,7 @@ class StyledButton extends StatelessWidget {
         ],
       ),
       child: IconButton(
-        onPressed: () {},
+        onPressed: onPressed,
         icon: Icon(icon),
         iconSize: 45,
         color: ColorConstants.mainText,

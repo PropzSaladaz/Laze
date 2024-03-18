@@ -16,7 +16,7 @@ struct DeviceApp<T: InputHandler> {
 }
 
 impl<T: InputHandler> server::Application for DeviceApp<T> {
-    fn handle(&self, input: &[u8]) {
+    fn handle(&mut self, input: &[u8]) {
         self.handler.handle(input);
     }
 }

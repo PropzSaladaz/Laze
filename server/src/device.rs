@@ -1,29 +1,55 @@
+use std::str::from_utf8;
+
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::{ffi::FFIDevice, messages::Input};
+use crate::{ffi::*, messages::Input};
 
 pub struct Device {
    device: FFIDevice,
 }
 
 pub trait InputHandler: Send + Sync {
-    fn handle(&self, bytes: &[u8]) {
-        // TODO - Sometimes we read 2 or 3 inputs all joined together as a string
-        // from the socket stream, thus throwing an error.
-        // We are ignoring those, working only if we receive 1 at a time.
-        if let Ok(input) = serde_json::from_slice(bytes) {
-            self.handle_input(&input);
-        }
+    fn handle(&mut self, bytes: &[u8]) {
+        let pattern = r#"\{[^}]+\}"#;
+        let re = Regex::new(pattern).unwrap();
+        let json = from_utf8(bytes).unwrap();
         
+        // Sometimes input from socket comes with several inputs at the same time.
+        // we need to parse each seperately
+        for mat in re.find_iter(json) {
+            self.handle_input(&serde_json::from_str(mat.as_str()).unwrap());
+        }
+        println!("Input: {}", json);
     } 
-    fn handle_input(&self, input: &Input);
+    fn handle_input(&mut self, input: &Input);
 }
 
 impl InputHandler for Device {
-    fn handle_input(&self, input: &Input) {
-        println!("Received: {:?}", input);
+    fn handle_input(&mut self, input: &Input) {
+
+        // State machine -> set holding state.
+        // If set to hold, all next invocations will end up in "NO_CHANGE"
+        // until it is eventually RELEASEd
+        match input.key_press_status {
+            HOLD => self.device.set_hold(),
+            RELEASE => self.device.set_release(),
+            NO_CHANGE => (),
+            _ => ()
+        }
+
+        // handle sensitivity change
+        if (input.sensitivity_delta != 0) {
+            self.device.add_sensitivity(input.sensitivity_delta);
+        }
+
+        // Handle mouse movement
         self.device.pos_move(input.move_x, input.move_y);
-        self.device.press_key(input.button);
+
+        // handle key pressed
+        if input.button != NO_BUTTON_PRESSED { // Only press key if key is being pressed
+            self.device.press_key(input.button as u32);
+        }
     }
 }
 

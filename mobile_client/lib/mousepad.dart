@@ -12,12 +12,13 @@ class MousePad extends StatelessWidget {
 
   void handleMouseDrag(DragUpdateDetails details) {
     var offset = details.delta;
-    Input input = Input(move_x: offset.dx.toInt(), move_y: offset.dy.toInt());
+    Input input =
+        Input.mouseMove(move_x: offset.dx.toInt(), move_y: offset.dy.toInt());
     connector.sendInput(input);
   }
 
   void handleMouseClick() {
-    Input input = Input.leftCick();
+    Input input = Input.leftClick();
     connector.sendInput(input);
   }
 

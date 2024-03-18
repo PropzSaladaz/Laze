@@ -68,6 +68,7 @@ flutter:
           weight: 800
         - asset: fonts/NunitoSans_7pt-Black.ttf
           weight: 900
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

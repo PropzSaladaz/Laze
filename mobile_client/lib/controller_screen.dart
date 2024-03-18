@@ -27,7 +27,6 @@ class _ControllerScreenState extends State<ControllerScreen> {
   void initState() {
     super.initState();
     connector = ServerConnector(setConnectionStatus: setConnectionState);
-    connected = connector.findServer();
   }
 
   @override
@@ -60,38 +59,64 @@ class _ControllerScreenState extends State<ControllerScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const StyledButton(
-                      icon: Icons.power_settings_new,
-                    ),
+                    () {
+                      // CONNECTED -> button used to disconnect
+                      if (connectionStatus == ServerConnector.CONNECTED) {
+                        return StyledButton(
+                          onPressed: () {
+                            setState(() {
+                              connector.disconnect();
+                            });
+                          },
+                          icon: Icons.power_settings_new,
+                        );
+                      } else {
+                        // NOT CONNECTED -> button used to connect
+                        return StyledButton(
+                          onPressed: () {
+                            setState(() {
+                              connected = connector.findServer();
+                            });
+                          },
+                          icon: Icons.screen_search_desktop_outlined,
+                        );
+                      }
+                    }()
                   ],
                 ),
               ),
               const SizedBox(
                 height: 23,
               ),
+              () {
+                if (connectionStatus == ServerConnector.NOT_CONNECTED) {
+                  return Text("not connected");
+                } else {
+                  return FutureBuilder(
+                      future: connected,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const CircularProgressIndicator.adaptive();
+                        }
+                        if (snapshot.hasError) {
+                          return Text(snapshot.error.toString());
+                        }
 
+                        return Column(
+                          children: [
+                            MousePad(
+                              connector: connector,
+                            ),
+                            CommandBtns(
+                              connector: connector,
+                            ),
+                          ],
+                        );
+                      });
+                }
+              }()
               // BODY
-              FutureBuilder(
-                  future: connected,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const CircularProgressIndicator.adaptive();
-                    }
-                    if (snapshot.hasError) {
-                      return Text(snapshot.error.toString());
-                    }
-
-                    return Column(
-                      children: [
-                        MousePad(
-                          connector: connector,
-                        ),
-                        CommandBtns(
-                          connector: connector,
-                        ),
-                      ],
-                    );
-                  }),
             ],
           ),
         ),

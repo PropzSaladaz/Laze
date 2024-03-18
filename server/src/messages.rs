@@ -20,5 +20,7 @@ pub struct DeviceInputRequest {
 pub struct Input {
     pub move_x: i32,
     pub move_y: i32,
-    pub button: u32,
+    pub button: i32,
+    pub key_press_status: u8,
+    pub sensitivity_delta: i32,
 }

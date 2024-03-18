@@ -20,8 +20,7 @@ typedef struct device {
     unsigned int move_y_sense;
     unsigned int move_delay;
     // keyboard
-    unsigned char key_tap;          // set when single pressing a key
-    unsigned char key_press_status; // set when dragging/maintaining key pressed
+    unsigned char key_press_status;  // 1 for pressed, 0 for release
 } device ;
 
 /**

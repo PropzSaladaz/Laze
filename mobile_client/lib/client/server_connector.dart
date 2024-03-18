@@ -20,6 +20,12 @@ class ServerConnector {
 
   ServerConnector({required this.setConnectionStatus});
 
+  void disconnect() {
+    setConnectionStatus(NOT_CONNECTED);
+    server.close();
+    server.destroy();
+  }
+
   void sendInput(Input input) {
     var json = jsonEncode(input.toJson());
     server.add(utf8.encode(json));
@@ -55,17 +61,16 @@ class ServerConnector {
   Future<bool> _connectToHost(String ipAddress) async {
     try {
       var socket = await Socket.connect(ipAddress, serverPort,
-          timeout: const Duration(milliseconds: 100));
+          timeout: const Duration(milliseconds: 500));
 
       socket.listen((jsonBytes) async {
         // upon receiving the new dedicated port
         var json = jsonDecode(utf8.decode(jsonBytes));
         NewClientResponse resp = NewClientResponse.fromJson(json);
         // try connecting to it
-        var new_socket = await Socket.connect(ipAddress, resp.port);
+        var newSocket = await Socket.connect(ipAddress, resp.port);
+        server = newSocket;
         setConnectionStatus(CONNECTED);
-        print("Connected to : ${resp.port}");
-        server = new_socket;
       }, onDone: () => socket.destroy());
       return true;
     } catch (e) {

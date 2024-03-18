@@ -3,8 +3,13 @@ use std::ffi::{c_uchar, CString};
 
 use super::keybinds::*;
 
-const KEY_TAP:  u32 = 1;
-const KEY_HOLD: u32 = 0;
+pub const KEY_TAP:  u32 = 1;
+pub const NO_BUTTON_PRESSED: i32 = -1;
+
+
+pub const NO_CHANGE: u8 = 0;
+pub const RELEASE: u8 = 1;
+pub const HOLD: u8 = 2;
 
 extern "C" {
     fn set_device(dev: &FFIDevice) -> c_int;
@@ -73,6 +78,27 @@ impl FFIDevice {
 
     pub fn press_key(&self, key_code: u32) {
         unsafe { press_key(&self, key_code, KEY_TAP) }
+    }
+
+    pub fn set_hold(&mut self) {
+        self.key_press_status = HOLD;
+    }
+
+    pub fn set_release(&mut self) {
+        self.key_press_status = RELEASE;
+    }
+
+    pub fn add_sensitivity(&mut self, sensitivity_delta: i32) {
+        let curr_sense = self.move_x_sense as i32;
+        let mut new_sense = curr_sense + sensitivity_delta;
+        
+        if new_sense < 0 { new_sense = 0; }
+
+        let new_sense = new_sense as u32;
+
+        self.move_x_sense = new_sense;
+        self.move_y_sense = new_sense;
+
     }
 
 }

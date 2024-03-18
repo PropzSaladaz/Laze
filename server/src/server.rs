@@ -20,7 +20,7 @@ fn create_socket(port: u16) -> TcpListener {
 }
 
 pub trait Application: Sync + Send {
-    fn handle(&self, input: &[u8]);
+    fn handle(&mut self, input: &[u8]);
 }
 
 //  ---------------------------------------
