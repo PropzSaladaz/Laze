@@ -16,6 +16,8 @@ extern "C" {
 
     fn device_move(dev: &FFIDevice, move_x: c_int, move_y: c_int);
 
+    fn device_scroll(dev: &FFIDevice, wheel_delta: c_int);
+
     fn press_key(dev: &FFIDevice, key_code: c_uint, key_tap: c_uint);
 
     fn destroy_device(dev: &FFIDevice);
@@ -31,6 +33,7 @@ pub struct FFIDevice {
     // mouse
     move_x_sense: c_uint,
     move_y_sense: c_uint,
+    wheel_sense: c_uint,
     move_delay: c_uint,
     // keyboard
     key_press_status: c_uchar, // set when dragging/maintaining key pressed
@@ -45,6 +48,7 @@ impl FFIDevice {
         dev_name: &'static str, 
         move_x_sense: u32, 
         move_y_sense: u32, 
+        wheel_sense: u32,
         move_delay: u32
     ) -> Self {
         let dev_file = CString::new(dev_file).unwrap();
@@ -56,6 +60,7 @@ impl FFIDevice {
             fd: -1,
             move_x_sense,
             move_y_sense,
+            wheel_sense,
             move_delay,
             key_press_status: 0,
         };
@@ -69,11 +74,15 @@ impl FFIDevice {
     }
 
     fn default() -> Self {
-        FFIDevice::new("/dev/uinput", "default", 5, 5, 15000)
+        FFIDevice::new("/dev/uinput", "default", 5, 5, 1, 15000)
     }
 
     pub fn pos_move(&self, move_x: i32, move_y: i32) {
         unsafe {  device_move(&self, move_x, move_y) }
+    }
+
+    pub fn scroll(&self, wheel_delta: i32) {
+        unsafe { device_scroll(&self, wheel_delta) }
     }
 
     pub fn press_key(&self, key_code: u32) {
@@ -92,7 +101,7 @@ impl FFIDevice {
         let curr_sense = self.move_x_sense as i32;
         let mut new_sense = curr_sense + sensitivity_delta;
         
-        if new_sense < 0 { new_sense = 0; }
+        if new_sense < 1 { new_sense = 1; } // must always be at least at 1
 
         let new_sense = new_sense as u32;
 
@@ -223,5 +232,21 @@ mod tests {
         );
     }
 
+    #[test]
+    fn brightness_down() {
+        let mut dev = FFIDevice::default();
+        dev.set_hold();
+        dev.press_key(225);
+        assert!(false) // BRIGHTNESS KEYS CURRENTLY NOT WORKING -> SEE WHY
+    }
+
+    #[test]
+    fn scroll_down() {
+        let mut dev = FFIDevice::default();
+        dev.set_hold();
+        for _ in 0..15 {
+            dev.scroll(100);
+        }
+    }
 
 }

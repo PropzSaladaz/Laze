@@ -32,9 +32,10 @@ class _ControllerScreenState extends State<ControllerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text("blablo"),
+        backgroundColor: ColorConstants.background,
+        toolbarHeight: 0,
       ),
       body: Center(
         child: Container(
@@ -46,7 +47,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
             children: [
               // CONNECTION HEADER
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -64,9 +65,10 @@ class _ControllerScreenState extends State<ControllerScreen> {
                       if (connectionStatus == ServerConnector.CONNECTED) {
                         return StyledButton(
                           onPressed: () {
-                            setState(() {
-                              connector.disconnect();
-                            });
+                            showDialog(
+                                context: context,
+                                builder: (BuildContext context) =>
+                                    _disconnectPopup());
                           },
                           icon: Icons.power_settings_new,
                         );
@@ -75,6 +77,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
                         return StyledButton(
                           onPressed: () {
                             setState(() {
+                              setConnectionState(ServerConnector.SEARCHING);
                               connected = connector.findServer();
                             });
                           },
@@ -90,30 +93,38 @@ class _ControllerScreenState extends State<ControllerScreen> {
               ),
               () {
                 if (connectionStatus == ServerConnector.NOT_CONNECTED) {
-                  return Text("not connected");
+                  return Expanded(
+                    child: Center(
+                        child: Image.asset("assets/images/NoConnection.png")),
+                  );
                 } else {
-                  return FutureBuilder(
-                      future: connected,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const CircularProgressIndicator.adaptive();
-                        }
-                        if (snapshot.hasError) {
-                          return Text(snapshot.error.toString());
-                        }
+                  return Expanded(
+                    child: Center(
+                      child: FutureBuilder(
+                          future: connected,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const CircularProgressIndicator.adaptive();
+                            }
+                            if (snapshot.hasError) {
+                              return Text(snapshot.error.toString());
+                            }
 
-                        return Column(
-                          children: [
-                            MousePad(
-                              connector: connector,
-                            ),
-                            CommandBtns(
-                              connector: connector,
-                            ),
-                          ],
-                        );
-                      });
+                            return Column(
+                              children: [
+                                MousePad(
+                                  connector: connector,
+                                ),
+                                const SizedBox(height: 15),
+                                CommandBtns(
+                                  connector: connector,
+                                ),
+                              ],
+                            );
+                          }),
+                    ),
+                  );
                 }
               }()
               // BODY
@@ -121,6 +132,39 @@ class _ControllerScreenState extends State<ControllerScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _disconnectPopup() {
+    return AlertDialog(
+      alignment: Alignment.center,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      backgroundColor: ColorConstants.background,
+      title: const Text("Disconnect"),
+      actions: [
+        TextButton(
+          onPressed: () {
+            setState(() {
+              connector.disconnect();
+            });
+            Navigator.of(context).pop();
+          },
+          child: const Text(
+            "Disconnect",
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              connector.disconnect();
+            });
+            Navigator.of(context).pop();
+          },
+          child: const Text(
+            "Turn OFF PC",
+          ),
+        )
+      ],
     );
   }
 }

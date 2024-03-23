@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_client/client/dto/input.dart';
 import 'package:mobile_client/color_constants.dart';
@@ -10,15 +12,46 @@ class MousePad extends StatelessWidget {
 
   const MousePad({super.key, required this.connector});
 
-  void handleMouseDrag(DragUpdateDetails details) {
+  void _handleMouseDrag(DragUpdateDetails details) {
     var offset = details.delta;
+    var x = offset.dx.abs() < 1 ? (2 * offset.dx) : offset.dx;
+    var y = offset.dy.abs() < 1 ? (2 * offset.dy) : offset.dy;
+    Input input = Input.mouseMove(move_x: x.toInt(), move_y: y.toInt());
+    connector.sendInput(input);
+  }
+
+  void _handleLongPressMove(LongPressMoveUpdateDetails details) {
+    var offset = details.localOffsetFromOrigin;
     Input input =
         Input.mouseMove(move_x: offset.dx.toInt(), move_y: offset.dy.toInt());
     connector.sendInput(input);
   }
 
-  void handleMouseClick() {
+  void _handleMouseScroll(DragUpdateDetails details, double midPos) {
+    var offset = details.localPosition.dy;
+    if (offset.toInt() % 3 == 0) {
+      sleep(const Duration(milliseconds: 10));
+      double amount = (offset - midPos) / midPos;
+      if (amount > 0) {
+        connector.sendInput(Input.scroll(amount: -1));
+      } else {
+        connector.sendInput(Input.scroll(amount: 1));
+      }
+    }
+  }
+
+  void _handleMouseClick() {
     Input input = Input.leftClick();
+    connector.sendInput(input);
+  }
+
+  void _handleLongPress() {
+    Input input = Input.setHold();
+    connector.sendInput(input);
+  }
+
+  void _handleLongPressUp() {
+    Input input = Input.setRelease();
     connector.sendInput(input);
   }
 
@@ -26,12 +59,16 @@ class MousePad extends StatelessWidget {
   Widget build(BuildContext context) {
     const rotationAngle = -90 * math.pi / 180;
     Size screenSize = MediaQuery.of(context).size;
+    double scrollHeight = 0.40 * screenSize.height;
+    double midPos = scrollHeight / 2;
     return Stack(
       children: [
         // MousePad
         GestureDetector(
-          onPanUpdate: handleMouseDrag,
-          onTap: handleMouseClick,
+          onPanUpdate: _handleMouseDrag,
+          onTap: _handleMouseClick,
+          onPanCancel: _handleLongPressUp,
+          onLongPressMoveUpdate: _handleLongPressMove,
           child: Stack(
             children: [
               // main mousepad
@@ -68,11 +105,14 @@ class MousePad extends StatelessWidget {
         Positioned(
           right: 10,
           child: GestureDetector(
+            onPanUpdate: (details) {
+              _handleMouseScroll(details, midPos);
+            },
             child: Stack(
               children: [
                 Container(
                   width: 60,
-                  height: 0.40 * screenSize.height,
+                  height: scrollHeight,
                   padding: const EdgeInsets.all(2),
                   child: FractionallySizedBox(
                     heightFactor: 0.93,

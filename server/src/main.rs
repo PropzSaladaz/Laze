@@ -27,7 +27,7 @@ fn main() {
         handler: Device::new(
             "/dev/uinput",
             "virtual-mouse", 
-            1, 1, 1500)
+            1, 1, 1,  1500)
     };
     let mut server = Server::build(config, app).unwrap();
     server.start();

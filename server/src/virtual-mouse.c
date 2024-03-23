@@ -18,6 +18,7 @@ typedef struct device {
     // mouse
     unsigned int move_x_sense;
     unsigned int move_y_sense;
+    unsigned int wheel_sense;
     unsigned int move_delay;
     // keyboard
     unsigned char key_press_status;  // 1 for pressed, 0 for release
@@ -99,6 +100,7 @@ void set_events(int fd) {
     ioctl(fd, UI_SET_EVBIT, EV_REL);
     ioctl(fd, UI_SET_RELBIT, REL_X);
     ioctl(fd, UI_SET_RELBIT, REL_Y);
+    ioctl(fd, UI_SET_RELBIT, REL_WHEEL);
 }
 
 /**
@@ -111,6 +113,18 @@ void set_events(int fd) {
 void device_move(device* dev, int move_x, int move_y) {
     emit(dev->fd, EV_REL, REL_X, dev->move_x_sense * move_x);
     emit(dev->fd, EV_REL, REL_Y, dev->move_y_sense * move_y);
+    emit(dev->fd, EV_SYN, SYN_REPORT, 0);
+    usleep(dev->move_delay);
+}
+
+/**
+ * @brief Mouse wheel with continous displacement
+ * 
+ * @param dev 
+ * @param wheel_delta
+ */
+void device_scroll(device* dev, int wheel_delta) {
+    emit(dev->fd, EV_REL, REL_WHEEL, dev->wheel_sense * wheel_delta);
     emit(dev->fd, EV_SYN, SYN_REPORT, 0);
     usleep(dev->move_delay);
 }

@@ -39,8 +39,13 @@ impl InputHandler for Device {
         }
 
         // handle sensitivity change
-        if (input.sensitivity_delta != 0) {
+        if input.sensitivity_delta != 0 {
             self.device.add_sensitivity(input.sensitivity_delta);
+        }
+
+        // scroll
+        if input.wheel_delta != 0 {
+            self.device.scroll(input.wheel_delta);
         }
 
         // Handle mouse movement
@@ -59,6 +64,7 @@ impl Device {
         dev_name: &'static str, 
         move_x_sense: u32, 
         move_y_sense: u32, 
+        wheel_sense: u32,
         move_delay: u32
     ) -> Self {
         Device {
@@ -67,6 +73,7 @@ impl Device {
                 dev_name, 
                 move_x_sense, 
                 move_y_sense, 
+                wheel_sense,
                 move_delay
             )
         }

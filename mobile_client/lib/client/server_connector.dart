@@ -11,6 +11,7 @@ typedef Callback = void Function(String connectionStatus);
 class ServerConnector {
   static const String NOT_CONNECTED = "NOT CONNECTED";
   static const String CONNECTED = "CONNECTED";
+  static const String SEARCHING = "SEARCHING...";
 
   static const serverPort = 7878;
   late Socket server;
@@ -46,10 +47,11 @@ class ServerConnector {
       if (future != null && await future) {
         // Connection to server was made
         // now wait for connection to the new dedicated port
-        sleep(const Duration(microseconds: 350));
+        sleep(const Duration(microseconds: 500));
         // the new connection replaced the old one
         var newConn = connections[conn];
         if (newConn != null && await newConn) {
+          setConnectionStatus(CONNECTED);
           return true;
         }
       }
@@ -61,7 +63,7 @@ class ServerConnector {
   Future<bool> _connectToHost(String ipAddress) async {
     try {
       var socket = await Socket.connect(ipAddress, serverPort,
-          timeout: const Duration(milliseconds: 500));
+          timeout: const Duration(milliseconds: 600));
 
       socket.listen((jsonBytes) async {
         // upon receiving the new dedicated port
@@ -70,11 +72,9 @@ class ServerConnector {
         // try connecting to it
         var newSocket = await Socket.connect(ipAddress, resp.port);
         server = newSocket;
-        setConnectionStatus(CONNECTED);
       }, onDone: () => socket.destroy());
       return true;
     } catch (e) {
-      setConnectionStatus(NOT_CONNECTED);
       return false;
     }
   }
