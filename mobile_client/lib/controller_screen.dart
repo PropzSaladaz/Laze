@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_client/client/dto/input.dart';
 import 'package:mobile_client/client/server_connector.dart';
 import 'package:mobile_client/color_constants.dart';
+import 'package:mobile_client/connection_header.dart';
 import 'package:mobile_client/mousepad.dart';
 import 'package:mobile_client/buttons/styled_button.dart';
 
@@ -43,91 +45,61 @@ class _ControllerScreenState extends State<ControllerScreen> {
               horizontal: 24, vertical: 24),
           alignment: Alignment.topCenter,
           constraints: const BoxConstraints(maxWidth: 800),
-          child: Column(
+          child: Stack(
             children: [
-              // CONNECTION HEADER
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      connectionStatus,
-                      style: const TextStyle(
-                        color: ColorConstants.mainText,
-                        fontSize: 35,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    () {
-                      // CONNECTED -> button used to disconnect
-                      if (connectionStatus == ServerConnector.CONNECTED) {
-                        return StyledButton(
-                          onPressed: () {
-                            showDialog(
-                                context: context,
-                                builder: (BuildContext context) =>
-                                    _disconnectPopup());
-                          },
-                          icon: Icons.power_settings_new,
-                        );
-                      } else {
-                        // NOT CONNECTED -> button used to connect
-                        return StyledButton(
-                          onPressed: () {
-                            setState(() {
-                              setConnectionState(ServerConnector.SEARCHING);
-                              connected = connector.findServer();
-                            });
-                          },
-                          icon: Icons.screen_search_desktop_outlined,
-                        );
-                      }
-                    }()
-                  ],
-                ),
-              ),
-              const SizedBox(
-                height: 23,
-              ),
-              () {
-                if (connectionStatus == ServerConnector.NOT_CONNECTED) {
-                  return Expanded(
-                    child: Center(
-                        child: Image.asset("assets/images/NoConnection.png")),
-                  );
-                } else {
-                  return Expanded(
-                    child: Center(
-                      child: FutureBuilder(
-                          future: connected,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const CircularProgressIndicator.adaptive();
-                            }
-                            if (snapshot.hasError) {
-                              return Text(snapshot.error.toString());
-                            }
+              Column(
+                children: [
+                  ConnectionHeader(
+                    connectionStatus: connectionStatus,
+                    connect: _connect,
+                    disconnect: _disconnect,
+                    turnOffPc: _turnOffPc,
+                  ),
+                  const SizedBox(
+                    height: 23,
+                  ),
+                  // PAGE BODY
+                  () {
+                    if (connectionStatus == ServerConnector.NOT_CONNECTED) {
+                      return Expanded(
+                        child: Center(
+                            child:
+                                Image.asset("assets/images/NoConnection.png")),
+                      );
+                    } else {
+                      return Expanded(
+                        child: Center(
+                          child: FutureBuilder(
+                              future: connected,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const CircularProgressIndicator
+                                      .adaptive();
+                                }
+                                if (snapshot.hasError) {
+                                  return Text(snapshot.error.toString());
+                                }
 
-                            return Column(
-                              children: [
-                                MousePad(
-                                  connector: connector,
-                                ),
-                                const SizedBox(height: 15),
-                                CommandBtns(
-                                  connector: connector,
-                                ),
-                              ],
-                            );
-                          }),
-                    ),
-                  );
-                }
-              }()
-              // BODY
+                                return Column(
+                                  children: [
+                                    MousePad(
+                                      connector: connector,
+                                    ),
+                                    const SizedBox(height: 15),
+                                    CommandBtns(
+                                      connector: connector,
+                                    ),
+                                  ],
+                                );
+                              }),
+                        ),
+                      );
+                    }
+                  }()
+                  // BODY
+                ],
+              ),
             ],
           ),
         ),
@@ -135,36 +107,23 @@ class _ControllerScreenState extends State<ControllerScreen> {
     );
   }
 
-  Widget _disconnectPopup() {
-    return AlertDialog(
-      alignment: Alignment.center,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      backgroundColor: ColorConstants.background,
-      title: const Text("Disconnect"),
-      actions: [
-        TextButton(
-          onPressed: () {
-            setState(() {
-              connector.disconnect();
-            });
-            Navigator.of(context).pop();
-          },
-          child: const Text(
-            "Disconnect",
-          ),
-        ),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              connector.disconnect();
-            });
-            Navigator.of(context).pop();
-          },
-          child: const Text(
-            "Turn OFF PC",
-          ),
-        )
-      ],
-    );
+  void _connect() {
+    setState(() {
+      setConnectionState(ServerConnector.SEARCHING);
+      connected = connector.findServer();
+    });
+  }
+
+  void _disconnect() {
+    connector.sendInput(Input.disconnect());
+    setState(() {
+      connector.disconnect();
+    });
+  }
+
+  void _turnOffPc() {
+    setState(() {
+      connector.disconnect();
+    });
   }
 }

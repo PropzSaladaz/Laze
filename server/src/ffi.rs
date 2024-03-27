@@ -1,11 +1,8 @@
 use core::ffi::{c_char, c_int, c_uint};
 use std::ffi::{c_uchar, CString};
 
-use super::keybinds::*;
-
 pub const KEY_TAP:  u32 = 1;
 pub const NO_BUTTON_PRESSED: i32 = -1;
-
 
 pub const NO_CHANGE: u8 = 0;
 pub const RELEASE: u8 = 1;

@@ -19,8 +19,12 @@ fn create_socket(port: u16) -> TcpListener {
     TcpListener::bind(format!("{local_ip}:{port}")).unwrap()
 }
 
+pub enum ConnectionStatus {
+    Disconnected,
+    Connected,
+}
 pub trait Application: Sync + Send {
-    fn handle(&mut self, input: &[u8]);
+    fn handle(&mut self, input: &[u8]) -> ConnectionStatus;
 }
 
 //  ---------------------------------------
@@ -47,9 +51,7 @@ impl ServerConfig {
 }
 
 #[derive(Debug)]
-pub enum ServerError {
-    ServerCreationError,
-}
+pub enum ServerError {}
 
 pub struct Server<T: Application> {
     clients: ClientPool<T>,
@@ -177,7 +179,10 @@ impl Client {
             let bytes = &bytes[..bytes_size];
 
             if bytes.is_empty() { continue };
-            app.lock().unwrap().handle(bytes);
+            if let ConnectionStatus::Disconnected = app.lock().unwrap().handle(bytes) {
+                println!("Client disconnected");
+                break;
+            }
         }
     }
 }

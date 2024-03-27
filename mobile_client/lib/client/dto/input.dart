@@ -12,6 +12,9 @@ const int HOLD = 2;
 
 const int NO_KEY_PRESSED = -1;
 
+const int CONNECTED = 0;
+const int DISCONNECT = 1;
+
 @JsonSerializable()
 class Input {
   final int move_x;
@@ -20,6 +23,7 @@ class Input {
   final int button;
   final int key_press_status;
   final int sensitivity_delta;
+  final int con_status;
 
   Input(
       {required this.move_x,
@@ -27,7 +31,8 @@ class Input {
       required this.wheel_delta,
       required this.button,
       required this.key_press_status,
-      required this.sensitivity_delta});
+      required this.sensitivity_delta,
+      required this.con_status});
 
   Input.mouseMove({move_x, move_y})
       : this(
@@ -36,7 +41,8 @@ class Input {
             wheel_delta: NO_CHANGE,
             button: NO_KEY_PRESSED,
             key_press_status: NO_CHANGE,
-            sensitivity_delta: NO_CHANGE);
+            sensitivity_delta: NO_CHANGE,
+            con_status: CONNECTED);
 
   Input.setHold()
       : this(
@@ -45,7 +51,8 @@ class Input {
             wheel_delta: NO_CHANGE,
             button: NO_KEY_PRESSED,
             key_press_status: HOLD,
-            sensitivity_delta: NO_CHANGE);
+            sensitivity_delta: NO_CHANGE,
+            con_status: CONNECTED);
 
   Input.setRelease()
       : this(
@@ -54,7 +61,8 @@ class Input {
             wheel_delta: NO_CHANGE,
             button: NO_KEY_PRESSED,
             key_press_status: RELEASE,
-            sensitivity_delta: NO_CHANGE);
+            sensitivity_delta: NO_CHANGE,
+            con_status: CONNECTED);
 
   Input.changeSensitivity({sensitivity})
       : this(
@@ -63,7 +71,8 @@ class Input {
             wheel_delta: NO_CHANGE,
             button: NO_KEY_PRESSED,
             key_press_status: NO_CHANGE,
-            sensitivity_delta: sensitivity);
+            sensitivity_delta: sensitivity,
+            con_status: CONNECTED);
 
   static Input leftClick() {
     return Input.pressKey(key: Keybinds.LEFT_CLICK);
@@ -89,6 +98,17 @@ class Input {
     return Input.pressKey(key: Keybinds.BRIGHTNESS_DOWN);
   }
 
+  static Input disconnect() {
+    return Input(
+        move_x: NO_CHANGE,
+        move_y: NO_CHANGE,
+        wheel_delta: NO_CHANGE,
+        button: NO_KEY_PRESSED,
+        key_press_status: NO_CHANGE,
+        sensitivity_delta: NO_CHANGE,
+        con_status: DISCONNECT);
+  }
+
   static Input pressKey({required int key}) {
     return Input(
         move_x: NO_CHANGE,
@@ -96,7 +116,8 @@ class Input {
         wheel_delta: NO_CHANGE,
         button: key,
         key_press_status: NO_CHANGE,
-        sensitivity_delta: NO_CHANGE);
+        sensitivity_delta: NO_CHANGE,
+        con_status: CONNECTED);
   }
 
   static Input scroll({required int amount}) {
@@ -106,7 +127,8 @@ class Input {
         wheel_delta: amount,
         button: NO_KEY_PRESSED,
         key_press_status: NO_CHANGE,
-        sensitivity_delta: NO_CHANGE);
+        sensitivity_delta: NO_CHANGE,
+        con_status: CONNECTED);
   }
 
   factory Input.fromJson(Map<String, dynamic> json) => _$InputFromJson(json);

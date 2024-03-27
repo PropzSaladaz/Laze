@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names, constant_identifier_names
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -33,29 +35,33 @@ class ServerConnector {
   }
 
   Future<bool> findServer() async {
-    int baseIp = _ipToInt("192.168.1.0");
-    var subnetMask = 24;
-    var totalLocalIpSuffixes = pow(2, 32 - subnetMask).toInt();
+    int n_LANs = 255;
+    for (int lan = 0; lan < n_LANs; lan++) {
+      int baseIp = _ipToInt("192.168.$lan.0");
+      var subnetMask = 24;
+      var totalLocalIpSuffixes = pow(2, 32 - subnetMask).toInt();
 
-    for (int i = 0; i < totalLocalIpSuffixes; i++) {
-      var testIp = _intToIp(baseIp | i);
-      connections[testIp.address] = _connectToHost(testIp.address);
-    }
+      for (int i = 0; i < totalLocalIpSuffixes; i++) {
+        var testIp = _intToIp(baseIp | i);
+        connections[testIp.address] = _connectToHost(testIp.address);
+      }
 
-    for (var conn in connections.keys) {
-      var future = connections[conn];
-      if (future != null && await future) {
-        // Connection to server was made
-        // now wait for connection to the new dedicated port
-        sleep(const Duration(microseconds: 500));
-        // the new connection replaced the old one
-        var newConn = connections[conn];
-        if (newConn != null && await newConn) {
-          setConnectionStatus(CONNECTED);
-          return true;
+      for (var conn in connections.keys) {
+        var future = connections[conn];
+        if (future != null && await future) {
+          // Connection to server was made
+          // now wait for connection to the new dedicated port
+          sleep(const Duration(microseconds: 500));
+          // the new connection replaced the old one
+          var newConn = connections[conn];
+          if (newConn != null && await newConn) {
+            setConnectionStatus(CONNECTED);
+            return true;
+          }
         }
       }
     }
+
     setConnectionStatus(NOT_CONNECTED);
     return false;
   }

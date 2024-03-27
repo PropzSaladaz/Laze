@@ -1,7 +1,5 @@
 use device::{Device, InputHandler};
-use server::{ServerConfig, Server};
-
-use crate::messages::Input;
+use server::{ConnectionStatus, Server, ServerConfig};
 
 mod keybinds;
 mod ffi;
@@ -16,8 +14,12 @@ struct DeviceApp<T: InputHandler> {
 }
 
 impl<T: InputHandler> server::Application for DeviceApp<T> {
-    fn handle(&mut self, input: &[u8]) {
-        self.handler.handle(input);
+    fn handle(&mut self, input: &[u8]) -> ConnectionStatus {
+        match self.handler.handle(input) {
+            ConnectionStatus::Disconnected  => ConnectionStatus::Disconnected,
+            ConnectionStatus::Connected     => ConnectionStatus::Connected
+        }
+        
     }
 }
 

@@ -13,6 +13,7 @@ Input _$InputFromJson(Map<String, dynamic> json) => Input(
       button: json['button'] as int,
       key_press_status: json['key_press_status'] as int,
       sensitivity_delta: json['sensitivity_delta'] as int,
+      con_status: json['con_status'] as int,
     );
 
 Map<String, dynamic> _$InputToJson(Input instance) => <String, dynamic>{
@@ -22,4 +23,5 @@ Map<String, dynamic> _$InputToJson(Input instance) => <String, dynamic>{
       'button': instance.button,
       'key_press_status': instance.key_press_status,
       'sensitivity_delta': instance.sensitivity_delta,
+      'con_status': instance.con_status,
     };

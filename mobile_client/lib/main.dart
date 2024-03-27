@@ -17,8 +17,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: ColorConstants.background),
         scaffoldBackgroundColor: ColorConstants.background,
-        textTheme: TextTheme(
-            bodyText1: TextStyle(
+        textTheme: const TextTheme(
+            bodyLarge: TextStyle(
           fontFamily: 'NunitoSans',
         )),
         useMaterial3: true,
