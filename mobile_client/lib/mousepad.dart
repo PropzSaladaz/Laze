@@ -9,8 +9,10 @@ import 'client/server_connector.dart';
 
 class MousePad extends StatelessWidget {
   final ServerConnector connector;
+  final bool fullscreen;
 
-  const MousePad({super.key, required this.connector});
+  const MousePad(
+      {super.key, required this.connector, required this.fullscreen});
 
   void _handleMouseDrag(DragUpdateDetails details) {
     var offset = details.delta;
@@ -59,7 +61,8 @@ class MousePad extends StatelessWidget {
   Widget build(BuildContext context) {
     const rotationAngle = -90 * math.pi / 180;
     Size screenSize = MediaQuery.of(context).size;
-    double scrollHeight = 0.40 * screenSize.height;
+    double scrollHeight =
+        fullscreen ? screenSize.height : 0.40 * screenSize.height;
     double midPos = scrollHeight / 2;
     return Stack(
       children: [
@@ -74,36 +77,42 @@ class MousePad extends StatelessWidget {
               // main mousepad
               Container(
                 width: double.infinity,
-                height: 0.4 * screenSize.height,
+                height: fullscreen ? double.infinity : 0.4 * screenSize.height,
                 decoration: BoxDecoration(
                   border: Border.all(color: ColorConstants.border, width: 3),
                   borderRadius: BorderRadius.circular(20),
                   color: Colors.white,
                 ),
               ),
-
+              () {
+                // mousepad text
+                if (fullscreen) {
+                  return const SizedBox();
+                } else {
+                  return Positioned(
+                    left: -65,
+                    top: 105,
+                    child: Transform.rotate(
+                      angle: rotationAngle,
+                      child: const Text(
+                        "MOUSEPAD",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            fontSize: 40,
+                            color: ColorConstants.mousepadText),
+                      ),
+                    ),
+                  );
+                }
+              }(),
               // mousepad text
-              Positioned(
-                left: -65,
-                top: 105,
-                child: Transform.rotate(
-                  angle: rotationAngle,
-                  child: const Text(
-                    "MOUSEPAD",
-                    style: TextStyle(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 40,
-                        color: ColorConstants.mousepadText),
-                  ),
-                ),
-              )
             ],
           ),
         ),
 
         // Scroll
         Positioned(
-          right: 10,
+          right: fullscreen ? 25 : 10,
           child: GestureDetector(
             onPanUpdate: (details) {
               _handleMouseScroll(details, midPos);
@@ -115,40 +124,63 @@ class MousePad extends StatelessWidget {
                   height: scrollHeight,
                   padding: const EdgeInsets.all(2),
                   child: FractionallySizedBox(
-                    heightFactor: 0.93,
+                    heightFactor: fullscreen ? 0.85 : 0.93,
                     child: Container(
-                        decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      color: ColorConstants.scroll,
-                    )),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: ColorConstants.scroll,
+                      ),
+                    ),
                   ),
                 ),
-                Positioned(
-                  bottom: 70,
-                  right: -27,
-                  child: Transform.rotate(
-                    angle: rotationAngle,
-                    child: const Text("SCROLL",
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 30,
-                            color: ColorConstants.scrollText)),
-                  ),
-                )
+                () {
+                  // scroll text
+                  if (fullscreen) {
+                    return const SizedBox();
+                  } else {
+                    return Positioned(
+                      bottom: 70,
+                      right: -27,
+                      child: Transform.rotate(
+                        angle: rotationAngle,
+                        child: const Text(
+                          "SCROLL",
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 30,
+                              color: ColorConstants.scrollText),
+                        ),
+                      ),
+                    );
+                  }
+                }(),
               ],
             ),
           ),
         ),
 
         // full screen button
-        const Positioned(
-            left: 10,
-            bottom: 10,
-            child: Icon(
-              Icons.fullscreen,
-              color: ColorConstants.mousepadText,
-              size: 80,
-            ))
+        Positioned(
+          left: 0,
+          bottom: 0,
+          child: IconButton(
+            icon: const Icon(Icons.fullscreen),
+            color: ColorConstants.border,
+            iconSize: 64,
+            onPressed: () {
+              fullscreen
+                  ? Navigator.of(context).pop()
+                  : Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => MousePad(
+                          connector: connector,
+                          fullscreen: true,
+                        ),
+                      ),
+                    );
+            },
+          ),
+        ),
       ],
     );
   }

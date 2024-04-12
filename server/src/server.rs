@@ -14,8 +14,8 @@ const DEFAULT_PORT: u16 = 7878;
 
 /// Creates a TcpListener using the local machine's IP address
 fn create_socket(port: u16) -> TcpListener {
-    println!("Created new socket: {port}");
     let local_ip = local_ip().unwrap();
+    println!("Created new socket: {local_ip}:{port}");
     TcpListener::bind(format!("{local_ip}:{port}")).unwrap()
 }
 

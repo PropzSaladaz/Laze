@@ -85,6 +85,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
                                   children: [
                                     MousePad(
                                       connector: connector,
+                                      fullscreen: false,
                                     ),
                                     const SizedBox(height: 15),
                                     CommandBtns(
