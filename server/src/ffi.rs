@@ -8,6 +8,7 @@ pub const NO_CHANGE: u8 = 0;
 pub const RELEASE: u8 = 1;
 pub const HOLD: u8 = 2;
 
+// Functionality from the C virtual device we need to import
 extern "C" {
     fn set_device(dev: &FFIDevice) -> c_int;
 
@@ -83,6 +84,7 @@ impl FFIDevice {
     }
 
     pub fn press_key(&self, key_code: u32) {
+
         unsafe { press_key(&self, key_code, KEY_TAP) }
     }
 
@@ -119,7 +121,6 @@ impl Drop for FFIDevice {
 mod tests {
     use std::{io, thread};
     use std::time::Duration;
-    use crate::keybinds::*;
 
     use super::FFIDevice;
 
@@ -133,7 +134,7 @@ mod tests {
             thread::sleep(Duration::from_secs(1));
             key_presses(&dev);
 
-            dev.press_key(KEY_ENTER);
+            dev.press_key(28); // ENTER
         });
 
         let mut input = String::new();
@@ -206,7 +207,7 @@ mod tests {
         keyboard_test( 
             "QWERTYUIOPASDFGHJKLZXCVBNM",
             |dev| {   
-                dev.press_key(KEY_CAPSLOCK);
+                dev.press_key(58); // CPASLOCK
 
                 // q...p
                 for key in 16..26 {
@@ -224,7 +225,7 @@ mod tests {
                     dev.press_key(key);
                 }
 
-                dev.press_key(KEY_CAPSLOCK);
+                dev.press_key(58); // CAPSLOCK
             }
         );
     }

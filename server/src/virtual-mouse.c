@@ -121,7 +121,7 @@ void device_move(device* dev, int move_x, int move_y) {
  * @brief Mouse wheel with continous displacement
  * 
  * @param dev 
- * @param wheel_delta
+ * @param wheel_delta - amount to scroll
  */
 void device_scroll(device* dev, int wheel_delta) {
     emit(dev->fd, EV_REL, REL_WHEEL, dev->wheel_sense * wheel_delta);

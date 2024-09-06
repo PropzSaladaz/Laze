@@ -8,7 +8,7 @@ part of 'new_client_response.dart';
 
 NewClientResponse _$NewClientResponseFromJson(Map<String, dynamic> json) =>
     NewClientResponse(
-      port: json['port'] as int,
+      port: (json['port'] as num).toInt(),
     );
 
 Map<String, dynamic> _$NewClientResponseToJson(NewClientResponse instance) =>

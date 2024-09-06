@@ -17,121 +17,83 @@ const int DISCONNECT = 1;
 
 @JsonSerializable()
 class Input {
-  final int move_x;
-  final int move_y;
-  final int wheel_delta;
-  final int button;
-  final int key_press_status;
-  final int sensitivity_delta;
-  final int con_status;
 
-  Input(
-      {required this.move_x,
-      required this.move_y,
-      required this.wheel_delta,
-      required this.button,
-      required this.key_press_status,
-      required this.sensitivity_delta,
-      required this.con_status});
+  @JsonKey(name: 'action')
+  final String action;
 
-  Input.mouseMove({move_x, move_y})
-      : this(
-            move_x: move_x,
-            move_y: move_y,
-            wheel_delta: NO_CHANGE,
-            button: NO_KEY_PRESSED,
-            key_press_status: NO_CHANGE,
-            sensitivity_delta: NO_CHANGE,
-            con_status: CONNECTED);
+  @JsonKey(name: 'data')
+  final dynamic data;
 
-  Input.setHold()
-      : this(
-            move_x: NO_CHANGE,
-            move_y: NO_CHANGE,
-            wheel_delta: NO_CHANGE,
-            button: NO_KEY_PRESSED,
-            key_press_status: HOLD,
-            sensitivity_delta: NO_CHANGE,
-            con_status: CONNECTED);
-
-  Input.setRelease()
-      : this(
-            move_x: NO_CHANGE,
-            move_y: NO_CHANGE,
-            wheel_delta: NO_CHANGE,
-            button: NO_KEY_PRESSED,
-            key_press_status: RELEASE,
-            sensitivity_delta: NO_CHANGE,
-            con_status: CONNECTED);
-
-  Input.changeSensitivity({sensitivity})
-      : this(
-            move_x: NO_CHANGE,
-            move_y: NO_CHANGE,
-            wheel_delta: NO_CHANGE,
-            button: NO_KEY_PRESSED,
-            key_press_status: NO_CHANGE,
-            sensitivity_delta: sensitivity,
-            con_status: CONNECTED);
-
-  static Input leftClick() {
-    return Input.pressKey(key: Keybinds.LEFT_CLICK);
-  }
-
-  static Input volumeUp() {
-    return Input.pressKey(key: Keybinds.VOL_UP);
-  }
-
-  static Input volumeDown() {
-    return Input.pressKey(key: Keybinds.VOL_DOWN);
-  }
-
-  static Input pause() {
-    return Input.pressKey(key: Keybinds.PAUSE);
-  }
-
-  static Input mute() {
-    return Input.pressKey(key: Keybinds.MUTE);
-  }
-
-  static Input brightnessDown() {
-    return Input.pressKey(key: Keybinds.BRIGHTNESS_DOWN);
-  }
-
-  static Input disconnect() {
-    return Input(
-        move_x: NO_CHANGE,
-        move_y: NO_CHANGE,
-        wheel_delta: NO_CHANGE,
-        button: NO_KEY_PRESSED,
-        key_press_status: NO_CHANGE,
-        sensitivity_delta: NO_CHANGE,
-        con_status: DISCONNECT);
-  }
-
-  static Input pressKey({required int key}) {
-    return Input(
-        move_x: NO_CHANGE,
-        move_y: NO_CHANGE,
-        wheel_delta: NO_CHANGE,
-        button: key,
-        key_press_status: NO_CHANGE,
-        sensitivity_delta: NO_CHANGE,
-        con_status: CONNECTED);
-  }
-
-  static Input scroll({required int amount}) {
-    return Input(
-        move_x: NO_CHANGE,
-        move_y: NO_CHANGE,
-        wheel_delta: amount,
-        button: NO_KEY_PRESSED,
-        key_press_status: NO_CHANGE,
-        sensitivity_delta: NO_CHANGE,
-        con_status: CONNECTED);
-  }
+  Input({
+    required this.action, 
+    required this.data
+  });
 
   factory Input.fromJson(Map<String, dynamic> json) => _$InputFromJson(json);
-
   Map<String, dynamic> toJson() => _$InputToJson(this);
+
+  // Factory constructors for different actions
+  factory Input.mouseMove({required int move_x, required int move_y}) {
+    return Input(action: 'MouseMove', data: {'x': move_x, 'y': move_y});
+  }
+
+  factory Input.leftClick() {
+    return Input(action: 'KeyPress', data: "LeftClick");
+  }
+
+  factory Input.setHold() {
+    return Input(action: 'SetHold', data: null);
+  }
+
+  factory Input.setRelease() {
+    return Input(action: 'SetRelease', data: null);
+  }
+
+  factory Input.sensitivityUp() {
+    return Input(action: 'SensitivityUp', data: null);
+  }
+
+  factory Input.sensitivityDown() {
+    return Input(action: 'SensitivityDown', data: null);
+  }
+
+  factory Input.volumeUp() {
+    return Input(action: 'KeyPress', data: "VolumeUp");
+  }
+
+  factory Input.volumeDown() {
+    return Input(action: 'KeyPress', data: "VolumeDown");
+  }
+
+  factory Input.mute() {
+    return Input(action: 'KeyPress', data: "Mute");
+  }
+
+  factory Input.brightnessDown() {
+    return Input(action: 'KeyPress', data: "BrightnessDown");
+  }
+
+  factory Input.pause() {
+    return Input(action: 'KeyPress', data: "Pause");
+  }
+
+  factory Input.scroll({required int amount}) {
+    return Input(action: 'Scroll', data: amount);
+  }
+
+  factory Input.keyPress({required int key}) {
+    return Input(action: 'KeyPress', data: key);
+  }
+
+  factory Input.disconnect() {
+    return Input(action: 'Disconnect', data: null);
+  }
+
+  factory Input.keyboardCharacter({required int charCode}) {
+    return Input(action: 'KeyboardCharacter', data: charCode);
+  }
+
+  factory Input.keyboardBackSpace() {
+    return Input(action: 'KeyboardBackSpace', data: null);
+  }
 }

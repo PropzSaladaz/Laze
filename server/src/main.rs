@@ -6,6 +6,7 @@ mod ffi;
 mod device;
 mod server;
 mod messages;
+mod actions;
 
 const PORT: u16 = 7878;
 

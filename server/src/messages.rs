@@ -22,6 +22,7 @@ pub struct Input {
     pub move_y: i32,
     pub wheel_delta: i32,
     pub button: i32,
+    pub char_code: i32,
     pub key_press_status: u8,
     pub sensitivity_delta: i32,
     pub con_status: u8,

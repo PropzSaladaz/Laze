@@ -1,41 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_client/buttons/styled_button.dart';
 import 'package:mobile_client/client/server_connector.dart';
 import 'package:mobile_client/buttons/styled_long_button.dart';
 import 'package:mobile_client/client/dto/input.dart';
+import 'package:mobile_client/keyboard.dart';
 
 class CommandBtns extends StatefulWidget {
   final ServerConnector connector;
 
-  CommandBtns({super.key, required this.connector});
+  const CommandBtns({
+    super.key, 
+    required this.connector
+  });
 
   @override
   State<CommandBtns> createState() => _CommandBtnsState();
 }
 
 class _CommandBtnsState extends State<CommandBtns> {
-  FocusNode inputNode = FocusNode();
-  bool keyBoardOn = false;
-
-  void openKeyboard(BuildContext context) {
-    FocusScope.of(context).requestFocus(inputNode);
-  }
+  String _pressedKey = '';
 
   @override
   void initState() {
     super.initState();
-    inputNode.addListener(() {
-      print("focus");
-      if (!inputNode.hasFocus) {
-        print("no focus");
-        keyBoardOn = false;
-      }
-    });
   }
 
   @override
   void dispose() {
-    inputNode.dispose();
     super.dispose();
   }
 
@@ -46,7 +38,7 @@ class _CommandBtnsState extends State<CommandBtns> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Volume
+            // VOLUME
             StyledLongButton(
               iconUp: Icons.keyboard_arrow_up_rounded,
               iconDown: Icons.keyboard_arrow_down_rounded,
@@ -61,29 +53,9 @@ class _CommandBtnsState extends State<CommandBtns> {
             ),
             Column(
               children: [
-                Container(
-                  width: 100,
-                  child: Visibility(
-                    visible: keyBoardOn,
-                    child: TextField(
-                      focusNode: inputNode,
-                      autofocus: true,
-                    ),
-                  ),
-                ),
-                // Keyboard
-                StyledLongButton(
-                  iconUp: Icons.keyboard_arrow_up_rounded,
-                  iconDown: Icons.keyboard_arrow_down_rounded,
-                  description: "Keyboard",
-                  onPressedDown: () {
-                    setState(() {
-                      keyBoardOn = true;
-                    });
-                    inputNode.requestFocus();
-                  },
-                ),
-                // Shortcut
+                // KEYBOARD
+                KeyboardButton(connector: widget.connector),
+                // SHORTCUTS
                 StyledLongButton(
                     iconUp: Icons.keyboard_arrow_up_rounded,
                     iconDown: Icons.keyboard_arrow_down_rounded,
@@ -91,19 +63,15 @@ class _CommandBtnsState extends State<CommandBtns> {
                     onPressedDown: () {}),
               ],
             ),
-            // Speed
+            // SENSITIVITY
             StyledLongButton(
               iconUp: Icons.keyboard_arrow_up_rounded,
               iconDown: Icons.keyboard_arrow_down_rounded,
               onPressedUp: () {
-                widget.connector.sendInput(Input.changeSensitivity(
-                  sensitivity: 1,
-                ));
+                widget.connector.sendInput(Input.sensitivityUp());
               },
               onPressedDown: () {
-                widget.connector.sendInput(Input.changeSensitivity(
-                  sensitivity: -1,
-                ));
+                widget.connector.sendInput(Input.sensitivityDown());
               },
               description: "Speed",
               vertical: true,

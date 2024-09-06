@@ -90,6 +90,7 @@ impl<T: Application + 'static> Server<T> {
             // to that connection to the client
             match socket.accept() {
                 Ok((mut stream, addr)) => {
+                    println!("Received client connection");
                     let port = self.clients.add(addr);
                     let data = serde_json::to_vec(&NewClientResponse { port }).unwrap();
                     stream.write_all(data.as_slice())

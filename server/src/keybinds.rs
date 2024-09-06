@@ -1,79 +1,104 @@
-pub const KEY_ESC:               u32 = 1;
-pub const KEY_1:                 u32 = 2;
-pub const KEY_2:                 u32 = 3;
-pub const KEY_3:                 u32 = 4;
-pub const KEY_4:                 u32 = 5;
-pub const KEY_5:                 u32 = 6;
-pub const KEY_6:                 u32 = 7;
-pub const KEY_7:                 u32 = 8;
-pub const KEY_8:                 u32 = 9;
-pub const KEY_9:                 u32 = 10;
-pub const KEY_0:                 u32 = 11;
-pub const KEY_MINUS:             u32 = 12;
-pub const KEY_EQUAL:             u32 = 13;
-pub const KEY_BACKSPACE:         u32 = 14;
-pub const KEY_TAB:               u32 = 15;
-pub const KEY_Q:                 u32 = 16;
-pub const KEY_W:                 u32 = 17;
-pub const KEY_E:                 u32 = 18;
-pub const KEY_R:                 u32 = 19;
-pub const KEY_T:                 u32 = 20;
-pub const KEY_Y:                 u32 = 21;
-pub const KEY_U:                 u32 = 22;
-pub const KEY_I:                 u32 = 23;
-pub const KEY_O:                 u32 = 24;
-pub const KEY_P:                 u32 = 25;
-pub const KEY_LEFTBRACE:         u32 = 26;
-pub const KEY_RIGHTBRACE:        u32 = 27;
-pub const KEY_ENTER:             u32 = 28;
-pub const KEY_LEFTCTRL:          u32 = 29;
-pub const KEY_A:                 u32 = 30;
-pub const KEY_S:                 u32 = 31;
-pub const KEY_D:                 u32 = 32;
-pub const KEY_F:                 u32 = 33;
-pub const KEY_G:                 u32 = 34;
-pub const KEY_H:                 u32 = 35;
-pub const KEY_J:                 u32 = 36;
-pub const KEY_K:                 u32 = 37;
-pub const KEY_L:                 u32 = 38;
-pub const KEY_SEMICOLON:         u32 = 39;
-pub const KEY_APOSTROPHE:        u32 = 40;
-pub const KEY_GRAVE:             u32 = 41;
-pub const KEY_LEFTSHIFT:         u32 = 42;
-pub const KEY_BACKSLASH:         u32 = 43;
-pub const KEY_Z:                 u32 = 44;
-pub const KEY_X:                 u32 = 45;
-pub const KEY_C:                 u32 = 46;
-pub const KEY_V:                 u32 = 47;
-pub const KEY_B:                 u32 = 48;
-pub const KEY_N:                 u32 = 49;
-pub const KEY_M:                 u32 = 50;
-pub const KEY_COMMA:             u32 = 51;
-pub const KEY_DOT:               u32 = 52;
-pub const KEY_SLASH:             u32 = 53;
-pub const KEY_RIGHTSHIFT:        u32 = 54;
-pub const KEY_KPASTERISK:        u32 = 55;
-pub const KEY_LEFTALT:           u32 = 56;
-pub const KEY_SPACE:             u32 = 57;
-pub const KEY_CAPSLOCK:          u32 = 58;
-     
-pub const KEY_MUTE:              u32 = 113;
-pub const KEY_VOLUMEDOWN:        u32 = 114;
-pub const KEY_VOLUMEUP:          u32 = 115;
-pub const KEY_PAUSE:             u32 = 119;
-     
-pub const KEY_COPY:              u32 = 133;
-pub const KEY_PASTE:             u32 = 135;
-pub const KEY_CUT:               u32 = 137;
-     
-pub const KEY_REFRESH:           u32 = 173;
-pub const KEY_SCROLLUP:          u32 = 177;
-pub const KEY_SCROLLDOWN:        u32 = 178;
+use std::collections::HashMap;
 
-pub const KEY_BRIGHTNESS_CYCLE:  u32 = 243;
+use crate::actions::Key;
 
-pub const BTN_LEFT:              u32 = 272;
-pub const BTN_RIGHT:             u32 = 273;
-pub const BTN_FORWARD:           u32 = 277;
-pub const BTN_BACK:              u32 = 278;
+
+pub struct KeyBindings {
+    // binds an action into the respective OS key code
+    bindings: HashMap<Key, u32>,
+}
+
+impl KeyBindings {
+
+    pub fn new() -> Self {
+        KeyBindings {
+            bindings: KeyBindings::get_key_mapping()
+        }
+    }
+
+    pub fn translate_to_os_key(&self, key: Key) -> Option<u32> {
+        self.bindings.get(&key).cloned()
+    }
+
+    fn get_key_mapping() -> HashMap<Key, u32> {
+        
+        #[cfg(target_os = "windows")]
+        {
+            todo!();
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            todo!();
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            return HashMap::from([
+                // keyboard
+                (Key::Num1, 2),
+                (Key::Num2, 3),
+                (Key::Num3, 4),
+                (Key::Num4, 5),
+                (Key::Num5, 6),
+                (Key::Num6, 7),
+                (Key::Num7, 8),
+                (Key::Num8, 9),
+                (Key::Num9, 10),
+                (Key::Num0, 11),
+                (Key::Minus, 12),
+                (Key::Equal, 13),
+                (Key::BackSpace, 14),
+                (Key::Tab, 15),
+                (Key::Q, 16),
+                (Key::W, 17),
+                (Key::E, 18),
+                (Key::R, 19),
+                (Key::T, 20),
+                (Key::Y, 21),
+                (Key::U, 22),
+                (Key::I, 23),
+                (Key::O, 24),
+                (Key::P, 25),
+                (Key::LeftBrace, 26),
+                (Key::RightBrace, 27),
+                (Key::Enter, 28),
+                (Key::LeftCtrl, 29),
+                (Key::A, 30),
+                (Key::S, 31),
+                (Key::D, 32),
+                (Key::F, 33),
+                (Key::G, 34),
+                (Key::H, 35),
+                (Key::J, 36),
+                (Key::K, 37),
+                (Key::L, 38),
+                (Key::SemiColon, 39),
+                (Key::Apostrofe, 40),
+                (Key::Grave, 41),
+                (Key::LeftShift, 42),
+                (Key::BackSlash, 43),
+                (Key::Z, 44),
+                (Key::X, 45),
+                (Key::C, 46),
+                (Key::V, 47),
+                (Key::B, 48),
+                (Key::N, 49),
+                (Key::M, 50),
+                (Key::Comma, 51),
+                (Key::Dot, 52),
+                (Key::Slash, 53),
+                (Key::RightShift, 54),
+                (Key::KPAsteristk, 55),
+                (Key::LeftAlt, 56),
+                (Key::Space, 57),
+                (Key::CapsLock, 58),
+                (Key::LeftClick, 0x110),
+            ]);
+        }
+    }
+}
+
+
+
 

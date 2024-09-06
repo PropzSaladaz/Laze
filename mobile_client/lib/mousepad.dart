@@ -11,8 +11,11 @@ class MousePad extends StatelessWidget {
   final ServerConnector connector;
   final bool fullscreen;
 
-  const MousePad(
-      {super.key, required this.connector, required this.fullscreen});
+  const MousePad({
+    super.key, 
+    required this.connector, 
+    required this.fullscreen
+  });
 
   void _handleMouseDrag(DragUpdateDetails details) {
     var offset = details.delta;

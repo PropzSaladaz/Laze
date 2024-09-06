@@ -43,18 +43,21 @@ class ServerConnector {
 
       for (int i = 0; i < totalLocalIpSuffixes; i++) {
         var testIp = _intToIp(baseIp | i);
+        print(testIp);
         connections[testIp.address] = _connectToHost(testIp.address);
       }
 
       for (var conn in connections.keys) {
         var future = connections[conn];
         if (future != null && await future) {
+          print("Connection Successful with $conn");
           // Connection to server was made
           // now wait for connection to the new dedicated port
           sleep(const Duration(microseconds: 500));
           // the new connection replaced the old one
           var newConn = connections[conn];
           if (newConn != null && await newConn) {
+            print("Connected to the server!");
             setConnectionStatus(CONNECTED);
             return true;
           }
@@ -69,7 +72,7 @@ class ServerConnector {
   Future<bool> _connectToHost(String ipAddress) async {
     try {
       var socket = await Socket.connect(ipAddress, serverPort,
-          timeout: const Duration(milliseconds: 600));
+          timeout: const Duration(milliseconds: 2000));
 
       socket.listen((jsonBytes) async {
         // upon receiving the new dedicated port
@@ -79,6 +82,7 @@ class ServerConnector {
         var newSocket = await Socket.connect(ipAddress, resp.port);
         server = newSocket;
       }, onDone: () => socket.destroy());
+      print("CONNECTED");
       return true;
     } catch (e) {
       return false;

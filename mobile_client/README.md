@@ -1,8 +1,17 @@
 # mobile_client
+Get all dependencies:
+```
+flutter pub get
+```
+
 
 run the following command to generate the json_serializable classes:
 ```
 dart run build_runner build
+```
+If you get any errors, try running:
+```
+flutter pub upgrade
 ```
 
 ## Getting Started
