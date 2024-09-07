@@ -4,95 +4,65 @@ use serde::{Serialize, Deserialize};
 #[serde(tag = "action", content = "data")]
 pub enum Action {
     KeyPress(Key),
-    Keyboard(KeyboardAction),
+    Text(String),
     // key holding status
-    SetHold,
-    SetRelease,
+    // SetHold,
+    // SetRelease,
     // mouse sensitivity
     SensitivityUp,
     SensitivityDown,
     // scroll delta
     Scroll(i32),
     // x & y mouse movement deltas
-    MouseMove((i32, i32)),
+    MouseMove(Coordinates),
+    MouseButton(Button),
     Disconnect,
     // Other actions can be added here
 }
 
+
 #[derive(Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct Coordinates {
+    pub x: i32,
+    pub y: i32,
+}
+
+
+#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
 pub enum Key {
 
-    // Essencial keyboard keys
-    Num1,
-    Num2,
-    Num3,
-    Num4,
-    Num5,
-    Num6,
-    Num7,
-    Num8,
-    Num9,
-    Num0,
-    Minus,
-    Equal,
-    BackSpace,
-    Tab,
-    Q,W,E,R,T,Y,U,I,O,P,
-    LeftBrace,
-    RightBrace,
-    Enter,
-    LeftCtrl,
-    A,S,D,F,G,H,J,K,L,
-    SemiColon,
-    Apostrofe,
-    Grave,
-    LeftShift,
-    BackSlash,
-    Z,X,C,V,B,N,M,
-    Comma,
-    Dot,
-    Slash,
-    RightShift,
-    KPAsteristk,
-    LeftAlt,
-    Space,
-    CapsLock,
+    Backspace,
 
-
-    Mute,
+    VolumeMute,
     VolumeDown,
     VolumeUp,
     Pause,
     ScrollUp,
     ScrollDown,
-    LeftClick,
-
 }
 
-
-#[derive(Serialize, Deserialize)]
-pub enum KeyboardAction {
-    SimpleCharacter(Key),    // character key or is backspace key
-    ComplexCharacter(String) // accent character, or some other complex punctuation characters
+#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
+pub enum Button {
+    Left,
 }
 
 
 #[cfg(test)]
 mod tests {
-    use crate::actions::{Action, Key};
+    use crate::actions::{Action, Coordinates, Key};
 
 
     #[test]
     fn serde_action() {
-        // set hold
-        let json = r#"{"action": "SetHold", "data": null }"#;
-        let action: Action = serde_json::from_str(json).unwrap();
-        matches!(action, Action::SetHold);
+        // // set hold
+        // let json = r#"{"action": "SetHold", "data": null }"#;
+        // let action: Action = serde_json::from_str(json).unwrap();
+        // matches!(action, Action::SetHold);
 
-        // set release
-        let json = r#"{"action": "SetRelease", "data": null }"#;
-        let action: Action = serde_json::from_str(json).unwrap();
-        matches!(action, Action::SetRelease);
+        // // set release
+        // let json = r#"{"action": "SetRelease", "data": null }"#;
+        // let action: Action = serde_json::from_str(json).unwrap();
+        // matches!(action, Action::SetRelease);
 
         // sensitivity up
         let json = r#"{"action": "SensitivityUp", "data": null }"#;
@@ -110,9 +80,9 @@ mod tests {
         matches!(action, Action::Disconnect);
 
         // disconnected
-        let json = r#"{"action": "KeyPress", "data": "Equal" }"#;
+        let json = r#"{"action": "KeyPress", "data": "Backspace" }"#;
         let action: Action = serde_json::from_str(json).unwrap();
-        matches!(action, Action::KeyPress(Key::Equal));
+        matches!(action, Action::KeyPress(Key::Backspace));
 
         // scroll
         let json = r#"{"action": "Scroll", "data": 1 }"#;
@@ -120,9 +90,9 @@ mod tests {
         matches!(action, Action::Scroll(1));
 
         // mouse move
-        let json = r#"{"action": "MouseMove", "data": [1,-2] }"#;
+        let json = r#"{"action": "MouseMove", "data": { "x": 1, "y": -2} }"#;
         let action: Action = serde_json::from_str(json).unwrap();
-        matches!(action, Action::MouseMove((1, -2)));
+        matches!(action, Action::MouseMove(Coordinates {x: 1, y: -2}));
 
 
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_client/buttons/styled_long_button.dart';
 import 'package:mobile_client/client/dto/input.dart';
 import 'package:mobile_client/client/server_connector.dart';
@@ -20,6 +21,10 @@ class _KeyboardButtonState extends State<KeyboardButton>
 
   String currentString = "";
   bool keyboardOn = false;
+  // stores the timestamp of the last key press
+  DateTime lastPressTime = DateTime.now();
+  // time between each press - avoid fast consecutive key presses
+  final keyPressInterval = 5; // ms
   FocusNode inputNode = FocusNode();
 
   @override
@@ -57,11 +62,16 @@ class _KeyboardButtonState extends State<KeyboardButton>
           width: 100,
           child: Visibility(
               visible: keyboardOn,
-              child: TextField(
-                focusNode: inputNode,
-                autofocus: true,
-                onChanged: _handleKeyboardButtonInput,
-              )),
+              child: KeyboardListener(
+                focusNode: inputNode, 
+                onKeyEvent: _onKeyPressed,
+                child: TextField(
+                  autocorrect: true,
+                  onChanged: _onTextChanged,
+                  // focusNode: inputNode,
+                )
+              )
+          )
         ),
         StyledLongButton(
           iconUp: Icons.keyboard_arrow_up_rounded,
@@ -78,13 +88,23 @@ class _KeyboardButtonState extends State<KeyboardButton>
     );
   }
 
-  void _handleKeyboardButtonInput(String newString) {
-    // 1 character was deleted
-    if (newString.length < currentString.length) {
+  void _onKeyPressed(KeyEvent keyEvent) {
+    DateTime currentPressTime = DateTime.now();
+    Duration timeDifference = currentPressTime.difference(lastPressTime);
+    if (keyEvent.logicalKey == LogicalKeyboardKey.backspace && 
+        timeDifference > Duration(milliseconds: keyPressInterval)) {
+
       widget.connector.sendInput(Input.keyboardBackSpace());
+      lastPressTime = currentPressTime;
     }
-    else { // send last character
-      widget.connector.sendInput(Input.keyboardCharacter(charCode: newString.codeUnitAt(-1)));
+  }
+
+  void _onTextChanged(String newString) {
+    if (newString.length > currentString.length) { // send last character
+      widget.connector.sendInput(Input.keyboardCharacter(text: newString[newString.length - 1]));
+    }
+    else {
+      widget.connector.sendInput(Input.keyboardBackSpace());
     }
     
     currentString = newString;

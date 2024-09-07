@@ -1,12 +1,11 @@
 use device::{Device, InputHandler};
 use server::{ConnectionStatus, Server, ServerConfig};
 
-mod keybinds;
-mod ffi;
 mod device;
 mod server;
 mod messages;
 mod actions;
+mod keybinds;
 
 const PORT: u16 = 7878;
 
@@ -28,9 +27,10 @@ fn main() {
     let config = ServerConfig::new(PORT, 2);
     let app = DeviceApp {
         handler: Device::new(
-            "/dev/uinput",
-            "virtual-mouse", 
-            1, 1, 1,  1500)
+            1, 
+            1,
+            1,
+            1500).unwrap()
     };
     let mut server = Server::build(config, app).unwrap();
     server.start();

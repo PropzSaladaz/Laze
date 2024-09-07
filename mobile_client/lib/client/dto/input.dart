@@ -38,7 +38,7 @@ class Input {
   }
 
   factory Input.leftClick() {
-    return Input(action: 'KeyPress', data: "LeftClick");
+    return Input(action: 'MouseButton', data: "Left");
   }
 
   factory Input.setHold() {
@@ -89,11 +89,11 @@ class Input {
     return Input(action: 'Disconnect', data: null);
   }
 
-  factory Input.keyboardCharacter({required int charCode}) {
-    return Input(action: 'KeyboardCharacter', data: charCode);
+  factory Input.keyboardCharacter({required String text}) {
+    return Input(action: 'Text', data: text);
   }
 
   factory Input.keyboardBackSpace() {
-    return Input(action: 'KeyboardBackSpace', data: null);
+    return Input(action: 'KeyPress', data: "Backspace");
   }
 }
