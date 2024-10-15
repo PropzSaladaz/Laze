@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:mobile_client/client/dto/new_client_response.dart';
 
@@ -29,9 +30,8 @@ class ServerConnector {
     server.destroy();
   }
 
-  void sendInput(Input input) {
-    var json = jsonEncode(input.toJson());
-    server.add(utf8.encode(json));
+  void sendInput(Uint8List bytes) {
+    server.add(bytes);
   }
 
   Future<bool> findServer() async {
@@ -53,7 +53,7 @@ class ServerConnector {
           print("Connection Successful with $conn");
           // Connection to server was made
           // now wait for connection to the new dedicated port
-          sleep(const Duration(microseconds: 2000));
+          sleep(const Duration(microseconds: 5000));
           // the new connection replaced the old one
           var newConn = connections[conn];
           if (newConn != null && await newConn) {
@@ -81,6 +81,8 @@ class ServerConnector {
         // try connecting to it
         var newSocket = await Socket.connect(ipAddress, resp.port);
         server = newSocket;
+        // !IMPORTANT! this is set to force all data to be sent in a different tcp packet
+        server.setOption(SocketOption.tcpNoDelay, true);
       }, onDone: () => socket.destroy());
 
       return true;

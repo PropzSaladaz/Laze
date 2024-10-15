@@ -21,13 +21,13 @@ class MousePad extends StatelessWidget {
     var offset = details.delta;
     var x = offset.dx.abs() < 1 ? (2 * offset.dx) : offset.dx;
     var y = offset.dy.abs() < 1 ? (2 * offset.dy) : offset.dy;
-    Input input = Input.mouseMove(move_x: x.toInt(), move_y: y.toInt());
+    var input = Input.mouseMove(move_x: x.toInt(), move_y: y.toInt());
     connector.sendInput(input);
   }
 
   void _handleLongPressMove(LongPressMoveUpdateDetails details) {
     var offset = details.localOffsetFromOrigin;
-    Input input =
+    var input =
         Input.mouseMove(move_x: offset.dx.toInt(), move_y: offset.dy.toInt());
     connector.sendInput(input);
   }
@@ -46,18 +46,18 @@ class MousePad extends StatelessWidget {
   }
 
   void _handleMouseClick() {
-    Input input = Input.leftClick();
+    var input = Input.leftClick();
     connector.sendInput(input);
   }
 
   void _handleLongPress() {
-    Input input = Input.setHold();
-    connector.sendInput(input);
+    // var input = Input.setHold();
+    // connector.sendInput(input);
   }
 
   void _handleLongPressUp() {
-    Input input = Input.setRelease();
-    connector.sendInput(input);
+    // var input = Input.setRelease();
+    // connector.sendInput(input);
   }
 
   @override

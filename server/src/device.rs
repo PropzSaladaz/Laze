@@ -10,21 +10,23 @@ pub trait InputHandler: Send + Sync {
     /// Converts the received byte data into jsons, and then to the Action type struct, and
     /// invokes the 'handle_input' method with the parsed Action struct
     fn handle(&mut self, bytes: &[u8]) -> ConnectionStatus {
-        println!("JSON: {:?}", from_utf8(bytes));
-        let reader = BufReader::new(bytes);
-        let mut deserializer = Deserializer::from_reader(reader).into_iter::<Action>();
-
         // Sometimes input from socket comes with several inputs at the same time.
         // we need to parse each seperately
-        while let Some(action) = deserializer.next() {
-            match action {
-                Ok(action) => match self.handle_input(action) {
-                    ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
-                    _ => (),
-                },
-                Err(e) => eprintln!("Failed to parse JSON: {}", e)
-            }
-        }
+        // TODO - add a terminator byte to separate commands
+        // while let Some(action) = deserializer.next() {
+            // match Action::decode(bytes) {
+            //     Ok(action) => match self.handle_input(action) {
+            //         ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
+            //         _ => (),
+            //     },
+            //     Err(e) => eprintln!("Failed to decode action: {}", e)
+            // }
+        // }
+        let action = Action::decode(bytes);
+        match self.handle_input(action) {
+            ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
+            _ => (),
+        };
         ConnectionStatus::Connected
     } 
     fn handle_input(&mut self, input: Action) -> ConnectionStatus;
@@ -36,9 +38,9 @@ pub struct Device {
     clipboard: ClipboardContext,
     key_bindings: KeyBindings,
 
-    move_x_sense: u32,
-    move_y_sense: u32,
-    wheel_sense: u32,
+    move_x_sense: u8,
+    move_y_sense: u8,
+    wheel_sense: u8,
     move_delay: u32,
  }
 
@@ -48,9 +50,9 @@ unsafe impl Sync for Device {}
 
  impl Device {
     pub fn new(
-        move_x_sense: u32, 
-        move_y_sense: u32, 
-        wheel_sense: u32,
+        move_x_sense: u8, 
+        move_y_sense: u8, 
+        wheel_sense: u8,
         move_delay: u32
     ) -> Result<Self, Box<dyn Error>> {
         Ok(Device {
@@ -66,37 +68,37 @@ unsafe impl Sync for Device {}
     }
 
 
-    pub fn mouse_move_relative(&mut self, move_x: i32, move_y: i32) {
+    pub fn mouse_move_relative(&mut self, move_x: i8, move_y: i8) {
         self.enigo.move_mouse(
-            self.move_x_sense as i32 * move_x, 
-            self.move_y_sense as i32 * move_y, 
+            self.move_x_sense as i32 * move_x as i32, 
+            self.move_y_sense as i32 * move_y as i32, 
             Coordinate::Rel
-        );
+        ).unwrap();
     }
 
-    pub fn scroll(&mut self, wheel_delta: i32) {
-        self.enigo.scroll(wheel_delta, Axis::Vertical).unwrap();
+    pub fn scroll(&mut self, wheel_delta: i8) {
+        self.enigo.scroll(wheel_delta as i32, Axis::Vertical).unwrap();
     }
 
     pub fn press_key(&mut self, key: enigo::Key) {
-        self.enigo.key(key, Direction::Click);
+        self.enigo.key(key, Direction::Click).unwrap();
     }
 
     fn mouse_button(&mut self, button: enigo::Button) {
-        self.enigo.button(button, Direction::Click);
+        self.enigo.button(button, Direction::Click).unwrap();
     }
 
     fn type_string(&mut self, text: &str) {
-        self.enigo.text(text);
+        self.enigo.text(text).unwrap();
     }
 
-    pub fn add_sensitivity(&mut self, sensitivity_delta: i32) {
-        let curr_sense = self.move_x_sense as i32;
+    pub fn add_sensitivity(&mut self, sensitivity_delta: i8) {
+        let curr_sense = self.move_x_sense as i8; // cast for the sum as the result may be < 0
         let mut new_sense = curr_sense + sensitivity_delta;
         
         if new_sense < 1 { new_sense = 1; } // must always be at least at 1
 
-        let new_sense = new_sense as u32;
+        let new_sense = new_sense as u8;
 
         self.move_x_sense = new_sense;
         self.move_y_sense = new_sense;
@@ -132,7 +134,7 @@ impl InputHandler for Device {
                 }
             }
 
-            Action::Text(text) => self.type_string(&text),
+            Action::Text(text) => self.type_string(&text.to_string()),
 
             Action::Scroll(delta) => self.scroll(delta),
 

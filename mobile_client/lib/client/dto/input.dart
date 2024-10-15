@@ -1,10 +1,9 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
-import 'package:flutter/material.dart';
-import 'package:json_annotation/json_annotation.dart';
-import 'package:mobile_client/client/keybinds.dart';
+import 'dart:typed_data';
 
-part 'input.g.dart';
+import 'package:flutter/material.dart';
+import 'package:mobile_client/client/keybinds.dart';
 
 const int NO_CHANGE = 0;
 const int RELEASE = 1;
@@ -15,85 +14,89 @@ const int NO_KEY_PRESSED = -1;
 const int CONNECTED = 0;
 const int DISCONNECT = 1;
 
-@JsonSerializable()
+/// Input actions are encoded in byte arrays
+/// [0u8, 1u8, ...]
+/// Where the 1st byte identifies the action type at the server side,
+/// while the following bytes specify the data for that action.
+/// 
+/// 
+/// 
+/// Scroll:    [2, scroll_amount]
+/// MouseMove: [3, move-x, move_y]
+/// 
 class Input {
 
-  @JsonKey(name: 'action')
-  final String action;
-
-  @JsonKey(name: 'data')
-  final dynamic data;
-
-  Input({
-    required this.action, 
-    required this.data
-  });
-
-  factory Input.fromJson(Map<String, dynamic> json) => _$InputFromJson(json);
-  Map<String, dynamic> toJson() => _$InputToJson(this);
-
-  // Factory constructors for different actions
-  factory Input.mouseMove({required int move_x, required int move_y}) {
-    return Input(action: 'MouseMove', data: {'x': move_x, 'y': move_y});
+  // ------ KeyPress:  [0, key] -------
+  static keyPress({required int key}) {
+    return Uint8List.fromList([0, key]);
   }
 
-  factory Input.leftClick() {
-    return Input(action: 'MouseButton', data: "Left");
+  static keyboardBackSpace() {
+    return Uint8List.fromList([0, 0]);
   }
 
-  factory Input.setHold() {
-    return Input(action: 'SetHold', data: null);
+  static mute() {
+    return Uint8List.fromList([0, 1]);
   }
 
-  factory Input.setRelease() {
-    return Input(action: 'SetRelease', data: null);
+  static volumeDown() {
+    return Uint8List.fromList([0, 2]);
   }
 
-  factory Input.sensitivityUp() {
-    return Input(action: 'SensitivityUp', data: null);
+  static volumeUp() {
+    return Uint8List.fromList([0, 3]);
   }
 
-  factory Input.sensitivityDown() {
-    return Input(action: 'SensitivityDown', data: null);
+  static pause() {
+    return Uint8List.fromList([0, 4]);
   }
 
-  factory Input.volumeUp() {
-    return Input(action: 'KeyPress', data: "VolumeUp");
+  static brightnessDown() {
+    return Uint8List.fromList([0, 10]); // unsuported yet
   }
 
-  factory Input.volumeDown() {
-    return Input(action: 'KeyPress', data: "VolumeDown");
+  // ------ Text: [1, char] -------
+  static keyboardCharacter({required String text}) {
+    return Uint8List.fromList([1, text.codeUnitAt(0)]);
   }
 
-  factory Input.mute() {
-    return Input(action: 'KeyPress', data: "Mute");
+ // ------ Scroll: [2, scroll_amount] -------
+  static scroll({required int amount}) {
+    return Uint8List.fromList([2, amount]);
   }
 
-  factory Input.brightnessDown() {
-    return Input(action: 'KeyPress', data: "BrightnessDown");
+ // ------ MouseMove: [3, move_x, move_y] -------
+  static mouseMove({required int move_x, required int move_y}) {
+    return Uint8List.fromList([3, move_x, move_y]);
   }
 
-  factory Input.pause() {
-    return Input(action: 'KeyPress', data: "Pause");
+  // ------ MouseBtn: [4, button] -------
+  static leftClick() {
+    return Uint8List.fromList([4, 0]);
   }
 
-  factory Input.scroll({required int amount}) {
-    return Input(action: 'Scroll', data: amount);
+  // ------ SenseDown: [5] -------
+  static sensitivityDown() {
+    return Uint8List.fromList([5]);
   }
 
-  factory Input.keyPress({required int key}) {
-    return Input(action: 'KeyPress', data: key);
+  // ------ SenseUp: [6] -------
+  static sensitivityUp() {
+    return Uint8List.fromList([6]);
   }
 
-  factory Input.disconnect() {
-    return Input(action: 'Disconnect', data: null);
+  // ------ Disconnect: [7] -------
+  static disconnect() {
+    return Uint8List.fromList([7]);
   }
 
-  factory Input.keyboardCharacter({required String text}) {
-    return Input(action: 'Text', data: text);
-  }
+  // static setHold() {
+  //   return Input(action: 'SetHold', data: null);
+  // }
 
-  factory Input.keyboardBackSpace() {
-    return Input(action: 'KeyPress', data: "Backspace");
-  }
+  // static setRelease() {
+  //   return Input(action: 'SetRelease', data: null);
+  // }
+
+
 }

@@ -7,13 +7,12 @@ use std::{
 };
 
 use local_ip_address::local_ip;
+use serde::{Deserialize, Serialize};
 
-use super::messages::NewClientResponse;
-
-const DEFAULT_PORT: u16 = 7878;
+const DEFAULT_CLIENT_PORT: usize = 7878;
 
 /// Creates a TcpListener using the local machine's IP address
-fn create_socket(port: u16) -> TcpListener {
+fn create_socket(port: usize) -> TcpListener {
     let local_ip = local_ip().unwrap();
     println!("Created new socket: {local_ip}:{port}");
     TcpListener::bind(format!("{local_ip}:{port}")).unwrap()
@@ -38,12 +37,12 @@ pub trait Application: Sync + Send {
 /// increasing by 1 for each new connection until reaching
 /// the max_clients.
 pub struct ServerConfig {
-    starting_port: u16,
+    starting_port: usize,
     max_clients: usize,
 }
 
 impl ServerConfig {
-    pub fn new(starting_port: u16, max_clients: usize) -> Self {
+    pub fn new(starting_port: usize, max_clients: usize) -> Self {
         Self {
             starting_port, max_clients
         }
@@ -53,28 +52,35 @@ impl ServerConfig {
 #[derive(Debug)]
 pub enum ServerError {}
 
-pub struct Server<T: Application> {
-    clients: ClientPool<T>,
+/// Represents the server.
+pub struct Server<A: Application> {
+    clients: ClientPool,
     config: ServerConfig,
+    app: Arc<Mutex<A>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NewClientResponse {
+    port: usize,
 }
 
 
-
-impl<T: Application + 'static> Server<T> {
+impl<A: Application + 'static> Server<A> {
     /// Initialize server's internal structures.
     ///
     /// app: Is the application that will be called to handle incomming requests.
-    pub fn build(config: ServerConfig, app: T) -> Result<Self, ServerError> {
+    pub fn build(config: ServerConfig, app: A) -> Result<Self, ServerError> {
         let (sender, receiver) = mpsc::channel();
         let clients = ClientPool {
             clients: HashMap::new(),
             sender,
-            app: Arc::new(Mutex::new(app)),
             receiver: Arc::new(receiver),
         };
 
         Ok(Server {
-            clients, config
+            clients, 
+            config,
+            app: Arc::new(Mutex::new(app))
         })
     }
 
@@ -91,7 +97,7 @@ impl<T: Application + 'static> Server<T> {
             match socket.accept() {
                 Ok((mut stream, addr)) => {
                     println!("Received client connection");
-                    let port = self.clients.add(addr);
+                    let port = self.clients.add(addr, Arc::clone(&self.app));
                     let data = serde_json::to_vec(&NewClientResponse { port }).unwrap();
                     stream.write_all(data.as_slice())
                         .expect("Could not write into socket's client");
@@ -110,22 +116,21 @@ impl<T: Application + 'static> Server<T> {
 //  ---------------------------------------
 
 /// Represents a pool of all client connections.
-struct ClientPool<T: Application> {
+struct ClientPool {
     clients: HashMap<SocketAddr, Client>,
-    app: Arc<Mutex<T>>,
     sender: mpsc::Sender<Terminate>,
     receiver: Arc<mpsc::Receiver<Terminate>>
 }
 
-impl<T: Application + 'static> ClientPool<T> where T: Application {
+impl ClientPool {
     /// Add a new client connection to the pool.
     ///
     /// For each new client, the id increases by 1, as well as the port.
-    pub fn add(&mut self, addr: SocketAddr) -> u16 {
-        let new_client = Client::new(
+    pub fn add<A: Application + 'static>(&mut self, addr: SocketAddr, app: Arc<Mutex<A>>) -> usize {
+        let new_client = Client::launch_new_client(
             addr,
             self.clients.len() + 1,
-            self.app.clone()
+            app
         );
         // insert new client only if it doesn't exist yet
         let port = new_client.port;
@@ -140,7 +145,7 @@ impl<T: Application + 'static> ClientPool<T> where T: Application {
 struct Client {
     address: SocketAddr,
     id: usize,
-    port: u16,
+    port: usize,
     thread: thread::JoinHandle<()>
 }
 
@@ -148,14 +153,15 @@ impl Client {
     /// Creates a new client, which consists of a thread waiting for incomming packets.
     ///
     /// Upon receiving an incoming message, send it to the application to be parsed.
-    // All information sent/received is in bytes.
-    fn new(address: SocketAddr, id: usize, app: Arc<Mutex<impl Application + 'static>>) -> Client {
-        let port = DEFAULT_PORT + id as u16;
+    /// All information sent/received is in bytes.
+    /// Calling this function creates a new thread that listens to requests.
+    fn launch_new_client<A: Application + 'static>(address: SocketAddr, id: usize, app: Arc<Mutex<A>>) -> Client {
+        let port = DEFAULT_CLIENT_PORT + id;
         let socket = create_socket(port);
 
         // Create thread
         let thread = thread::spawn(move || {
-
+            println!("Client created {:?} @ {:?}:{:?}", id, address, port);
             match socket.accept() {
                 Ok((stream, _)) => {
                     Client::handle_request(stream, app);
