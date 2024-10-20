@@ -26,6 +26,7 @@ class _KeyboardButtonState extends State<KeyboardButton>
   // time between each press - avoid fast consecutive key presses
   final keyPressInterval = 5; // ms
   FocusNode inputNode = FocusNode();
+  FocusNode textFieldNode = FocusNode();
 
   @override
   void initState() {
@@ -44,7 +45,7 @@ class _KeyboardButtonState extends State<KeyboardButton>
   void didChangeMetrics() {
     super.didChangeMetrics();
     if (MediaQuery.of(context).viewInsets.bottom == 0) {
-      Future.delayed(const Duration(milliseconds: 200), () {
+      Future.delayed(const Duration(milliseconds: 50), () {
         if (MediaQuery.of(context).viewInsets.bottom == 0) {
           setState(() {
             keyboardOn = false;
@@ -66,8 +67,9 @@ class _KeyboardButtonState extends State<KeyboardButton>
                 focusNode: inputNode, 
                 onKeyEvent: _onKeyPressed,
                 child: TextField(
-                  autocorrect: true,
+                  focusNode: textFieldNode,
                   onChanged: _onTextChanged,
+                  onSubmitted: _onSubmitted,
                   // focusNode: inputNode,
                 )
               )
@@ -77,15 +79,18 @@ class _KeyboardButtonState extends State<KeyboardButton>
           iconUp: Icons.keyboard_arrow_up_rounded,
           iconDown: Icons.keyboard_arrow_down_rounded,
           description: "Keyboard",
-          onPressedDown: () {
-            setState(() {
-              keyboardOn = true;
-            });
-            inputNode.requestFocus();
-          },
+          onPressedDown: _showKeyboard,
         ),
       ],
     );
+  }
+
+  void _showKeyboard() {
+    setState(() {
+      keyboardOn = true;
+      textFieldNode.requestFocus();
+      // inputNode.requestFocus();
+    });
   }
 
   void _onKeyPressed(KeyEvent keyEvent) {
@@ -108,5 +113,9 @@ class _KeyboardButtonState extends State<KeyboardButton>
     }
     
     currentString = newString;
+  }
+
+  void _onSubmitted(String value) {
+    widget.connector.sendInput(Input.keyboardEnter());
   }
 }

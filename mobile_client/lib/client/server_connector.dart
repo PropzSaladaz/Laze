@@ -17,6 +17,8 @@ class ServerConnector {
   static const String SEARCHING = "SEARCHING...";
 
   static const serverPort = 7878;
+  // specified the amount of tries in a row done
+  static const connectionBatchedTries = 40;
   late Socket server;
   Map<String, Future<bool>> connections = {};
   // Used to inform application of current connection status
@@ -45,22 +47,11 @@ class ServerConnector {
         var testIp = _intToIp(baseIp | i);
         print(testIp);
         connections[testIp.address] = _connectToHost(testIp.address);
-      }
 
-      for (var conn in connections.keys) {
-        var future = connections[conn];
-        if (future != null && await future) {
-          print("Connection Successful with $conn");
-          // Connection to server was made
-          // now wait for connection to the new dedicated port
-          sleep(const Duration(microseconds: 5000));
-          // the new connection replaced the old one
-          var newConn = connections[conn];
-          if (newConn != null && await newConn) {
-            print("Connected to the server!");
-            setConnectionStatus(CONNECTED);
-            return true;
-          }
+        // waits for responses from X requests at a time
+        if (i % connectionBatchedTries == 0 && 
+            await _waitForBatchedConnections()) {
+          return true;
         }
       }
     }
@@ -69,10 +60,35 @@ class ServerConnector {
     return false;
   }
 
+  /// Waits for all requests currently in the map of sent requests
+  /// Returns true if one of the requests was accepted at the server, 
+  /// and also
+  Future<bool> _waitForBatchedConnections() async {
+    for (var conn in connections.keys) {
+      var future = connections[conn];
+      if (future != null && await future) {
+        print("Connection Successful with $conn");
+        // Connection to server was made
+        // now wait for connection to the new dedicated port
+        sleep(const Duration(microseconds: 2000));
+        // the new connection replaced the old one
+        var newConn = connections[conn];
+        if (newConn != null && await newConn) {
+          print("Connected to the server!");
+          setConnectionStatus(CONNECTED);
+          connections.clear();
+          return true;
+        }
+      }
+    }
+    connections.clear();
+    return false;
+  }
+
   Future<bool> _connectToHost(String ipAddress) async {
     try {
       var socket = await Socket.connect(ipAddress, serverPort,
-          timeout: const Duration(milliseconds: 10000));
+          timeout: const Duration(milliseconds: 500));
       print("CONNECTED");
       socket.listen((jsonBytes) async {
         // upon receiving the new dedicated port

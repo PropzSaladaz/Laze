@@ -7,9 +7,6 @@ use serde::{Serialize, Deserialize};
 /// The fisrt bit identifies the action. The next bits identify the values of the action.
 
 
-
-
-
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "action", content = "data")]
 pub enum Action {
@@ -31,15 +28,23 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn decode(encoded: &[u8]) -> Self {
+    pub fn decode(encoded: &mut &[u8]) -> Self {
         let action_type = encoded[0];
-        let action_val = &encoded[1..];
+        *encoded = &encoded[1..];
         match action_type {
-            0 => Self::KeyPress(Key::from_bytes(action_val)),
-            1 => Self::Text(action_val[0] as char),
-            2 => Self::Scroll(action_val[0] as i8),
-            3 => Self::MouseMove(Coordinates::from_bytes(action_val)),
-            4 => Self::MouseButton(Button::from_bytes(action_val)),
+            0 => Self::KeyPress(Key::from_bytes(encoded)),
+            1 => {
+                let char = encoded[0] as char;
+                *encoded = &encoded[1..];
+                Self::Text(char)
+            },
+            2 => {
+                let scroll_val = encoded[0] as i8;
+                *encoded = &encoded[1..];
+                Self::Scroll(scroll_val)
+            },
+            3 => Self::MouseMove(Coordinates::from_bytes(encoded)),
+            4 => Self::MouseButton(Button::from_bytes(encoded)),
             5 => Self::SensitivityDown,
             6 => Self::SensitivityUp,
             7 => Self::Disconnect,
@@ -57,11 +62,15 @@ pub struct Coordinates {
 }
 
 impl Coordinates {
-    fn from_bytes(bytes: &[u8]) -> Self {
-        Coordinates { 
+    fn from_bytes(bytes: &mut &[u8]) -> Self {
+        let coords = Coordinates { 
             x: bytes[0] as i8, 
             y: bytes[1] as i8 
-        }
+        };
+        // after consuming the bytes, move forward
+        *bytes = &bytes[2..];
+
+        coords
     }
 }
 
@@ -73,20 +82,21 @@ pub enum Key {
     VolumeDown = 2,
     VolumeUp = 3,
     Pause = 4,
-    ScrollDown = 5,
-    ScrollUp = 6,
+    Enter = 5,
 }
 
 impl Key {
-    fn from_bytes(bytes: &[u8]) -> Self {
-        match bytes[0] {
+    fn from_bytes(bytes: &mut &[u8]) -> Self {
+        let btn = bytes[0];
+        // after consuming the bytes, move forward
+        *bytes = &bytes[1..];
+        match btn {
             0 => Key::Backspace,
             1 => Key::VolumeMute,
             2 => Key::VolumeDown,
             3 => Key::VolumeUp,
             4 => Key::Pause,
-            5 => Key::ScrollDown,
-            6 => Key::ScrollUp,
+            5 => Key::Enter,
             _ => unreachable!("Key type not supported!")
         }
     }
@@ -99,8 +109,11 @@ pub enum Button {
 }
 
 impl Button {
-    fn from_bytes(bytes: &[u8]) -> Self {
-        match bytes[0] {
+    fn from_bytes(bytes: &mut &[u8]) -> Self {
+        let btn = bytes[0];
+        // after consuming the bytes, move forward
+        *bytes = &bytes[1..];
+        match btn {
             0 => Button::Left,
             _ => unreachable!("Unsupported button type")
         }
@@ -111,73 +124,71 @@ impl Button {
 #[cfg(test)]
 mod tests {
 
-    use crate::actions::{self, Action, Button, Coordinates, Key};
+    use crate::actions::{Action, Button, Coordinates, Key};
 
     #[test]
     fn decode_key() {
-        let key_backspace = [0u8, 0u8];
-        let key_vol_mute = [0u8, 1u8];
-        let key_vol_down = [0u8, 2u8];
-        let key_vol_up = [0u8, 3u8];
-        let key_pause = [0u8, 4u8];
-        let key_scroll_down = [0u8, 5u8];
-        let key_scroll_up = [0u8, 6u8];
+        let mut key_backspace: &[u8] = &[0u8, 0u8];
+        let mut key_vol_mute: &[u8] = &[0u8, 1u8];
+        let mut key_vol_down: &[u8] = &[0u8, 2u8];
+        let mut key_vol_up: &[u8] = &[0u8, 3u8];
+        let mut key_pause: &[u8] = &[0u8, 4u8];
+        let mut key_enter: &[u8] = &[0u8, 5u8];
 
-        matches!(Action::decode(&key_backspace),    Action::KeyPress(Key::Backspace));
-        matches!(Action::decode(&key_vol_mute),     Action::KeyPress(Key::VolumeMute));
-        matches!(Action::decode(&key_vol_down),     Action::KeyPress(Key::VolumeDown));
-        matches!(Action::decode(&key_vol_up),       Action::KeyPress(Key::VolumeUp));
-        matches!(Action::decode(&key_pause),        Action::KeyPress(Key::Pause));
-        matches!(Action::decode(&key_scroll_down),  Action::KeyPress(Key::ScrollDown));
-        matches!(Action::decode(&key_scroll_up),    Action::KeyPress(Key::ScrollUp));
+        matches!(Action::decode(&mut key_backspace),    Action::KeyPress(Key::Backspace));
+        matches!(Action::decode(&mut key_vol_mute),     Action::KeyPress(Key::VolumeMute));
+        matches!(Action::decode(&mut key_vol_down),     Action::KeyPress(Key::VolumeDown));
+        matches!(Action::decode(&mut key_vol_up),       Action::KeyPress(Key::VolumeUp));
+        matches!(Action::decode(&mut key_pause),        Action::KeyPress(Key::Pause));
+        matches!(Action::decode(&mut key_enter),  Action::KeyPress(Key::Enter));
     }
 
     #[test]
     fn decode_text() {
-        let text_a_lower = [1u8, 'a' as u8];
-        let text_v_upper = [1u8, 'V' as u8];
+        let mut text_a_lower: &[u8] = &[1u8, 'a' as u8];
+        let mut text_v_upper: &[u8] = &[1u8, 'V' as u8];
 
-        matches!(Action::decode(&text_a_lower),    Action::Text('a'));
-        matches!(Action::decode(&text_v_upper),    Action::Text('V'));
+        matches!(Action::decode(&mut text_a_lower),    Action::Text('a'));
+        matches!(Action::decode(&mut text_v_upper),    Action::Text('V'));
 
     }
 
 
     #[test]
     fn decode_scroll() {
-        let scroll1 = [2u8, 2u8];
-        let scroll2 = [2u8, (-5i8) as u8];
+        let mut scroll1: &[u8] = &[2u8, 2u8];
+        let mut scroll2: &[u8] = &[2u8, (-5i8) as u8];
 
-        matches!(Action::decode(&scroll1),    Action::Scroll(2));
-        matches!(Action::decode(&scroll2),    Action::Scroll(-5));
+        matches!(Action::decode(&mut scroll1),    Action::Scroll(2));
+        matches!(Action::decode(&mut scroll2),    Action::Scroll(-5));
 
     }
 
     #[test]
     fn mouse_move() {
-        let mouse_move = [3u8, 2u8, (-8i8) as u8];
+        let mut mouse_move: &[u8] = &[3u8, 2u8, (-8i8) as u8];
 
-        matches!(Action::decode(&mouse_move),    Action::MouseMove(Coordinates { x: 2, y: -8 }));
+        matches!(Action::decode(&mut mouse_move),    Action::MouseMove(Coordinates { x: 2, y: -8 }));
     }
 
     #[test]
     fn mouse_button() {
-        let mouse_btn = [4u8, 0u8];
-        matches!(Action::decode(&mouse_btn),    Action::MouseButton(Button::Left));
+        let mut mouse_btn: &[u8] = &[4u8, 0u8];
+        matches!(Action::decode(&mut mouse_btn),    Action::MouseButton(Button::Left));
     }
 
     #[test]
     fn mouse_sensitivity() {
-        let sense_down = [5u8];
-        let sense_up = [6u8];
+        let mut sense_down: &[u8] = &[5u8];
+        let mut sense_up: &[u8] = &[6u8];
 
-        matches!(Action::decode(&sense_down),    Action::SensitivityDown);
-        matches!(Action::decode(&sense_up),    Action::SensitivityUp);
+        matches!(Action::decode(&mut sense_down),    Action::SensitivityDown);
+        matches!(Action::decode(&mut sense_up),    Action::SensitivityUp);
     }
 
     #[test]
     fn disconnect() {
-        let disconnect = [7u8];
-        matches!(Action::decode(&disconnect),    Action::Disconnect);
+        let mut disconnect: &[u8] = &[7u8];
+        matches!(Action::decode(&mut disconnect),    Action::Disconnect);
     }
 }

@@ -1,31 +1,24 @@
-use std::{error::Error, io::BufReader, str::from_utf8};
+use std::{error::Error};
 
 use copypasta::ClipboardContext;
 use enigo::{Axis, Coordinate, Direction, Enigo, Keyboard, Mouse, Settings};
-use serde_json::Deserializer;
 
-use crate::{actions::{Action, Key}, keybinds::KeyBindings, server::ConnectionStatus};
+use crate::{actions::Action, keybinds::KeyBindings, server::ConnectionStatus};
 
 pub trait InputHandler: Send + Sync {
     /// Converts the received byte data into jsons, and then to the Action type struct, and
     /// invokes the 'handle_input' method with the parsed Action struct
-    fn handle(&mut self, bytes: &[u8]) -> ConnectionStatus {
-        // Sometimes input from socket comes with several inputs at the same time.
-        // we need to parse each seperately
-        // TODO - add a terminator byte to separate commands
-        // while let Some(action) = deserializer.next() {
-            // match Action::decode(bytes) {
-            //     Ok(action) => match self.handle_input(action) {
-            //         ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
-            //         _ => (),
-            //     },
-            //     Err(e) => eprintln!("Failed to decode action: {}", e)
-            // }
-        // }
-        let action = Action::decode(bytes);
-        match self.handle_input(action) {
-            ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
-            _ => (),
+    fn handle(&mut self, mut bytes: &[u8]) -> ConnectionStatus {
+        // while there are bytes to be consumed -> consume.
+        // each TCP may send buffered inputs within the same packet, thus we need to
+        // check if there aren't any other commands within the bytes of the current packet
+        while bytes.len() > 0 {
+            println!("{:?}", bytes);
+            let action = Action::decode(&mut bytes);
+            match self.handle_input(action) {
+                ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
+                _ => (),
+            };
         };
         ConnectionStatus::Connected
     } 
@@ -144,5 +137,19 @@ impl InputHandler for Device {
         };
 
         ConnectionStatus::Connected
+    }
+}
+
+
+mod tests {
+    use super::{Device, InputHandler};
+
+    #[test]
+    fn parse_several_commands_at_once() {
+        //                  | key backspace  | scroll | mouse move            | 
+        let commands: &[u8] = &[0u8, 0u8, 2u8, 2u8, 3u8, 2u8, (-8i8) as u8];
+        let mut device = Device::new(8, 8, 8, 10).unwrap();
+        device.handle(commands);
+
     }
 }

@@ -51,6 +51,10 @@ class Input {
     return Uint8List.fromList([0, 4]);
   }
 
+  static keyboardEnter() {
+    return Uint8List.fromList([0, 5]);
+  }
+
   static brightnessDown() {
     return Uint8List.fromList([0, 10]); // unsuported yet
   }
