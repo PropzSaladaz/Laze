@@ -13,7 +13,6 @@ pub trait InputHandler: Send + Sync {
         // each TCP may send buffered inputs within the same packet, thus we need to
         // check if there aren't any other commands within the bytes of the current packet
         while bytes.len() > 0 {
-            println!("{:?}", bytes);
             let action = Action::decode(&mut bytes);
             match self.handle_input(action) {
                 ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,

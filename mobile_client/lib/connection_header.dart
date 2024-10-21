@@ -8,6 +8,7 @@ typedef Callback = void Function();
 class ConnectionHeader extends StatefulWidget {
   final String connectionStatus;
   final Callback connect;
+  final Callback cancelSearch;
   final Callback disconnect;
   final Callback turnOffPc;
 
@@ -15,6 +16,7 @@ class ConnectionHeader extends StatefulWidget {
       {super.key,
       required this.connectionStatus,
       required this.connect,
+      required this.cancelSearch,
       required this.disconnect,
       required this.turnOffPc});
 
@@ -49,6 +51,11 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
                       builder: (BuildContext context) => _disconnectPopup());
                 },
                 icon: Icons.power_settings_new,
+              );
+            } else if (widget.connectionStatus == ServerConnector.SEARCHING) {
+              return StyledButton(
+                onPressed: widget.cancelSearch,
+                icon: Icons.cancel,
               );
             } else {
               // NOT CONNECTED -> button used to connect

@@ -9,7 +9,8 @@ import 'package:mobile_client/client/dto/new_client_response.dart';
 
 import 'dto/input.dart';
 
-typedef Callback = void Function(String connectionStatus);
+typedef CallbackSetStatus = void Function(String connectionStatus);
+typedef CallbackGetStatus = String Function();
 
 class ServerConnector {
   static const String NOT_CONNECTED = "NOT CONNECTED";
@@ -19,12 +20,21 @@ class ServerConnector {
   static const serverPort = 7878;
   // specified the amount of tries in a row done
   static const connectionBatchedTries = 40;
+  static const connectionWaitTIme = 1000; // 1s
+
   late Socket server;
   Map<String, Future<bool>> connections = {};
-  // Used to inform application of current connection status
-  Callback setConnectionStatus;
 
-  ServerConnector({required this.setConnectionStatus});
+  // Used to inform application of current connection status
+  CallbackSetStatus setConnectionStatus;
+  // connection status may change while we search for the server.
+  // this can happen if the user cancels the search manually.
+  CallbackGetStatus getConnectionStatus;
+
+  ServerConnector({
+    required this.setConnectionStatus,
+    required this.getConnectionStatus,
+    });
 
   void disconnect() {
     setConnectionStatus(NOT_CONNECTED);
@@ -37,6 +47,8 @@ class ServerConnector {
   }
 
   Future<bool> findServer() async {
+    setConnectionStatus(ServerConnector.SEARCHING);
+
     int n_LANs = 255;
     for (int lan = 0; lan < n_LANs; lan++) {
       int baseIp = _ipToInt("192.168.$lan.0");
@@ -44,6 +56,12 @@ class ServerConnector {
       var totalLocalIpSuffixes = pow(2, 32 - subnetMask).toInt();
 
       for (int i = 0; i < totalLocalIpSuffixes; i++) {
+        // if status has been changed - return right away & cancel further searching
+        if (getConnectionStatus() != SEARCHING) {
+          setConnectionStatus(NOT_CONNECTED);
+          return false;
+        }
+
         var testIp = _intToIp(baseIp | i);
         print(testIp);
         connections[testIp.address] = _connectToHost(testIp.address);
@@ -88,7 +106,7 @@ class ServerConnector {
   Future<bool> _connectToHost(String ipAddress) async {
     try {
       var socket = await Socket.connect(ipAddress, serverPort,
-          timeout: const Duration(milliseconds: 500));
+          timeout: const Duration(milliseconds: connectionWaitTIme));
       print("CONNECTED");
       socket.listen((jsonBytes) async {
         // upon receiving the new dedicated port

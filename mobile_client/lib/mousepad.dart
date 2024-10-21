@@ -7,7 +7,7 @@ import 'dart:math' as math;
 
 import 'client/server_connector.dart';
 
-class MousePad extends StatelessWidget {
+class MousePad extends StatefulWidget {
   final ServerConnector connector;
   final bool fullscreen;
 
@@ -17,19 +17,28 @@ class MousePad extends StatelessWidget {
     required this.fullscreen
   });
 
-  void _handleMouseDrag(DragUpdateDetails details) {
-    var offset = details.delta;
+  @override
+  State<MousePad> createState() => _MousePadState();
+}
+
+class _MousePadState extends State<MousePad> {
+  bool isTwoFingerSwipe = false;
+  double pointerLocationY = 0.0;
+
+  // --------- MOUSE EVENT HANDLERS -------- //
+  void _handleMouseMove(ScaleUpdateDetails details) {
+    var offset = details.focalPointDelta;
     var x = offset.dx.abs() < 1 ? (2 * offset.dx) : offset.dx;
     var y = offset.dy.abs() < 1 ? (2 * offset.dy) : offset.dy;
     var input = Input.mouseMove(move_x: x.toInt(), move_y: y.toInt());
-    connector.sendInput(input);
+    widget.connector.sendInput(input);
   }
 
   void _handleLongPressMove(LongPressMoveUpdateDetails details) {
     var offset = details.localOffsetFromOrigin;
     var input =
         Input.mouseMove(move_x: offset.dx.toInt(), move_y: offset.dy.toInt());
-    connector.sendInput(input);
+    widget.connector.sendInput(input);
   }
 
   void _handleMouseScroll(DragUpdateDetails details, double midPos) {
@@ -38,16 +47,26 @@ class MousePad extends StatelessWidget {
       sleep(const Duration(milliseconds: 10));
       double amount = (offset - midPos) / midPos;
       if (amount > 0) {
-        connector.sendInput(Input.scroll(amount: -1));
+        widget.connector.sendInput(Input.scroll(amount: -1));
       } else {
-        connector.sendInput(Input.scroll(amount: 1));
+        widget.connector.sendInput(Input.scroll(amount: 1));
       }
+    }
+  }
+
+  void _handleScroll(ScaleUpdateDetails details) {
+    double scrollAmountY = details.focalPointDelta.dy; 
+    double swipeSense = 2.0;
+    // if there is some movement, scroll by the inverse of that amount.
+    // If fingers go up -> scroll down.
+    if (scrollAmountY != 0) {
+      widget.connector.sendInput(Input.scroll(amount: -(scrollAmountY/swipeSense).toInt()));
     }
   }
 
   void _handleMouseClick() {
     var input = Input.leftClick();
-    connector.sendInput(input);
+    widget.connector.sendInput(input);
   }
 
   void _handleLongPress() {
@@ -60,27 +79,51 @@ class MousePad extends StatelessWidget {
     // connector.sendInput(input);
   }
 
+
+  // --------- FINGER GESTURES HANDLERS -------- //
+  void _handleScaleStart(ScaleStartDetails details) {
+    if (details.pointerCount == 2) {
+      isTwoFingerSwipe = true;
+      pointerLocationY = details.focalPoint.dy;
+    }
+  }
+
+  void _handleScaleUpdate(ScaleUpdateDetails details) {
+    if (isTwoFingerSwipe && details.pointerCount == 2) {
+      _handleScroll(details);
+    }
+    else if (details.pointerCount == 1) {
+      _handleMouseMove(details);
+    }
+  }
+
+  void _handleScaleEnd(ScaleEndDetails details) {
+    isTwoFingerSwipe = false;
+  }
+
   @override
   Widget build(BuildContext context) {
     const rotationAngle = -90 * math.pi / 180;
     Size screenSize = MediaQuery.of(context).size;
     double scrollHeight =
-        fullscreen ? screenSize.height : 0.40 * screenSize.height;
+        widget.fullscreen ? screenSize.height : 0.40 * screenSize.height;
     double midPos = scrollHeight / 2;
     return Stack(
       children: [
         // MousePad
         GestureDetector(
-          onPanUpdate: _handleMouseDrag,
           onTap: _handleMouseClick,
-          onPanCancel: _handleLongPressUp,
           onLongPressMoveUpdate: _handleLongPressMove,
+          // double finger scroll
+          onScaleStart: _handleScaleStart,
+          onScaleUpdate: _handleScaleUpdate,
+          onScaleEnd: _handleScaleEnd,
           child: Stack(
             children: [
               // main mousepad
               Container(
                 width: double.infinity,
-                height: fullscreen ? double.infinity : 0.4 * screenSize.height,
+                height: widget.fullscreen ? double.infinity : 0.4 * screenSize.height,
                 decoration: BoxDecoration(
                   border: Border.all(color: ColorConstants.border, width: 3),
                   borderRadius: BorderRadius.circular(20),
@@ -89,7 +132,7 @@ class MousePad extends StatelessWidget {
               ),
               () {
                 // mousepad text
-                if (fullscreen) {
+                if (widget.fullscreen) {
                   return const SizedBox();
                 } else {
                   return Positioned(
@@ -115,7 +158,7 @@ class MousePad extends StatelessWidget {
 
         // Scroll
         Positioned(
-          right: fullscreen ? 25 : 10,
+          right: widget.fullscreen ? 25 : 10,
           child: GestureDetector(
             onPanUpdate: (details) {
               _handleMouseScroll(details, midPos);
@@ -127,7 +170,7 @@ class MousePad extends StatelessWidget {
                   height: scrollHeight,
                   padding: const EdgeInsets.all(2),
                   child: FractionallySizedBox(
-                    heightFactor: fullscreen ? 0.85 : 0.93,
+                    heightFactor: widget.fullscreen ? 0.85 : 0.93,
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
@@ -138,7 +181,7 @@ class MousePad extends StatelessWidget {
                 ),
                 () {
                   // scroll text
-                  if (fullscreen) {
+                  if (widget.fullscreen) {
                     return const SizedBox();
                   } else {
                     return Positioned(
@@ -171,12 +214,12 @@ class MousePad extends StatelessWidget {
             color: ColorConstants.border,
             iconSize: 64,
             onPressed: () {
-              fullscreen
+              widget.fullscreen
                   ? Navigator.of(context).pop()
                   : Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => MousePad(
-                          connector: connector,
+                          connector: widget.connector,
                           fullscreen: true,
                         ),
                       ),

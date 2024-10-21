@@ -25,10 +25,17 @@ class _ControllerScreenState extends State<ControllerScreen> {
     setState(() => connectionStatus = state);
   }
 
+  String getConnectionState() {
+    return connectionStatus;
+  }
+
   @override
   void initState() {
     super.initState();
-    connector = ServerConnector(setConnectionStatus: setConnectionState);
+    connector = ServerConnector(
+      setConnectionStatus: setConnectionState,
+      getConnectionStatus: getConnectionState,
+      );
   }
 
   @override
@@ -52,6 +59,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
                   ConnectionHeader(
                     connectionStatus: connectionStatus,
                     connect: _connect,
+                    cancelSearch: _cancelSearch,
                     disconnect: _disconnect,
                     turnOffPc: _turnOffPc,
                   ),
@@ -59,7 +67,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
                     height: 23,
                   ),
                   // PAGE BODY
-                  () {
+                  () { // NOT CONNECTED
                     if (connectionStatus == ServerConnector.NOT_CONNECTED) {
                       return Expanded(
                         child: Center(
@@ -72,6 +80,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
                           child: FutureBuilder(
                               future: connected,
                               builder: (context, snapshot) {
+                                // WAITING FOR CONNECTION
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
                                   return const CircularProgressIndicator
@@ -80,7 +89,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
                                 if (snapshot.hasError) {
                                   return Text(snapshot.error.toString());
                                 }
-
+                                // CONNECTED
                                 return Column(
                                   children: [
                                     MousePad(
@@ -110,8 +119,13 @@ class _ControllerScreenState extends State<ControllerScreen> {
 
   void _connect() {
     setState(() {
-      setConnectionState(ServerConnector.SEARCHING);
       connected = connector.findServer();
+    });
+  }
+
+  void _cancelSearch() {
+    setState(() {
+      setConnectionState(ServerConnector.NOT_CONNECTED);
     });
   }
 
