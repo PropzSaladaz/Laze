@@ -1,8 +1,9 @@
 use std::{error::Error};
-
+use std::process::{Command, Output};
 use copypasta::ClipboardContext;
 use enigo::{Axis, Coordinate, Direction, Enigo, Keyboard, Mouse, Settings};
 
+use crate::actions::TerminalCommand;
 use crate::{actions::Action, keybinds::KeyBindings, server::ConnectionStatus};
 
 pub trait InputHandler: Send + Sync {
@@ -133,6 +134,10 @@ impl InputHandler for Device {
             Action::MouseMove(coordinates ) => self.mouse_move_relative(coordinates.x, coordinates.y),
 
             Action::Disconnect => return ConnectionStatus::Disconnected,
+
+            Action::Shutdown => shutdown_computer(),
+
+            Action::TerminalCommand(TerminalCommand { command}) => run_command(&command),
         };
 
         ConnectionStatus::Connected
@@ -140,8 +145,54 @@ impl InputHandler for Device {
 }
 
 
+// Machine Shutdown OS dependent
+#[cfg(target_os = "windows")]
+fn shutdown_computer() {
+    Command::new("shutdown")
+    .args(&["/s", "/f", "/t", "0"])
+    .spawn()
+    .expect("Failed to execute shutdown command");
+}
+
+#[cfg(target_os = "linux")]
+fn shutdown_computer() {
+    Command::new("shutdown")
+    .arg("now")
+    .spawn()
+    .expect("Failed to execute shutdown command");
+}
+
+#[cfg(target_os = "macos")]
+fn shutdown_computer() {
+    Command::new("shutdown")
+    .args(&["-h", "now"])
+    .spawn()
+    .expect("Failed to execute shutdown command");
+}
+
+// OS-dependent terminal command issuer
+
+#[cfg(target_os = "windows")]
+fn run_command(command: &str) {
+    Command::new("cmd")
+        .args(&["/C", command])
+        .spawn()
+        .expect("Failed to execute command on Windows");
+}
+
+#[cfg(not(target_os = "windows"))]
+fn run_command(command: &str) {
+    Command::new("sh")
+        .arg("-c")
+        .arg(command)
+        .spawn()
+        .expect("Failed to execute command on Windows");
+}
+
+
 mod tests {
     use super::{Device, InputHandler};
+    use super::run_command;
 
     #[test]
     fn parse_several_commands_at_once() {
@@ -149,6 +200,10 @@ mod tests {
         let commands: &[u8] = &[0u8, 0u8, 2u8, 2u8, 3u8, 2u8, (-8i8) as u8];
         let mut device = Device::new(8, 8, 8, 10).unwrap();
         device.handle(commands);
+    }
 
+    #[test]
+    fn open_firefox_command() {
+        run_command("firefox");
     }
 }

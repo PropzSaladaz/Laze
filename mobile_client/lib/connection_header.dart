@@ -35,8 +35,8 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
         children: [
           Text(
             widget.connectionStatus,
-            style: const TextStyle(
-              color: ColorConstants.mainText,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
               fontSize: 35,
               fontWeight: FontWeight.w500,
             ),
@@ -75,24 +75,40 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
       alignment: Alignment.center,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       backgroundColor: ColorConstants.background,
-      title: const Text("Disconnect"),
+      title: const Text(
+        "Disconnect",
+        style: TextStyle(
+          color: ColorConstants.darkPrimary
+        )),
       actions: [
         TextButton(
+          style: const ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(ColorConstants.border)
+          ),
           onPressed: () {
             widget.disconnect();
             Navigator.of(context).pop();
           },
           child: const Text(
             "Disconnect",
+            style: TextStyle(
+              color: ColorConstants.darkPrimary
+            ),
           ),
         ),
         TextButton(
+          style: const ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(ColorConstants.border)
+          ),
           onPressed: () {
             widget.turnOffPc();
             Navigator.of(context).pop();
           },
           child: const Text(
             "Turn OFF PC",
+            style: TextStyle(
+              color: ColorConstants.darkPrimary
+            ),
           ),
         )
       ],

@@ -5,11 +5,8 @@ import 'package:mobile_client/client/dto/input.dart';
 import 'package:mobile_client/client/server_connector.dart';
 
 class KeyboardButton extends StatefulWidget {
-  final ServerConnector connector;
-
   const KeyboardButton({
     super.key,
-    required this.connector,
   });
 
   @override
@@ -99,23 +96,23 @@ class _KeyboardButtonState extends State<KeyboardButton>
     if (keyEvent.logicalKey == LogicalKeyboardKey.backspace && 
         timeDifference > Duration(milliseconds: keyPressInterval)) {
 
-      widget.connector.sendInput(Input.keyboardBackSpace());
+      ServerConnector.sendInput(Input.keyboardBackSpace());
       lastPressTime = currentPressTime;
     }
   }
 
   void _onTextChanged(String newString) {
     if (newString.length > currentString.length) { // send last character
-      widget.connector.sendInput(Input.keyboardCharacter(text: newString[newString.length - 1]));
+      ServerConnector.sendInput(Input.keyboardCharacter(text: newString[newString.length - 1]));
     }
     else {
-      widget.connector.sendInput(Input.keyboardBackSpace());
+      ServerConnector.sendInput(Input.keyboardBackSpace());
     }
     
     currentString = newString;
   }
 
   void _onSubmitted(String value) {
-    widget.connector.sendInput(Input.keyboardEnter());
+    ServerConnector.sendInput(Input.keyboardEnter());
   }
 }

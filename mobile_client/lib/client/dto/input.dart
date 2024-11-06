@@ -1,5 +1,6 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -23,6 +24,7 @@ const int DISCONNECT = 1;
 /// 
 /// Scroll:    [2, scroll_amount]
 /// MouseMove: [3, move-x, move_y]
+/// Command: [9, string_size, command_bytes]
 /// 
 class Input {
 
@@ -92,6 +94,27 @@ class Input {
   // ------ Disconnect: [7] -------
   static disconnect() {
     return Uint8List.fromList([7]);
+  }
+
+  // ------ Shutdown: [8] -------
+  static shutdown() {
+    return Uint8List.fromList([8]);
+  }
+
+  // ------ Run Terminal Command: [9] -------
+  // Command: [9, string_size, command_bytes]
+  static runCommand(String command) {
+    int commandSize = command.length;
+    // enough to fit within a single u8
+    if (commandSize < 256) {
+      List<int> commandBytes = utf8.encode(command);
+      // 9 is the command code, then we send command size (nbr of characters), and a null byte 
+      // to specify that after that we have the actual command chars
+      List<int> commandMetadata = [9, commandSize];
+      commandMetadata.addAll(commandBytes);
+      return Uint8List.fromList(commandMetadata);
+    }
+
   }
 
   // static setHold() {

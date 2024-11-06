@@ -8,12 +8,10 @@ import 'dart:math' as math;
 import 'client/server_connector.dart';
 
 class MousePad extends StatefulWidget {
-  final ServerConnector connector;
   final bool fullscreen;
 
   const MousePad({
     super.key, 
-    required this.connector, 
     required this.fullscreen
   });
 
@@ -31,14 +29,14 @@ class _MousePadState extends State<MousePad> {
     var x = offset.dx.abs() < 1 ? (2 * offset.dx) : offset.dx;
     var y = offset.dy.abs() < 1 ? (2 * offset.dy) : offset.dy;
     var input = Input.mouseMove(move_x: x.toInt(), move_y: y.toInt());
-    widget.connector.sendInput(input);
+    ServerConnector.sendInput(input);
   }
 
   void _handleLongPressMove(LongPressMoveUpdateDetails details) {
     var offset = details.localOffsetFromOrigin;
     var input =
         Input.mouseMove(move_x: offset.dx.toInt(), move_y: offset.dy.toInt());
-    widget.connector.sendInput(input);
+    ServerConnector.sendInput(input);
   }
 
   void _handleMouseScroll(DragUpdateDetails details, double midPos) {
@@ -47,9 +45,9 @@ class _MousePadState extends State<MousePad> {
       sleep(const Duration(milliseconds: 10));
       double amount = (offset - midPos) / midPos;
       if (amount > 0) {
-        widget.connector.sendInput(Input.scroll(amount: -1));
+        ServerConnector.sendInput(Input.scroll(amount: -1));
       } else {
-        widget.connector.sendInput(Input.scroll(amount: 1));
+        ServerConnector.sendInput(Input.scroll(amount: 1));
       }
     }
   }
@@ -60,13 +58,13 @@ class _MousePadState extends State<MousePad> {
     // if there is some movement, scroll by the inverse of that amount.
     // If fingers go up -> scroll down.
     if (scrollAmountY != 0) {
-      widget.connector.sendInput(Input.scroll(amount: -(scrollAmountY/swipeSense).toInt()));
+      ServerConnector.sendInput(Input.scroll(amount: -(scrollAmountY/swipeSense).toInt()));
     }
   }
 
   void _handleMouseClick() {
     var input = Input.leftClick();
-    widget.connector.sendInput(input);
+    ServerConnector.sendInput(input);
   }
 
   void _handleLongPress() {
@@ -218,8 +216,7 @@ class _MousePadState extends State<MousePad> {
                   ? Navigator.of(context).pop()
                   : Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => MousePad(
-                          connector: widget.connector,
+                        builder: (context) => const MousePad(
                           fullscreen: true,
                         ),
                       ),

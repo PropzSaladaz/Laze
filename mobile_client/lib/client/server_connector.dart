@@ -7,8 +7,6 @@ import 'dart:typed_data';
 
 import 'package:mobile_client/client/dto/new_client_response.dart';
 
-import 'dto/input.dart';
-
 typedef CallbackSetStatus = void Function(String connectionStatus);
 typedef CallbackGetStatus = String Function();
 
@@ -22,31 +20,33 @@ class ServerConnector {
   static const connectionBatchedTries = 40;
   static const connectionWaitTIme = 1000; // 1s
 
-  late Socket server;
-  Map<String, Future<bool>> connections = {};
+  static late Socket server;
+  static Map<String, Future<bool>> connections = {};
 
   // Used to inform application of current connection status
-  CallbackSetStatus setConnectionStatus;
+  static late CallbackSetStatus setConnectionStatus;
   // connection status may change while we search for the server.
   // this can happen if the user cancels the search manually.
-  CallbackGetStatus getConnectionStatus;
+  static late CallbackGetStatus getConnectionStatus;
 
-  ServerConnector({
-    required this.setConnectionStatus,
-    required this.getConnectionStatus,
-    });
+  // Sets the callback function to be used by the application that uses the server connector to update
+  // its state upon server connector changes
+  static void init(CallbackSetStatus setConnectionStatus, CallbackGetStatus getConnectionStatus) {
+    ServerConnector.setConnectionStatus = setConnectionStatus;
+    ServerConnector.getConnectionStatus = getConnectionStatus;
+  }
 
-  void disconnect() {
+  static void disconnect() {
     setConnectionStatus(NOT_CONNECTED);
     server.close();
     server.destroy();
   }
 
-  void sendInput(Uint8List bytes) {
+  static void sendInput(Uint8List bytes) {
     server.add(bytes);
   }
 
-  Future<bool> findServer() async {
+  static Future<bool> findServer() async {
     setConnectionStatus(ServerConnector.SEARCHING);
 
     int n_LANs = 255;
@@ -81,7 +81,7 @@ class ServerConnector {
   /// Waits for all requests currently in the map of sent requests
   /// Returns true if one of the requests was accepted at the server, 
   /// and also
-  Future<bool> _waitForBatchedConnections() async {
+  static Future<bool> _waitForBatchedConnections() async {
     for (var conn in connections.keys) {
       var future = connections[conn];
       if (future != null && await future) {
@@ -103,7 +103,7 @@ class ServerConnector {
     return false;
   }
 
-  Future<bool> _connectToHost(String ipAddress) async {
+  static Future<bool> _connectToHost(String ipAddress) async {
     try {
       var socket = await Socket.connect(ipAddress, serverPort,
           timeout: const Duration(milliseconds: connectionWaitTIme));
@@ -126,12 +126,12 @@ class ServerConnector {
     }
   }
 
-  int _ipToInt(String address) {
+  static int _ipToInt(String address) {
     var parts = address.split('.').map(int.parse).toList();
     return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + (parts[3]);
   }
 
-  InternetAddress _intToIp(int ip) {
+  static InternetAddress _intToIp(int ip) {
     return InternetAddress([
       ip >> 24,
       (ip >> 16) & 0xFF,

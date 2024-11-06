@@ -31,6 +31,9 @@ impl KeyBindings {
             // keyboard
             (actions::Key::Backspace, enigo::Key::Backspace),
             (actions::Key::VolumeMute, enigo::Key::VolumeMute),
+            (actions::Key::VolumeDown, enigo::Key::VolumeDown),
+            (actions::Key::VolumeUp, enigo::Key::VolumeUp),
+            (actions::Key::Pause, enigo::Key::Pause),
             (actions::Key::Enter, enigo::Key::Return),
         ]);
     }

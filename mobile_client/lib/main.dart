@@ -16,11 +16,20 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: ColorConstants.background),
-        scaffoldBackgroundColor: ColorConstants.background,
+        colorScheme: const ColorScheme(
+          brightness: Brightness.light, 
+          primary: ColorConstants.background,
+          onPrimary: ColorConstants.mainText, 
+          secondary: ColorConstants.border, 
+          onSecondary: ColorConstants.mousepadText, 
+          error: Colors.red, 
+          onError: Colors.black, 
+          surface: ColorConstants.background, 
+          onSurface: ColorConstants.mainText,
+        ),
         textTheme: const TextTheme(
-            bodyLarge: TextStyle(
-          fontFamily: 'NunitoSans',
+          bodyLarge: TextStyle(
+            fontFamily: 'NunitoSans',
         )),
         useMaterial3: true,
       ),
