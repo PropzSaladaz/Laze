@@ -7,6 +7,7 @@ class ColorConstants {
   static const Color scrollText = Color(0xFFE7E7E7);
   static const Color mousepadText = Color(0xFFF6F6F6);
   static const Color mainText = Color(0xFFE8E8E8);
+  static const Color darkText = Color(0xFFDDDDDD);
 
   static const Color darkActionBtn = Color(0xFFD1D1D1);
   static const Color darkPrimary = Color(0xFFA1A1A1);

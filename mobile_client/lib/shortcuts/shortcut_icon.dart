@@ -19,7 +19,9 @@ class ShortcutIcon extends StatelessWidget {
         StyledButton(
           icon: shortcut.icon,
           onPressed: () {
-            ServerConnector.sendInput(Input.runCommand(shortcut.command));
+            ServerConnector.sendInput(
+              Input.runCommand(shortcut.commands)
+            );
           },
         ),
         Text(shortcut.name),

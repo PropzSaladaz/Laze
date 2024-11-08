@@ -3,6 +3,7 @@ import 'package:mobile_client/client/dto/input.dart';
 import 'package:mobile_client/client/server_connector.dart';
 import 'package:mobile_client/color_constants.dart';
 import 'package:mobile_client/connection_header.dart';
+import 'package:mobile_client/controller_page.dart';
 import 'package:mobile_client/mousepad.dart';
 import 'package:mobile_client/buttons/styled_button.dart';
 import 'package:mobile_client/shortcuts/shortcuts_sheet.dart';
@@ -39,109 +40,89 @@ class _ControllerScreenState extends State<ControllerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ControllerPage(
       resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        backgroundColor: ColorConstants.background,
-        toolbarHeight: 0,
-      ),
-      body: Center(
-        child: Stack(
-          children: [
-            // MAIN PAGE
-            Container(
-              padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 24, vertical: 24),
-              alignment: Alignment.topCenter,
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: Stack(
-                children: [
-                  Column(
-                    children: [
-                      ConnectionHeader(
-                        connectionStatus: connectionStatus,
-                        connect: _connect,
-                        cancelSearch: _cancelSearch,
-                        disconnect: _disconnect,
-                        turnOffPc: _turnOffPc,
-                      ),
-                      const SizedBox(
-                        height: 23,
-                      ),
-                      // PAGE BODY
-                      () { // NOT CONNECTED
-                        if (connectionStatus == ServerConnector.NOT_CONNECTED) {
-                          return Expanded(
-                            child: Center(
-                                child:
-                                    Image.asset("assets/images/NoConnection.png")),
-                          );
-                        } else {
-                          return Expanded(
-                            child: Center(
-                              child: FutureBuilder(
-                                  future: connected,
-                                  builder: (context, snapshot) {
-                                    // WAITING FOR CONNECTION
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return const CircularProgressIndicator
-                                          .adaptive(
-                                            backgroundColor: ColorConstants.darkPrimary,
-                                          );
-                                    }
-                                    if (snapshot.hasError) {
-                                      return Text(snapshot.error.toString());
-                                    }
-                                    // CONNECTED
-                                    return Column(
-                                      children: [
-                                        MousePad(
-                                          fullscreen: false,
-                                        ),
-                                        const SizedBox(height: 15),
-                                        CommandBtns(
-                                          onShowShortcutsSheet: () {
-                                            setState(() {
-                                              showShortcutsScrollableSheet = true;
-                                            });
-                                          }
-                                        ),
-                                      ],
-                                    );
-                                  }),
-                            ),
-                          );
+      body: Column(
+        children: [
+          ConnectionHeader(
+            connectionStatus: connectionStatus,
+            connect: _connect,
+            cancelSearch: _cancelSearch,
+            disconnect: _disconnect,
+            turnOffPc: _turnOffPc,
+          ),
+          const SizedBox(
+            height: 23,
+          ),
+          // PAGE BODY
+          () { // NOT CONNECTED
+            if (connectionStatus == ServerConnector.NOT_CONNECTED) {
+              return Expanded(
+                child: Center(
+                    child:
+                        Image.asset("assets/images/NoConnection.png")),
+              );
+            } else {
+              return Expanded(
+                child: Center(
+                  child: FutureBuilder(
+                      future: connected,
+                      builder: (context, snapshot) {
+                        // WAITING FOR CONNECTION
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const CircularProgressIndicator
+                              .adaptive(
+                                backgroundColor: ColorConstants.darkPrimary,
+                              );
                         }
-                      }()
-                      // BODY
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // SCROLABLE SHORTCUTS
-            Visibility(
-              visible: showShortcutsScrollableSheet,
-              child: Positioned(
-                bottom: 0,
-                right: 0,
-                left: 0,
-                child: ShortcutsSheet(
-                  isVisible: showShortcutsScrollableSheet,
-                  closeScrollableSheets: () {
-                    setState(() {
-                      showShortcutsScrollableSheet = false;
-                      print("Scrollable sheet is now closed");
-                    });
-                  },
-                  
+                        if (snapshot.hasError) {
+                          return Text(snapshot.error.toString());
+                        }
+                        // CONNECTED
+                        return Column(
+                          children: [
+                            MousePad(
+                              fullscreen: false,
+                            ),
+                            const SizedBox(height: 15),
+                            CommandBtns(
+                              onShowShortcutsSheet: () {
+                                setState(() {
+                                  showShortcutsScrollableSheet = true;
+                                });
+                              }
+                            ),
+                          ],
+                        );
+                      }),
                 ),
-              )
-            ),
-          ],
-        ),
+              );
+            }
+          }()
+          // BODY
+        ],
       ),
+      stackedBody:             
+        // SCROLABLE SHORTCUTS
+        Visibility(
+          visible: showShortcutsScrollableSheet,
+          child: Positioned(
+            bottom: 0,
+            right: 0,
+            left: 0,
+            child: ShortcutsSheet(
+              isVisible: showShortcutsScrollableSheet,
+              closeScrollableSheets: () {
+                setState(() {
+                  showShortcutsScrollableSheet = false;
+                  print("Scrollable sheet is now closed");
+                });
+              },
+              
+            ),
+          )
+        ),
     );
   }
 

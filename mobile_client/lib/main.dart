@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_client/color_constants.dart';
 import 'package:mobile_client/controller_screen.dart';
@@ -13,8 +14,10 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    debugPaintSizeEnabled = false;
     return MaterialApp(
       title: 'Flutter Demo',
+      
       theme: ThemeData(
         colorScheme: const ColorScheme(
           brightness: Brightness.light, 

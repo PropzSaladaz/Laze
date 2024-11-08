@@ -11,6 +11,25 @@ typedef CallbackSetStatus = void Function(String connectionStatus);
 typedef CallbackGetStatus = String Function();
 
 class ServerConnector {
+  // Supported OS names
+  static const String WINDOWS_OS = "windows";
+  static const String LINUX_OS = "linux";
+  static const String MAC_OS = "macOS";
+  // SUpported OS's binary identifiers
+  static const Map OS_MASKS = {
+    WINDOWS_OS: 0x1,
+    LINUX_OS: 0x2,
+    MAC_OS: 0x4,
+  };
+  static const List<String> SUPPORTED_OSES = [
+    WINDOWS_OS, LINUX_OS, MAC_OS
+  ];
+
+  // specifies server operative system
+  // used when sending commands - client only sends the command
+  // for the specific server OS
+  static late String _serverOS;
+
   static const String NOT_CONNECTED = "NOT CONNECTED";
   static const String CONNECTED = "CONNECTED";
   static const String SEARCHING = "SEARCHING...";
@@ -28,6 +47,10 @@ class ServerConnector {
   // connection status may change while we search for the server.
   // this can happen if the user cancels the search manually.
   static late CallbackGetStatus getConnectionStatus;
+
+  static String getServerOS() {
+    return _serverOS;
+  }
 
   // Sets the callback function to be used by the application that uses the server connector to update
   // its state upon server connector changes
@@ -115,6 +138,7 @@ class ServerConnector {
         // try connecting to it
         var newSocket = await Socket.connect(ipAddress, resp.port);
         server = newSocket;
+        _serverOS = resp.server_os;
         // !IMPORTANT! this is set to force all data to be sent in a different tcp packet
         server.setOption(SocketOption.tcpNoDelay, true);
       }, onDone: () => socket.destroy());

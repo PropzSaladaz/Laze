@@ -62,6 +62,7 @@ pub struct Server<A: Application> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewClientResponse {
     port: usize,
+    server_os: String,
 }
 
 
@@ -98,7 +99,10 @@ impl<A: Application + 'static> Server<A> {
                 Ok((mut stream, addr)) => {
                     println!("Received client connection");
                     let port = self.clients.add(addr, Arc::clone(&self.app));
-                    let data = serde_json::to_vec(&NewClientResponse { port }).unwrap();
+                    let data = serde_json::to_vec(&NewClientResponse { 
+                        port,
+                        server_os: std::env::consts::OS.to_owned(), // send the server OS to client
+                    }).unwrap();
                     stream.write_all(data.as_slice())
                         .expect("Could not write into socket's client");
                 }

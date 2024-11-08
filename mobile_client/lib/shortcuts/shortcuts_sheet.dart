@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_client/buttons/styled_button.dart';
 import 'package:mobile_client/buttons/wide_styled_button.dart';
 import 'package:mobile_client/color_constants.dart';
+import 'package:mobile_client/shortcuts/add_custom_shortcut.dart';
 import 'package:mobile_client/shortcuts/shortcut.dart';
 import 'package:mobile_client/shortcuts/shortcut_icon.dart';
 
@@ -24,11 +25,11 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     Shortcut(
       icon: Icons.web, 
       name: "firefox",
-      command: "firefox"),
+      commands: {'Linux' : "firefox"}),
     Shortcut(
       icon: Icons.web,
       name: "Wareztuga",
-      command: 'firefox "https://wareztuga.pt/"',
+      commands: {'Linux' : 'firefox "https://wareztuga.pt/"'},
     )
   ];
 
@@ -119,10 +120,13 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                       right: 20.0,
                     ),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        const Center(
+                          const SizedBox(
+                          height: 60,
                           child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 10.0),
+                            padding: EdgeInsets.symmetric(vertical: 12),
                             child: Text(
                               "Shortcuts",
                               style: TextStyle(
@@ -166,7 +170,18 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
               child: Center(
                 child: WideStyledButton(
                   icon: Icons.add, 
-                  onPressed: () {}, 
+                  onPressed: () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(builder: (context) => AddCustomShortcut(
+                        onCreateNewSHortcut: (shortcut) {
+                          setState(() {
+                            shortcuts.add(shortcut);
+                            print("Shortcut added: ${shortcut.name}  ${shortcut.commands}");
+                          });
+                        },
+                      )));
+                  }, 
                   backgroundColor: ColorConstants.darkActionBtn, 
                   iconColor: Colors.white,
                 ),
