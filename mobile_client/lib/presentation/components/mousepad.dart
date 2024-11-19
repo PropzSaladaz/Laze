@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:mobile_client/client/dto/input.dart';
-import 'package:mobile_client/color_constants.dart';
+import 'package:mobile_client/data/dto/input.dart';
+import 'package:mobile_client/core/constants/color_constants.dart';
 import 'dart:math' as math;
 
-import 'client/server_connector.dart';
+import '../../services/server_connector.dart';
 
 class MousePad extends StatefulWidget {
   final bool fullscreen;

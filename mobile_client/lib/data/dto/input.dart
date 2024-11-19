@@ -1,13 +1,10 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
-import 'package:mobile_client/client/keybinds.dart';
-import 'package:mobile_client/client/server_connector.dart';
-import 'package:mobile_client/shortcuts/shortcut.dart';
+import 'package:mobile_client/services/server_connector.dart';
+import 'package:mobile_client/data/model/shortcut.dart';
 
 const int NO_CHANGE = 0;
 const int RELEASE = 1;

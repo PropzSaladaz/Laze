@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/buttons/wide_styled_button.dart';
-import 'package:mobile_client/client/server_connector.dart';
-import 'package:mobile_client/color_constants.dart';
+import 'package:mobile_client/data/state/shortcuts_provider.dart';
+import 'package:mobile_client/presentation/widgets/buttons/wide_styled_button.dart';
+import 'package:mobile_client/services/server_connector.dart';
+import 'package:mobile_client/core/constants/color_constants.dart';
 import 'package:mobile_client/controller_page.dart';
-import 'package:mobile_client/shortcuts/shortcut.dart';
+import 'package:mobile_client/data/model/shortcut.dart';
+import 'package:provider/provider.dart';
 
 class AddCustomShortcut extends StatefulWidget {
-  final void Function(Shortcut) onCreateNewSHortcut; 
 
-  const AddCustomShortcut({
-    super.key,
-    required this.onCreateNewSHortcut  
-  });
+  const AddCustomShortcut({super.key});
 
   @override
   State<AddCustomShortcut> createState() => _AddCustomShortcutState();
@@ -110,16 +108,21 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                   Expanded(
                     child: FractionallySizedBox(
                       widthFactor: 0.8,
-                      child: WideStyledButton(
-                        backgroundColor: Colors.white,
-                        onPressed: () { 
-                          Navigator.of(context).pop(); 
-                          widget.onCreateNewSHortcut(shortcut);
-                        },
-                        text: "CREATE",
-                        textColor: ColorConstants.darkText,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
+                      child: Consumer<ShortcutsProvider>(
+                        builder: (context, shortcuts, child) {
+                          return WideStyledButton(
+                            backgroundColor: Colors.white,
+                            onPressed: () { 
+                              shortcuts.addShortcut(shortcut);
+                              print("Shortcut added!");
+                              Navigator.of(context).pop(); 
+                            },
+                            text: "CREATE",
+                            textColor: ColorConstants.darkText,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          );
+                        }
                       ),
                     ),
                   ),

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/buttons/styled_button.dart';
-import 'package:mobile_client/buttons/wide_styled_button.dart';
-import 'package:mobile_client/color_constants.dart';
-import 'package:mobile_client/shortcuts/add_custom_shortcut.dart';
-import 'package:mobile_client/shortcuts/shortcut.dart';
-import 'package:mobile_client/shortcuts/shortcut_icon.dart';
+import 'package:mobile_client/data/state/shortcuts_provider.dart';
+import 'package:mobile_client/presentation/widgets/buttons/styled_button.dart';
+import 'package:mobile_client/presentation/widgets/buttons/wide_styled_button.dart';
+import 'package:mobile_client/core/constants/color_constants.dart';
+import 'package:mobile_client/presentation/pages/shortcuts/addShortcut/add_custom_shortcut.dart';
+import 'package:mobile_client/data/model/shortcut.dart';
+import 'package:mobile_client/presentation/pages/shortcuts/shortcut_icon.dart';
+import 'package:provider/provider.dart';
 
 class ShortcutsSheet extends StatefulWidget {
   final void Function() closeScrollableSheets;
@@ -21,18 +23,6 @@ class ShortcutsSheet extends StatefulWidget {
 }
 
 class _ShortcutsSheetState extends State<ShortcutsSheet> {
-  List<Shortcut> shortcuts = [
-    Shortcut(
-      icon: Icons.web, 
-      name: "firefox",
-      commands: {'Linux' : "firefox"}),
-    Shortcut(
-      icon: Icons.web,
-      name: "Wareztuga",
-      commands: {'Linux' : 'firefox "https://wareztuga.pt/"'},
-    )
-  ];
-
 
   late DraggableScrollableController _controller;
   final double _closeThreshold = 0.2;
@@ -77,13 +67,20 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
 
 // animate when opening sheet
   void _onOpen() {
-    _controller.animateTo(
+    // This check is needed since the DraggableScrollableController is only attached
+    // after the DraggableScrollableSheet is built into the widget tree.
+    if (_controller.isAttached) {
+      _controller.animateTo(
         _defaultOpenSize, 
         duration: _openAnimationTime, 
         curve: Curves.easeInOut
       ).then((_) {
         _sheetIsFullyOpen = true;
       });
+    } else {
+      // try again next frame
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
+    }
   }
   
   @override
@@ -93,7 +90,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
       child: Stack(
         children: [
           AnimatedContainer(
-            duration: Duration(milliseconds: 500),
+            duration: const Duration(milliseconds: 500),
             curve: Curves.linear,
             child: DraggableScrollableSheet(
               controller: _controller,
@@ -136,18 +133,28 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                           ),
                         ),
                         Expanded(
-                          child: GridView.builder(
-                            controller: scrollController,
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 4,
-                              crossAxisSpacing: 15.0,
-                              mainAxisSpacing: 15.0,
-                            ), 
-                            itemCount: shortcuts.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              return ShortcutIcon(
-                                shortcut: shortcuts[index],
-                              );
+                          child: Consumer<ShortcutsProvider>(
+                            builder: (context, shortcuts, child) {
+                              if (shortcuts.isLoading) {
+                                return Text("Loading");
+                              } else if (shortcuts.error != null) {
+                                return Text(shortcuts.error!);
+                              } else {
+                                return GridView.builder(
+                                  controller: scrollController,
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 4,
+                                    crossAxisSpacing: 15.0,
+                                    mainAxisSpacing: 15.0,
+                                  ), 
+                                  itemCount: shortcuts.length,
+                                  itemBuilder: (BuildContext context, int index) {
+                                    return ShortcutIcon(
+                                      shortcut: shortcuts.shortcuts[index],
+                                    );
+                                  }
+                                );
+                              }
                             }
                           ),
                         ),
@@ -173,14 +180,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                   onPressed: () {
                     Navigator.push(
                       context, 
-                      MaterialPageRoute(builder: (context) => AddCustomShortcut(
-                        onCreateNewSHortcut: (shortcut) {
-                          setState(() {
-                            shortcuts.add(shortcut);
-                            print("Shortcut added: ${shortcut.name}  ${shortcut.commands}");
-                          });
-                        },
-                      )));
+                      MaterialPageRoute(builder: (context) => const AddCustomShortcut()));
                   }, 
                   backgroundColor: ColorConstants.darkActionBtn, 
                   iconColor: Colors.white,

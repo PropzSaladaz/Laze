@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mobile_client/buttons/styled_long_button.dart';
-import 'package:mobile_client/client/dto/input.dart';
-import 'package:mobile_client/client/server_connector.dart';
+import 'package:mobile_client/presentation/widgets/buttons/styled_long_button.dart';
+import 'package:mobile_client/data/dto/input.dart';
+import 'package:mobile_client/services/server_connector.dart';
 
 class KeyboardButton extends StatefulWidget {
   const KeyboardButton({

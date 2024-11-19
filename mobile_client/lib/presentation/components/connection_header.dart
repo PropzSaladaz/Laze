@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/buttons/styled_button.dart';
-import 'package:mobile_client/client/server_connector.dart';
-import 'package:mobile_client/color_constants.dart';
+import 'package:mobile_client/presentation/widgets/buttons/styled_button.dart';
+import 'package:mobile_client/services/server_connector.dart';
+import 'package:mobile_client/core/constants/color_constants.dart';
 
 typedef Callback = void Function();
 

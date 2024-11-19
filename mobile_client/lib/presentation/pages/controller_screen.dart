@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/client/dto/input.dart';
-import 'package:mobile_client/client/server_connector.dart';
-import 'package:mobile_client/color_constants.dart';
-import 'package:mobile_client/connection_header.dart';
+import 'package:mobile_client/data/dto/input.dart';
+import 'package:mobile_client/data/state/shortcuts_provider.dart';
+import 'package:mobile_client/services/server_connector.dart';
+import 'package:mobile_client/core/constants/color_constants.dart';
+import 'package:mobile_client/presentation/components/connection_header.dart';
 import 'package:mobile_client/controller_page.dart';
-import 'package:mobile_client/mousepad.dart';
-import 'package:mobile_client/buttons/styled_button.dart';
-import 'package:mobile_client/shortcuts/shortcuts_sheet.dart';
+import 'package:mobile_client/presentation/components/mousepad.dart';
+import 'package:mobile_client/presentation/pages/shortcuts/shortcuts_sheet.dart';
+import 'package:provider/provider.dart';
 
-import 'command_btns.dart';
+import '../components/command_btns.dart';
 
 class ControllerScreen extends StatefulWidget {
   const ControllerScreen({super.key});
@@ -40,6 +41,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return ControllerPage(
       resizeToAvoidBottomInset: false,
       body: Column(
@@ -69,20 +71,16 @@ class _ControllerScreenState extends State<ControllerScreen> {
                       future: connected,
                       builder: (context, snapshot) {
                         // WAITING FOR CONNECTION
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const CircularProgressIndicator
-                              .adaptive(
-                                backgroundColor: ColorConstants.darkPrimary,
-                              );
-                        }
-                        if (snapshot.hasError) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator.adaptive(backgroundColor: 
+                            ColorConstants.darkPrimary);
+                        } else if (snapshot.hasError) {
                           return Text(snapshot.error.toString());
                         }
                         // CONNECTED
                         return Column(
                           children: [
-                            MousePad(
+                            const MousePad(
                               fullscreen: false,
                             ),
                             const SizedBox(height: 15),
@@ -103,7 +101,7 @@ class _ControllerScreenState extends State<ControllerScreen> {
           // BODY
         ],
       ),
-      stackedBody:             
+      stackedBody:           
         // SCROLABLE SHORTCUTS
         Visibility(
           visible: showShortcutsScrollableSheet,
@@ -111,12 +109,12 @@ class _ControllerScreenState extends State<ControllerScreen> {
             bottom: 0,
             right: 0,
             left: 0,
+            // Propagates changes to widgets in the tree
             child: ShortcutsSheet(
               isVisible: showShortcutsScrollableSheet,
               closeScrollableSheets: () {
                 setState(() {
                   showShortcutsScrollableSheet = false;
-                  print("Scrollable sheet is now closed");
                 });
               },
               
