@@ -3,8 +3,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:mobile_client/core/limit_constants.dart';
 import 'package:mobile_client/services/server_connector.dart';
-import 'package:mobile_client/data/model/shortcut.dart';
+import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
 
 const int NO_CHANGE = 0;
 const int RELEASE = 1;
@@ -106,7 +107,7 @@ class Input {
   static Uint8List runCommand(Map os_commands) {
     String command = os_commands[ServerConnector.getServerOS()];
 
-    if (command.length >= Shortcut.TERMINAL_COMMAND_MAX_SIZE) {
+    if (command.length >= Limits.TERMINAL_COMMAND_MAX_SIZE) {
       // should never happen - the TextField UI itself limits command size to 256 characters
       throw const FormatException("Command length exceeds the 256-character limit");
     }

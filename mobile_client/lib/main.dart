@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:mobile_client/core/constants/color_constants.dart';
-import 'package:mobile_client/data/model/shortcut.dart';
-import 'package:mobile_client/data/state/shortcuts_provider.dart';
-import 'package:mobile_client/presentation/pages/controller_screen.dart';
+import 'package:mobile_client/config/dependencies.dart';
+import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
+import 'package:mobile_client/presentation/home/widgets/home_screen.dart';
+import 'package:mobile_client/presentation/core/themes/theme.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -34,9 +32,14 @@ void main() async {
   
   await Hive.initFlutter("shortcuts_data");
   // register Hive adapters
-  Hive.registerAdapter(ShortcutAdapter());
+  Hive.registerAdapter(ShortcutDataAdapter());
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: providersLocal,
+      child: const MyApp()
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -46,36 +49,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     debugPaintSizeEnabled = false;
-    return ChangeNotifierProvider<ShortcutsProvider>(
-      create:(context) {
-        var provider = ShortcutsProvider();
-        provider.init();
-        return provider;
-      },
-      child: MaterialApp(
-        title: 'Flutter Demo',
-        
-        theme: ThemeData(
-          colorScheme: const ColorScheme(
-            brightness: Brightness.light, 
-            primary: ColorConstants.background,
-            onPrimary: ColorConstants.mainText, 
-            secondary: ColorConstants.border, 
-            onSecondary: ColorConstants.mousepadText, 
-            error: Colors.red, 
-            onError: Colors.black, 
-            surface: ColorConstants.background, 
-            onSurface: ColorConstants.mainText,
-          ),
-          textTheme: const TextTheme(
-            bodyLarge: TextStyle(
-              fontFamily: 'NunitoSans',
-          )),
-          useMaterial3: true,
-        ),
-        debugShowCheckedModeBanner: false,
-        home: const ControllerScreen(),
-      ),
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      debugShowCheckedModeBanner: false,
+      home: const HomeScreen(),
     );
   }
 }
