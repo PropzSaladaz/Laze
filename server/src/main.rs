@@ -8,25 +8,16 @@ mod keybinds;
 
 const PORT: usize = 7878;
 
-struct DeviceApp<T: InputHandler> {
-    handler: T,
-}
-
-impl<T: InputHandler> server::Application for DeviceApp<T> {
-    fn handle(&mut self, input: &[u8]) -> ConnectionStatus {
-        self.handler.handle(input)
-    }
-}
 
 fn main() {
     let config = ServerConfig::new(PORT, 2);
-    let app = DeviceApp {
-        handler: Device::new(
+    let app = server::MobileControllerApp::new(
+        Device::new(
             1, 
             1,
             1,
             1500).unwrap()
-    };
+        );
     let mut server = Server::build(config, app).unwrap();
     server.start();
 }

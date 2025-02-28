@@ -9,6 +9,8 @@ use std::{
 use local_ip_address::local_ip;
 use serde::{Deserialize, Serialize};
 
+use crate::device::InputHandler;
+
 const DEFAULT_CLIENT_PORT: usize = 7878;
 
 /// Creates a TcpListener using the local machine's IP address
@@ -18,12 +20,53 @@ fn create_socket(port: usize) -> TcpListener {
     TcpListener::bind(format!("{local_ip}:{port}")).unwrap()
 }
 
+//  ---------------------------------------
+//              Application
+//  ---------------------------------------
+
 pub enum ConnectionStatus {
     Disconnected,
     Connected,
 }
+
+/// Represents a remote server application that is capable of handling
+/// inputs in byte arrays.
+/// This handling is server-specific (coud be from changing server software to just update 
+/// the mouse position, or input keyboard keys)
 pub trait Application: Sync + Send {
-    fn handle(&mut self, input: &[u8]) -> ConnectionStatus;
+    /// Invoked whenever the server receives a new input from a client.
+    /// This is the only entry-point for the remote Application - It should parse
+    /// the input, and have some effect on the server.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `input` - The input received from the client encoded into a byte array
+    /// 
+    /// # Returns
+    /// 
+    /// The current connection status. There should always be an input from the client that closes
+    /// the connection. The return value is used to check for that command, and close the
+    /// connection if such command is issued, or keep the connection alive otherwise.
+    /// 
+    fn dispatch_to_device(&mut self, input: &[u8]) -> ConnectionStatus;
+}
+
+pub struct MobileControllerApp<T: InputHandler> {
+    handler: T,
+}
+
+impl<T: InputHandler> MobileControllerApp<T> {
+    pub fn new(device: T) -> Self {
+        Self {
+            handler: device
+        }
+    }
+}
+
+impl<T: InputHandler> Application for MobileControllerApp<T> {
+    fn dispatch_to_device(&mut self, input: &[u8]) -> ConnectionStatus {
+        self.handler.handle(input)
+    }
 }
 
 //  ---------------------------------------
@@ -33,7 +76,7 @@ pub trait Application: Sync + Send {
 
 /// Represents the server configuration.
 ///
-/// All new connections will start form the specified port
+/// All new connections will start from the specified port
 /// increasing by 1 for each new connection until reaching
 /// the max_clients.
 pub struct ServerConfig {
@@ -52,13 +95,16 @@ impl ServerConfig {
 #[derive(Debug)]
 pub enum ServerError {}
 
-/// Represents the server.
 pub struct Server<A: Application> {
     clients: ClientPool,
     config: ServerConfig,
+    /// The application that will handle all client's requests.
     app: Arc<Mutex<A>>,
 }
 
+/// Data sent to a brand new client specifying both:
+/// 1) The new port to which the client should connect.
+/// 2) The server's OS type
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewClientResponse {
     port: usize,
@@ -69,7 +115,9 @@ pub struct NewClientResponse {
 impl<A: Application + 'static> Server<A> {
     /// Initialize server's internal structures.
     ///
-    /// app: Is the application that will be called to handle incomming requests.
+    /// # Arguments
+    /// * `config` - Server configuration.
+    /// * `app` - The application that will be called to handle incomming requests.
     pub fn build(config: ServerConfig, app: A) -> Result<Self, ServerError> {
         let (sender, receiver) = mpsc::channel();
         let clients = ClientPool {
@@ -85,10 +133,16 @@ impl<A: Application + 'static> Server<A> {
         })
     }
 
-    /// Run the server.
+    /// Runs the server.
     ///
     /// This call is blocking, and allows the server to wait for
     /// new client connection requests at port 7878.
+    /// 
+    /// Once a new connection to a new client is established, that client is assigned a new
+    /// isolated socket with its own port. Each client then connects to the server through its own
+    /// assigned socket.
+    /// 
+    /// The port 7878 is only used as a common ground to establish new connections with new clients.
     pub fn start(&mut self) {
         let socket = create_socket(self.config.starting_port);
         loop {
@@ -130,6 +184,7 @@ impl ClientPool {
     /// Add a new client connection to the pool.
     ///
     /// For each new client, the id increases by 1, as well as the port.
+    /// Client ids start at 0, and go up to max usize
     pub fn add<A: Application + 'static>(&mut self, addr: SocketAddr, app: Arc<Mutex<A>>) -> usize {
         let new_client = Client::launch_new_client(
             addr,
@@ -190,7 +245,7 @@ impl Client {
             let bytes = &bytes[..bytes_size];
 
             if bytes.is_empty() { continue };
-            if let ConnectionStatus::Disconnected = app.lock().unwrap().handle(bytes) {
+            if let ConnectionStatus::Disconnected = app.lock().unwrap().dispatch_to_device(bytes) {
                 println!("Client disconnected");
                 break;
             }
