@@ -1,5 +1,5 @@
-use std::{error::Error};
-use std::process::{Command, Output};
+use std::error::Error;
+use std::process::Command;
 use copypasta::ClipboardContext;
 use enigo::{Axis, Coordinate, Direction, Enigo, Keyboard, Mouse, Settings};
 
@@ -21,7 +21,8 @@ pub trait InputHandler: Send + Sync {
             };
         };
         ConnectionStatus::Connected
-    } 
+    }
+    
     fn handle_input(&mut self, input: Action) -> ConnectionStatus;
 }
 
@@ -41,7 +42,7 @@ pub struct Device {
 unsafe impl Send for Device {}
 unsafe impl Sync for Device {}
 
- impl Device {
+impl Device {
     pub fn new(
         move_x_sense: u8, 
         move_y_sense: u8, 
@@ -103,9 +104,6 @@ impl InputHandler for Device {
     fn handle_input(&mut self, action: Action) -> ConnectionStatus {
 
         match action {
-            // State machine -> set holding state.
-            // If set to hold, all next invocations will end up in "NO_CHANGE"
-            // until it is eventually RELEASEd
             Action::SensitivityUp       => self.add_sensitivity(1),
             Action::SensitivityDown     => self.add_sensitivity(-1),
 
@@ -171,7 +169,6 @@ fn shutdown_computer() {
 }
 
 // OS-dependent terminal command issuer
-
 #[cfg(target_os = "windows")]
 fn run_command(command: &str) {
     Command::new("cmd")

@@ -2,41 +2,122 @@ use core::str;
 
 use byteorder::LittleEndian;
 use serde::{Serialize, Deserialize};
+use num_enum::{TryFromPrimitive, IntoPrimitive};
 
 
-/// Action codification
+/// This macro generates 2 separate enums:
 /// 
-/// Actions are encoded into bit arrays.
-/// The fisrt bit identifies the action. The next bits identify the values of the action.
+/// `ActionType` - Used to convert u8 into an ActionType
+/// `Action` - will hold the actual data
+/// 
+/// This is needed when parsing the actions from bytes into in-memory structures.
+/// The process goes from bytes (u8) -> ActionType -> Action
+macro_rules! define_actions {
+    (
+        $(
+            $variant:ident $(($data:ty))? = $id:expr
+        ),* $(,)?
+    ) => {
 
+        #[repr(u8)]
+        #[derive(Debug, Clone, Copy, TryFromPrimitive)]
+        pub enum ActionType {
+            $(
+                $variant = $id,
+            )*
+        }
 
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "action", content = "data")]
-pub enum Action {
-    KeyPress(Key),                      // 0
-    Text(char),                         // 1
-    // key holding status
-    // SetHold,
-    // SetRelease,
-    // scroll delta
-    Scroll(i8),                         // 2
-    // x & y mouse movement deltas
-    MouseMove(Coordinates),             // 3
-    MouseButton(Button),                // 4
-    // mouse sensitivity
-    SensitivityDown,                    // 5
-    SensitivityUp,                      // 6
-    Disconnect,                         // 7
-    Shutdown,                           // 8
-    TerminalCommand(TerminalCommand),// 9
-    // Other actions can be added here
+        impl ActionType {
+            pub fn from_u8(action_type: u8) -> Option<Self> {
+                match action_type {
+                    $(
+                        $id => Some(Self::$variant),
+                    )*
+                    _ => None,
+                }
+            }
+        }
+
+        #[derive(Serialize, Deserialize)]
+        pub enum Action {
+            $(
+                $variant $(($data))?,
+            )*
+        }
+    };
 }
 
+define_actions!(
+    KeyPress(Key) = 0,
+    Text(char) = 1,
+    Scroll(i8) = 2,
+    MouseMove(DeltaCoordinates) = 3,
+    MouseButton(Button) = 4,
+    SensitivityDown = 5,
+    SensitivityUp = 6,
+    Disconnect = 7,
+    Shutdown = 8,
+    TerminalCommand(TerminalCommand) = 9,
+);
+
+/// Action struct is defined by the define_macros! macro
+/// Here we only define its decoding implementation
+impl Action {
+    pub fn decode(encoded: &mut &[u8]) -> Self {
+        let action_type = ActionType::from_u8(encoded[0]);
+        *encoded = &encoded[1..];
+        match action_type {
+            Some(ActionType::KeyPress) => Self::KeyPress(DeserializableAction::from_bytes(encoded)),
+            Some(ActionType::Text)     => {
+                let char = encoded[0] as char;
+                *encoded = &encoded[1..];
+                Self::Text(char)
+            },
+            Some(ActionType::Scroll)   => {
+                let scroll_val = encoded[0] as i8;
+                *encoded = &encoded[1..];
+                Self::Scroll(scroll_val)
+            },
+            Some(ActionType::MouseMove)       => Self::MouseMove(DeserializableAction::from_bytes(encoded)),
+            Some(ActionType::MouseButton)     => Self::MouseButton(DeserializableAction::from_bytes(encoded)),
+            Some(ActionType::SensitivityDown) => Self::SensitivityDown,
+            Some(ActionType::SensitivityUp)   => Self::SensitivityUp,
+            Some(ActionType::Disconnect)      => Self::Disconnect,
+            Some(ActionType::Shutdown)        => Self::Shutdown,
+            Some(ActionType::TerminalCommand) => Self::TerminalCommand(DeserializableAction::from_bytes(encoded)),
+            None => unreachable!("Action type not recognized!"),
+        }
+
+    }
+}
+
+
+trait DeserializableAction {
+    fn from_bytes(bytes: &mut &[u8]) -> Self;
+}
+
+/// Stores any input from user that may represent
+/// a command to run in a terminal shell at the server
 #[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
 pub struct TerminalCommand {
     pub command: String,
 }
 
+impl DeserializableAction for TerminalCommand {
+    fn from_bytes(bytes: &mut &[u8]) -> Self {
+        let command_size: usize = bytes[0] as usize;
+        let command = match str::from_utf8(&bytes[1_usize..command_size+1]) {
+            Ok(command) => TerminalCommand { command: command.to_owned() },
+            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+        };
+        // after consuming the bytes, move forward
+        *bytes = &bytes[(command_size + 1)..];
+        command
+    }
+}
+
+
+/// Represents keys from keyboard
 #[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
 pub enum Key {
     Backspace = 0,
@@ -47,63 +128,7 @@ pub enum Key {
     Enter = 5,
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub struct Coordinates {
-    pub x: i8,
-    pub y: i8,
-}
-
-#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
-#[repr(u8)]
-pub enum Button {
-    Left = 0,
-}
-
-
-impl Action {
-    pub fn decode(encoded: &mut &[u8]) -> Self {
-        let action_type = encoded[0];
-        *encoded = &encoded[1..];
-        match action_type {
-            0 => Self::KeyPress(Key::from_bytes(encoded)),
-            1 => {
-                let char = encoded[0] as char;
-                *encoded = &encoded[1..];
-                Self::Text(char)
-            },
-            2 => {
-                let scroll_val = encoded[0] as i8;
-                *encoded = &encoded[1..];
-                Self::Scroll(scroll_val)
-            },
-            3 => Self::MouseMove(Coordinates::from_bytes(encoded)),
-            4 => Self::MouseButton(Button::from_bytes(encoded)),
-            5 => Self::SensitivityDown,
-            6 => Self::SensitivityUp,
-            7 => Self::Disconnect,
-            8 => Self::Shutdown,
-            9 => Self::TerminalCommand(TerminalCommand::from_bytes(encoded)),
-            _ => unreachable!("Action type not recognized!"),
-        }
-
-    }
-}
-
-
-impl Coordinates {
-    fn from_bytes(bytes: &mut &[u8]) -> Self {
-        let coords = Coordinates { 
-            x: bytes[0] as i8, 
-            y: bytes[1] as i8 
-        };
-        // after consuming the bytes, move forward
-        *bytes = &bytes[2..];
-
-        coords
-    }
-}
-
-impl Key {
+impl DeserializableAction for Key {
     fn from_bytes(bytes: &mut &[u8]) -> Self {
         let btn = bytes[0];
         // after consuming the bytes, move forward
@@ -120,8 +145,36 @@ impl Key {
     }
 }
 
+/// Represent the mouse movement delta -> how much the mouse moved in each 
+/// axis comparing to last frame
+#[derive(Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct DeltaCoordinates {
+    pub x: i8,
+    pub y: i8,
+}
 
-impl Button {
+impl DeserializableAction for DeltaCoordinates {
+    fn from_bytes(bytes: &mut &[u8]) -> Self {
+        let coords = DeltaCoordinates { 
+            x: bytes[0] as i8, 
+            y: bytes[1] as i8 
+        };
+        // after consuming the bytes, move forward
+        *bytes = &bytes[2..];
+
+        coords
+    }
+}
+
+
+#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
+#[repr(u8)]
+pub enum Button {
+    Left = 0,
+}
+
+
+impl DeserializableAction for Button {
     fn from_bytes(bytes: &mut &[u8]) -> Self {
         let btn = bytes[0];
         // after consuming the bytes, move forward
@@ -133,24 +186,12 @@ impl Button {
     }
 }
 
-impl TerminalCommand {
-    fn from_bytes(bytes: &mut &[u8]) -> Self {
-        let command_size: usize = bytes[0] as usize;
-        let command = match str::from_utf8(&bytes[1_usize..command_size+1]) {
-            Ok(command) => TerminalCommand { command: command.to_owned() },
-            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-        };
-        // after consuming the bytes, move forward
-        *bytes = &bytes[(command_size + 1)..];
-        command
-    }
-}
 
 
 #[cfg(test)]
 mod tests {
 
-    use crate::actions::{Action, Button, Coordinates, Key, TerminalCommand};
+    use crate::actions::{Action, Button, DeltaCoordinates, Key, TerminalCommand};
 
     #[test]
     fn decode_key() {
@@ -194,7 +235,7 @@ mod tests {
     fn mouse_move() {
         let mut mouse_move: &[u8] = &[3u8, 2u8, (-8i8) as u8];
 
-        matches!(Action::decode(&mut mouse_move),    Action::MouseMove(Coordinates { x: 2, y: -8 }));
+        matches!(Action::decode(&mut mouse_move),    Action::MouseMove(DeltaCoordinates { x: 2, y: -8 }));
     }
 
     #[test]
