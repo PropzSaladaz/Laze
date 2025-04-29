@@ -1,5 +1,5 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
-
+import 'package:logging/logging.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -11,21 +11,7 @@ typedef CallbackSetStatus = void Function(String connectionStatus);
 typedef CallbackGetStatus = String Function();
 
 class ServerConnector {
-  // Supported OS names
-  static const String WINDOWS_OS = "windows";
-  static const String LINUX_OS = "linux";
-  static const String MAC_OS = "macOS";
-  // SUpported OS's binary identifiers
-  static const Map OS_MASKS = {
-    WINDOWS_OS: 0x1,
-    LINUX_OS: 0x2,
-    MAC_OS: 0x4,
-  };
-  static const List<String> SUPPORTED_OSES = [
-    WINDOWS_OS, LINUX_OS, MAC_OS
-  ];
-
-  // specifies server operative system
+  // specifies server's operative system
   // used when sending commands - client only sends the command
   // for the specific server OS
   static late String _serverOS;
@@ -35,7 +21,7 @@ class ServerConnector {
   static const String SEARCHING = "SEARCHING...";
 
   static const serverPort = 7878;
-  // specified the amount of tries in a row done
+  // specifies the amount of tries in a row done
   static const connectionBatchedTries = 40;
   static const connectionWaitTIme = 1000; // 1s
 
@@ -48,13 +34,16 @@ class ServerConnector {
   // this can happen if the user cancels the search manually.
   static late CallbackGetStatus getConnectionStatus;
 
+  static final Logger _log = Logger("ServerConnector");
+
   static String getServerOS() {
     return _serverOS;
   }
 
   // Sets the callback function to be used by the application that uses the server connector to update
   // its state upon server connector changes
-  static void init(CallbackSetStatus setConnectionStatus, CallbackGetStatus getConnectionStatus) {
+  static void init(CallbackSetStatus setConnectionStatus,
+      CallbackGetStatus getConnectionStatus) {
     ServerConnector.setConnectionStatus = setConnectionStatus;
     ServerConnector.getConnectionStatus = getConnectionStatus;
   }
@@ -86,11 +75,13 @@ class ServerConnector {
         }
 
         var testIp = _intToIp(baseIp | i);
-        print(testIp);
+        
+        _log.config(testIp);
+
         connections[testIp.address] = _connectToHost(testIp.address);
 
         // waits for responses from X requests at a time
-        if (i % connectionBatchedTries == 0 && 
+        if (i % connectionBatchedTries == 0 &&
             await _waitForBatchedConnections()) {
           return true;
         }
@@ -102,20 +93,20 @@ class ServerConnector {
   }
 
   /// Waits for all requests currently in the map of sent requests
-  /// Returns true if one of the requests was accepted at the server, 
+  /// Returns true if one of the requests was accepted at the server,
   /// and also
   static Future<bool> _waitForBatchedConnections() async {
     for (var conn in connections.keys) {
       var future = connections[conn];
       if (future != null && await future) {
-        print("Connection Successful with $conn");
+        _log.info("Connection Successful with $conn");
         // Connection to server was made
         // now wait for connection to the new dedicated port
         sleep(const Duration(microseconds: 2000));
         // the new connection replaced the old one
         var newConn = connections[conn];
         if (newConn != null && await newConn) {
-          print("Connected to the server!");
+          _log.info("Connected to the server!");
           setConnectionStatus(CONNECTED);
           connections.clear();
           return true;
@@ -130,7 +121,7 @@ class ServerConnector {
     try {
       var socket = await Socket.connect(ipAddress, serverPort,
           timeout: const Duration(milliseconds: connectionWaitTIme));
-      print("CONNECTED");
+      _log.info("CONNECTED");
       socket.listen((jsonBytes) async {
         // upon receiving the new dedicated port
         var json = jsonDecode(utf8.decode(jsonBytes));
@@ -145,7 +136,7 @@ class ServerConnector {
 
       return true;
     } catch (e) {
-      print("$ipAddress -> !!NOT CONNECTED: $e");
+      _log.warning("$ipAddress -> !!NOT CONNECTED: $e");
       return false;
     }
   }

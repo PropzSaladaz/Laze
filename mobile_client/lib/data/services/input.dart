@@ -5,30 +5,20 @@ import 'dart:typed_data';
 
 import 'package:mobile_client/core/limit_constants.dart';
 import 'package:mobile_client/services/server_connector.dart';
-import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
 
-const int NO_CHANGE = 0;
-const int RELEASE = 1;
-const int HOLD = 2;
-
-const int NO_KEY_PRESSED = -1;
-
-const int CONNECTED = 0;
-const int DISCONNECT = 1;
-
+/// This class handles the encoding of any iput action into bytes.
+/// These bytes are then sent to the server to be processed and executed.
+/// 
 /// Input actions are encoded in byte arrays
-/// [0u8, 1u8, ...]
+/// `[0u8, 1u8, ...]`
 /// Where the 1st byte identifies the action type at the server side,
 /// while the following bytes specify the data for that action.
-/// 
-/// 
-/// 
-/// Scroll:    [2, scroll_amount]
-/// MouseMove: [3, move-x, move_y]
-/// Command: [9, string_size, command_bytes]
-/// 
+///
+/// - Scroll:    `[2, scroll_amount]`
+/// - MouseMove: `[3, move-x, move_y]`
+/// - Command: `[9, string_size, command_bytes]`
+/// ...
 class Input {
-
   // ------ KeyPress:  [0, key] -------
   static Uint8List keyPress({required int key}) {
     return Uint8List.fromList([0, key]);
@@ -67,12 +57,12 @@ class Input {
     return Uint8List.fromList([1, text.codeUnitAt(0)]);
   }
 
- // ------ Scroll: [2, scroll_amount] -------
+  // ------ Scroll: [2, scroll_amount] -------
   static Uint8List scroll({required int amount}) {
     return Uint8List.fromList([2, amount]);
   }
 
- // ------ MouseMove: [3, move_x, move_y] -------
+  // ------ MouseMove: [3, move_x, move_y] -------
   static Uint8List mouseMove({required int move_x, required int move_y}) {
     return Uint8List.fromList([3, move_x, move_y]);
   }
@@ -105,11 +95,15 @@ class Input {
   // ------ Run Terminal Command: [9] -------
   // Command: [9, command_size, command]
   static Uint8List runCommand(Map os_commands) {
-    String command = os_commands[ServerConnector.getServerOS()];
+    String serverOS = ServerConnector.getServerOS();
+    String command = os_commands[serverOS];
 
     if (command.length >= Limits.TERMINAL_COMMAND_MAX_SIZE) {
       // should never happen - the TextField UI itself limits command size to 256 characters
-      throw const FormatException("Command length exceeds the 256-character limit");
+      throw const FormatException(
+          "Command length exceeds the 256-character limit");
+    } else if (command.isEmpty) {
+      throw FormatException("No command specified for $serverOS OS");
     }
     // 9 is the command code, then we send command size (nbr of characters) followed
     // by the command for each suported OS
@@ -126,6 +120,4 @@ class Input {
   // static setRelease() {
   //   return Input(action: 'SetRelease', data: null);
   // }
-
-
 }

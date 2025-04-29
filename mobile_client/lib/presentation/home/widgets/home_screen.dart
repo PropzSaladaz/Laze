@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/data/dto/input.dart';
-import 'package:mobile_client/data/state/shortcuts_provider.dart';
+import 'package:mobile_client/data/services/input.dart';
+import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
 import 'package:mobile_client/services/server_connector.dart';
-import 'package:mobile_client/presentation/core/themes/colors.dart';
 import 'package:mobile_client/presentation/home/widgets/connection_header.dart';
 import 'package:mobile_client/presentation/core/ui/controller_page.dart';
 import 'package:mobile_client/presentation/home/widgets/mousepad.dart';
 import 'package:mobile_client/presentation/home/widgets/shortcuts_sheet.dart';
-import 'package:provider/provider.dart';
 
 import 'command_btns.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({
+    super.key,
+    required this.viewModel  
+  });
+
+  final HomeViewModel viewModel;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -25,23 +28,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String connectionStatus = ServerConnector.NOT_CONNECTED;
 
-  void setConnectionState(String state) {
+  void _setConnectionState(String state) {
     setState(() => connectionStatus = state);
   }
 
-  String getConnectionState() {
+  String _getConnectionState() {
     return connectionStatus;
   }
 
   @override
   void initState() {
     super.initState();
-    ServerConnector.init(setConnectionState, getConnectionState);
+    ServerConnector.init(_setConnectionState, _getConnectionState);
   }
 
   @override
   Widget build(BuildContext context) {
-
     return ControllerPage(
       resizeToAvoidBottomInset: false,
       body: Column(
@@ -57,12 +59,12 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 23,
           ),
           // PAGE BODY
-          () { // NOT CONNECTED
+          () {
+            // NOT CONNECTED
             if (connectionStatus == ServerConnector.NOT_CONNECTED) {
               return Expanded(
                 child: Center(
-                  child:
-                    Image.asset("assets/images/NoConnection.png")),
+                    child: Image.asset("assets/images/NoConnection.png")),
               );
             } else {
               return Expanded(
@@ -71,9 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       future: connected,
                       builder: (context, snapshot) {
                         // WAITING FOR CONNECTION
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const CircularProgressIndicator.adaptive(/*backgroundColor: 
-                            ColorConstants.darkPrimary*/);
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const CircularProgressIndicator.adaptive(
+                              /*backgroundColor: 
+                            ColorConstants.darkPrimary*/
+                              );
                         } else if (snapshot.hasError) {
                           return Text(snapshot.error.toString());
                         }
@@ -84,13 +89,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               fullscreen: false,
                             ),
                             const SizedBox(height: 15),
-                            CommandBtns(
-                              onShowShortcutsSheet: () {
-                                setState(() {
-                                  showShortcutsScrollableSheet = true;
-                                });
-                              }
-                            ),
+                            CommandBtns(onShowShortcutsSheet: () {
+                              setState(() {
+                                showShortcutsScrollableSheet = true;
+                              });
+                            }),
                           ],
                         );
                       }),
@@ -101,26 +104,24 @@ class _HomeScreenState extends State<HomeScreen> {
           // BODY
         ],
       ),
-      stackedBody:           
-        // SCROLABLE SHORTCUTS
-        Visibility(
-          visible: showShortcutsScrollableSheet,
-          child: Positioned(
-            bottom: 0,
-            right: 0,
-            left: 0,
-            // Propagates changes to widgets in the tree
-            child: ShortcutsSheet(
-              isVisible: showShortcutsScrollableSheet,
-              closeScrollableSheets: () {
-                setState(() {
-                  showShortcutsScrollableSheet = false;
-                });
-              },
-              
-            ),
-          )
-        ),
+      stackedBody:
+          // SCROLABLE SHORTCUTS
+          Visibility(
+              visible: showShortcutsScrollableSheet,
+              child: Positioned(
+                bottom: 0,
+                right: 0,
+                left: 0,
+                // Propagates changes to widgets in the tree
+                child: ShortcutsSheet(
+                  isVisible: showShortcutsScrollableSheet,
+                  closeScrollableSheets: () {
+                    setState(() {
+                      showShortcutsScrollableSheet = false;
+                    });
+                  },
+                ),
+              )),
     );
   }
 
@@ -132,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _cancelSearch() {
     setState(() {
-      setConnectionState(ServerConnector.NOT_CONNECTED);
+      _setConnectionState(ServerConnector.NOT_CONNECTED);
     });
   }
 
@@ -144,11 +145,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _turnOffPc() {
+    ServerConnector.sendInput(Input.shutdown());
+    
     setState(() {
-      ServerConnector.sendInput(Input.shutdown());
-      setState(() {
-        ServerConnector.disconnect();
-      });
+      ServerConnector.disconnect();
     });
   }
 }

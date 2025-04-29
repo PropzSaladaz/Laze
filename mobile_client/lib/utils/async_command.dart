@@ -5,16 +5,15 @@ import 'package:mobile_client/utils/result.dart';
 typedef CommandFunction0<T> = Future<Result<T>> Function();
 typedef CommandFunction1<T, A> = Future<Result<T>> Function(A arg);
 
-/// Wrapper around async functions to ease VIewMOdel's implementation
+/// Wrapper around async functions to ease ViewModel's implementation
 abstract class AsyncCommand<T> extends ChangeNotifier {
   bool _isRunning = false;
   Result<T>? _result;
 
+  // Getters
   bool get running => _isRunning;
-
   bool get completed => _result is Ok;
   bool get error => _result is Error;
-
   Result<T>? get result => _result;
 
   Future<void> _execute(CommandFunction0<T> function) async {

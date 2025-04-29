@@ -1,8 +1,7 @@
 use core::str;
 
-use byteorder::LittleEndian;
 use serde::{Serialize, Deserialize};
-use num_enum::{TryFromPrimitive, IntoPrimitive};
+use num_enum::TryFromPrimitive;
 
 
 /// This macro generates 2 separate enums:
@@ -38,7 +37,7 @@ macro_rules! define_actions {
             }
         }
 
-        #[derive(Serialize, Deserialize)]
+        #[derive(Serialize, Deserialize, Debug)]
         pub enum Action {
             $(
                 $variant $(($data))?,
@@ -91,7 +90,8 @@ impl Action {
     }
 }
 
-
+/// Any data associated to any action must implement this trait.
+/// Defines a single method to build the structure holding the data from bytes
 trait DeserializableAction {
     fn from_bytes(bytes: &mut &[u8]) -> Self;
 }
@@ -147,7 +147,7 @@ impl DeserializableAction for Key {
 
 /// Represent the mouse movement delta -> how much the mouse moved in each 
 /// axis comparing to last frame
-#[derive(Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
 pub struct DeltaCoordinates {
     pub x: i8,
     pub y: i8,
@@ -262,7 +262,7 @@ mod tests {
     #[test]
     fn terminal_command_open_firefox() {
         let mut firefox_command: Vec<u8> = vec![9u8];
-        let utf8_bytes = "firefox".as_bytes();
+        let utf8_bytes: &[u8] = "firefox".as_bytes();
         firefox_command.push(utf8_bytes.len() as u8);
         firefox_command.append(&mut utf8_bytes.to_owned());
         let mut bytes = &mut firefox_command.as_slice();
