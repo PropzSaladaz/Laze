@@ -4,30 +4,10 @@ use copypasta::ClipboardContext;
 use enigo::{Axis, Coordinate, Direction, Enigo, Keyboard, Mouse, Settings};
 
 use crate::actions::TerminalCommand;
+use crate::server::Application;
 use crate::{actions::Action, keybinds::KeyBindings, server::ConnectionStatus};
 
-pub trait InputHandler: Send + Sync {
-    /// Converts the received byte data into jsons, and then to the Action type struct, and
-    /// invokes the 'handle_input' method with the parsed Action struct
-    fn handle(&mut self, mut bytes: &[u8]) -> ConnectionStatus {
-        // while there are bytes to be consumed -> consume.
-        // each TCP may send buffered inputs within the same packet, thus we need to
-        // check if there aren't any other commands within the bytes of the current packet
-        while bytes.len() > 0 {
-            let action = Action::decode(&mut bytes);
-            match self.handle_input(action) {
-                ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
-                _ => (),
-            };
-        };
-        ConnectionStatus::Connected
-    }
-    
-    fn handle_input(&mut self, input: Action) -> ConnectionStatus;
-}
-
-
-pub struct Device {
+pub struct MobileController {
     enigo: Enigo,
     clipboard: ClipboardContext,
     key_bindings: KeyBindings,
@@ -39,17 +19,17 @@ pub struct Device {
  }
 
  // now device can be shared across threads
-unsafe impl Send for Device {}
-unsafe impl Sync for Device {}
+unsafe impl Send for MobileController {}
+unsafe impl Sync for MobileController {}
 
-impl Device {
+impl MobileController {
     pub fn new(
         move_x_sense: u8, 
         move_y_sense: u8, 
         wheel_sense: u8,
         move_delay: u32
     ) -> Result<Self, Box<dyn Error>> {
-        Ok(Device {
+        Ok(MobileController {
             enigo: Enigo::new(&Settings::default())?,
             clipboard: ClipboardContext::new().unwrap(),
             key_bindings: KeyBindings::new(),
@@ -60,7 +40,6 @@ impl Device {
             move_delay,
         })
     }
-
 
     pub fn mouse_move_relative(&mut self, move_x: i8, move_y: i8) {
         self.enigo.move_mouse(
@@ -96,11 +75,8 @@ impl Device {
 
         self.move_x_sense = new_sense;
         self.move_y_sense = new_sense;
-
     }
-}
 
-impl InputHandler for Device {
     fn handle_input(&mut self, action: Action) -> ConnectionStatus {
 
         match action {
@@ -138,6 +114,23 @@ impl InputHandler for Device {
             Action::TerminalCommand(TerminalCommand { command}) => run_command(&command),
         };
 
+        ConnectionStatus::Connected
+    }
+}
+
+impl Application for MobileController {
+    fn dispatch_to_device(&mut self, mut input: &[u8]) -> ConnectionStatus {
+        // while there are bytes to be consumed -> consume.
+        // each TCP may send buffered inputs within the same packet, thus we need to
+        // check if there aren't any other commands within the bytes of the current packet
+        while input.len() > 0 {
+            let action = Action::decode(&mut input);
+            println!("Action received: {:?}", action);
+            match self.handle_input(action) {
+                ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
+                _ => (),
+            };
+        };
         ConnectionStatus::Connected
     }
 }
@@ -188,15 +181,17 @@ fn run_command(command: &str) {
 
 
 mod tests {
-    use super::{Device, InputHandler};
+    use crate::server::Application;
+
+    use super::MobileController;
     use super::run_command;
 
     #[test]
     fn parse_several_commands_at_once() {
         //                  | key backspace  | scroll | mouse move            | 
         let commands: &[u8] = &[0u8, 0u8, 2u8, 2u8, 3u8, 2u8, (-8i8) as u8];
-        let mut device = Device::new(8, 8, 8, 10).unwrap();
-        device.handle(commands);
+        let mut app = MobileController::new(8, 8, 8, 10).unwrap();
+        app.dispatch_to_device(commands);
     }
 
     #[test]

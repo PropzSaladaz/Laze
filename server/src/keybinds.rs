@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use crate::actions;
 
 
@@ -25,7 +24,11 @@ impl KeyBindings {
     pub fn translate_to_os_button(&self, button: &actions::Button) -> Option<enigo::Button> {
         self.button_bindings.get(button).cloned()
     }
+}
 
+/// Create maps that bind interfaced key codes used by this application into the
+/// underlying OS keys
+impl KeyBindings {
     fn get_key_mapping() -> HashMap<actions::Key, enigo::Key> {
         return HashMap::from([
             // keyboard

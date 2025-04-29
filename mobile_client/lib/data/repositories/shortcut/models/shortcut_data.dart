@@ -1,12 +1,12 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:flutter/material.dart';
-import 'package:mobile_client/services/server_connector.dart';
+import 'package:mobile_client/core/os_config.dart';
 import 'package:hive/hive.dart';
 
 part 'shortcut_data.g.dart';
 
-// Every Hive type a unique Id so that hive knows how to serde
+// Every Hive type a unique Id so that hive knows how to serialize/deserialize (serde)
 @HiveType(typeId: 0)
 class ShortcutData {
 
@@ -22,7 +22,10 @@ class ShortcutData {
     @HiveField(3)
     final String name;
 
-    // a map of commands - the same command for each different OS
+    // Variation of the command for each supported OS
+    // Windows - commandWindows
+    // Linux - commandLinux
+    // ...
     @HiveField(4)
     final Map<String, String> commands;
 
@@ -38,7 +41,7 @@ class ShortcutData {
       iconFontFamily = null,
       name = "",
       commands = Map.fromEntries(
-        ServerConnector.SUPPORTED_OSES.map((os) => MapEntry(os, ""))
+        SUPPORTED_OSES.map((os) => MapEntry(os.name, ""))
       );
 
 }

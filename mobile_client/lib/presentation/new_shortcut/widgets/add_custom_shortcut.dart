@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
+import 'package:mobile_client/core/os_config.dart';
 import 'package:mobile_client/data/state/shortcuts_provider.dart';
 import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
 import 'package:mobile_client/presentation/core/ui/wide_styled_button.dart';
@@ -84,8 +85,8 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                       const SizedBox(height: 40.0),
                           
                       // add input box for all supported OSes
-                      for (String os in ServerConnector.SUPPORTED_OSES) 
-                        _terminalCommand(os, context),  
+                      for (var os in SUPPORTED_OSES) 
+                        _terminalCommand(os.name, context),  
                     ]
                   ),
                 ],

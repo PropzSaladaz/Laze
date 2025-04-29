@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:mobile_client/presentation/core/ui/styled_button.dart';
 import 'package:mobile_client/services/server_connector.dart';
 import 'package:mobile_client/presentation/core/ui/styled_long_button.dart';
-import 'package:mobile_client/data/dto/input.dart';
+import 'package:mobile_client/data/services/input.dart';
 import 'package:mobile_client/presentation/home/widgets/keyboard.dart';
-import 'package:mobile_client/presentation/home/widgets/shortcuts_sheet.dart';
 
 class CommandBtns extends StatefulWidget {
   final void Function() onShowShortcutsSheet;

@@ -9,8 +9,6 @@ use std::{
 use local_ip_address::local_ip;
 use serde::{Deserialize, Serialize};
 
-use crate::device::InputHandler;
-
 const DEFAULT_CLIENT_PORT: usize = 7878;
 
 /// Creates a TcpListener using the local machine's IP address
@@ -49,24 +47,6 @@ pub trait Application: Sync + Send {
     /// connection if such command is issued, or keep the connection alive otherwise.
     /// 
     fn dispatch_to_device(&mut self, input: &[u8]) -> ConnectionStatus;
-}
-
-pub struct MobileControllerApp<T: InputHandler> {
-    handler: T,
-}
-
-impl<T: InputHandler> MobileControllerApp<T> {
-    pub fn new(device: T) -> Self {
-        Self {
-            handler: device
-        }
-    }
-}
-
-impl<T: InputHandler> Application for MobileControllerApp<T> {
-    fn dispatch_to_device(&mut self, input: &[u8]) -> ConnectionStatus {
-        self.handler.handle(input)
-    }
 }
 
 //  ---------------------------------------
@@ -120,11 +100,9 @@ impl<A: Application + 'static> Server<A> {
     /// * `app` - The application that will be called to handle incomming requests.
     pub fn build(config: ServerConfig, app: A) -> Result<Self, ServerError> {
         let (sender, receiver) = mpsc::channel();
-        let clients = ClientPool {
-            clients: HashMap::new(),
+        let clients = ClientPool::new(
             sender,
-            receiver: Arc::new(receiver),
-        };
+            Arc::new(receiver));
 
         Ok(Server {
             clients, 
@@ -152,13 +130,21 @@ impl<A: Application + 'static> Server<A> {
             match socket.accept() {
                 Ok((mut stream, addr)) => {
                     println!("Received client connection");
-                    let port = self.clients.add(addr, Arc::clone(&self.app));
-                    let data = serde_json::to_vec(&NewClientResponse { 
-                        port,
-                        server_os: std::env::consts::OS.to_owned(), // send the server OS to client
-                    }).unwrap();
-                    stream.write_all(data.as_slice())
-                        .expect("Could not write into socket's client");
+
+                    if self.clients.len() < self.config.max_clients {
+                        println!("Connection accepted");
+                        let port = self.clients.add(addr, Arc::clone(&self.app));
+                        let data = serde_json::to_vec(&NewClientResponse { 
+                            port,
+                            server_os: std::env::consts::OS.to_owned(), // send the server OS to client
+                        }).unwrap();
+                        stream.write_all(data.as_slice())
+                            .expect("Could not write into socket's client");
+                    }
+                    else {
+                        println!("Max clients reached - droping packet");
+                    }
+
                 }
                 Err(e) => {
                     eprintln!("Could not accept connection! {}", e);
@@ -175,26 +161,51 @@ impl<A: Application + 'static> Server<A> {
 
 /// Represents a pool of all client connections.
 struct ClientPool {
+    client_id_counter: usize,
     clients: HashMap<SocketAddr, Client>,
     sender: mpsc::Sender<Terminate>,
     receiver: Arc<mpsc::Receiver<Terminate>>
 }
 
 impl ClientPool {
+
+    pub fn new(
+        sender: mpsc::Sender<Terminate>, 
+        receiver: Arc<mpsc::Receiver<Terminate>>
+    ) -> ClientPool {
+
+        ClientPool {
+            // IDs must start at 1, to differ from base port used to receive new client requests
+            client_id_counter: 1,
+            clients: HashMap::new(),
+            sender,
+            receiver
+        }
+    }
+
     /// Add a new client connection to the pool.
     ///
     /// For each new client, the id increases by 1, as well as the port.
     /// Client ids start at 0, and go up to max usize
     pub fn add<A: Application + 'static>(&mut self, addr: SocketAddr, app: Arc<Mutex<A>>) -> usize {
+
         let new_client = Client::launch_new_client(
             addr,
-            self.clients.len() + 1,
+            self.client_id_counter,
             app
         );
         // insert new client only if it doesn't exist yet
         let port = new_client.port;
         self.clients.entry(addr).or_insert(new_client);
+
+
+        self.client_id_counter+=1;
+
         port
+    }
+
+    pub fn len(&self) -> usize {
+        self.clients.len()
     }
 }
 

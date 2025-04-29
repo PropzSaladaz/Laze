@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:mobile_client/data/dto/input.dart';
+import 'package:mobile_client/data/services/input.dart';
 import 'package:mobile_client/presentation/core/themes/colors.dart';
 import 'dart:math' as math;
 
@@ -112,7 +112,7 @@ class _MousePadState extends State<MousePad> {
         // MousePad
         GestureDetector(
           onTap: _handleMouseClick,
-          onLongPressMoveUpdate: _handleLongPressMove,
+          // onLongPressMoveUpdate: _handleLongPressMove,
           // double finger scroll
           onScaleStart: _handleScaleStart,
           onScaleUpdate: _handleScaleUpdate,

@@ -1,7 +1,4 @@
 
-import 'dart:collection';
-
-import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
 import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
 import 'package:mobile_client/utils/result.dart';
 

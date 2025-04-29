@@ -1,8 +1,5 @@
-
-import 'dart:collection';
-
-import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:logging/logging.dart';
 import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
 import 'package:mobile_client/data/repositories/shortcut/models/shortucts_mapper.dart';
 import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
@@ -11,6 +8,8 @@ import 'package:mobile_client/utils/result.dart';
 
 class ShortcutsRepositoryLocal extends ShortcutsRepository {
   static const String _shortcutsBoxName = "shortcuts";
+
+  final _log = Logger("ShortcutsRepositoryLocal");
 
   late Box<ShortcutData>? _shortcutsBox;
 
@@ -21,26 +20,26 @@ class ShortcutsRepositoryLocal extends ShortcutsRepository {
   Future<Result<void>> init() async {
     try {
       _shortcutsBox = await Hive.openBox(_shortcutsBoxName);
-      print("Loaded shortcuts successfully");
+      _log.info("Loaded shortcuts successfully");
       return const Ok(null);
-    } catch(e) {
-      print("Error creating box using Hive");
+    } catch (e) {
+      _log.warning("Error creating box using Hive");
       return Error(Exception(e));
     }
   }
-  
+
   @override
   Future<Result<List<Shortcut>>> getShortcuts() async {
     try {
       List<ShortcutData> shortuctsData = _shortcutsBox!.values.toList();
       List<Shortcut> shortcuts = shortuctsData
-        .map((ShortcutData data) => ShortcutsMapper.fromData(data))
-        .toList();
+          .map((ShortcutData data) => ShortcutsMapper.fromData(data))
+          .toList();
       return Ok(shortcuts);
-    } catch(e) {
+    } catch (e) {
       return Error(Exception(e));
     }
-  } 
+  }
 
   @override
   Future<Result<void>> saveShortcut(Shortcut shortcut) async {
@@ -48,9 +47,9 @@ class ShortcutsRepositoryLocal extends ShortcutsRepository {
       await _shortcutsBox!.put(shortcut.name, ShortcutsMapper.toData(shortcut));
       return const Ok(null);
     } catch (e) {
-      print("Error when saving shortcut");
+      _log.warning("Error when saving shortcut");
       return Error(Exception(e));
-    } 
+    }
   }
 
   @override

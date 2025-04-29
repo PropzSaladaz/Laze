@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mobile_client/config/dependencies.dart';
 import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
+import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
 import 'package:mobile_client/presentation/home/widgets/home_screen.dart';
 import 'package:mobile_client/presentation/core/themes/theme.dart';
 import 'package:provider/provider.dart';
@@ -23,20 +24,19 @@ void main() async {
   // Provider.debugCheckInvalidValueType to `null` in your main file:
   Provider.debugCheckInvalidValueType = null;
 
-
-  // responsible for connecting the Flutter framework with the underlying platform. 
+  // responsible for connecting the Flutter framework with the underlying platform.
   // The WidgetsBinding is essential for managing the rendering pipeline, input events, and more.
-  // Some Flutter operations, like accessing platform channels, plugins, or certain services, require the binding to be initialized.
-  // Hive needs this setup to be made
+  // Some Flutter operations, like accessing platform channels, plugins, or certain services,
+  //require the binding to be initialized. Hive needs this setup to be made
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await Hive.initFlutter("shortcuts_data");
   // register Hive adapters
   Hive.registerAdapter(ShortcutDataAdapter());
 
   runApp(
     MultiProvider(
-      providers: providersLocal,
+      providers: providersLocal, 
       child: const MyApp()
     ),
   );
@@ -55,7 +55,11 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
+      builder: (context, child) {
+        final homeViewModel =
+            HomeViewModel(shortcutsRepository: context.read());
+        return HomeScreen(viewModel: homeViewModel);
+      },
     );
   }
 }
