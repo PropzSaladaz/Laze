@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mobile_client/config/dependencies.dart';
 import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
+import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
 import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
 import 'package:mobile_client/presentation/home/widgets/home_screen.dart';
 import 'package:mobile_client/presentation/core/themes/theme.dart';
@@ -55,11 +56,12 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
-      builder: (context, child) {
-        final homeViewModel =
-            HomeViewModel(shortcutsRepository: context.read());
-        return HomeScreen(viewModel: homeViewModel);
-      },
+      home: ChangeNotifierProvider<HomeViewModel>(
+        create: (context) => HomeViewModel(shortcutsRepository: context.read<ShortcutsRepository>()),
+        child: Consumer<HomeViewModel>(
+          builder: (ctx, vm, _) => HomeScreen(viewModel: vm),
+        ),
+      ),
     );
   }
 }
