@@ -36,10 +36,7 @@ void main() async {
   Hive.registerAdapter(ShortcutDataAdapter());
 
   runApp(
-    MultiProvider(
-      providers: providersLocal, 
-      child: const MyApp()
-    ),
+    MultiProvider(providers: providersLocal, child: const MyApp()),
   );
 }
 
@@ -51,17 +48,33 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     debugPaintSizeEnabled = false;
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      debugShowCheckedModeBanner: false,
-      home: ChangeNotifierProvider<HomeViewModel>(
-        create: (context) => HomeViewModel(shortcutsRepository: context.read<ShortcutsRepository>()),
-        child: Consumer<HomeViewModel>(
-          builder: (ctx, vm, _) => HomeScreen(viewModel: vm),
-        ),
-      ),
-    );
+        title: 'Flutter Demo',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
+        debugShowCheckedModeBanner: false,
+
+        // Need to await for initial shortcuts repo setting
+        home: Consumer<ShortcutsRepository?>(
+          builder: (ctx, shortcutsRepo, _) {
+            // Show loading screen while repo is not initialized
+            if (shortcutsRepo == null) {
+              return Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.onPrimary),
+                ),
+              );
+            }
+
+            // Build app
+            return ChangeNotifierProvider<HomeViewModel>(
+              create: (_) => HomeViewModel(shortcutsRepository: shortcutsRepo),
+              child: Consumer<HomeViewModel>(
+                builder: (ctx, vm, _) => HomeScreen(viewModel: vm),
+              ),
+            );
+          },
+        ));
   }
 }
