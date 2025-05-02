@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
-// Default main app colors & default main themed colors
+/// ------------------------------------------------------------
+/// - App Color
+/// Defines base color apps & base dark and light color schemes
+/// ------------------------------------------------------------
 class AppColors {
   static const Color white = Colors.white;
   static const Color white1 = Color(0xFFF8F8F8); // background / mousepad text
@@ -44,7 +47,11 @@ class AppColors {
 }
 
 
-// custom colors for shadows, and other cases
+/// ------------------------------------------------------------
+/// - Custom Colors
+/// Defines extra colors that may be used for some specific
+/// cases, such as shadow colors, and more
+/// ------------------------------------------------------------
 class CustomColors extends ThemeExtension<CustomColors> {
   final Color shadowColorBright;
   final Color shadowColorDark;
