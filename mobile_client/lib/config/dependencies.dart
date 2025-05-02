@@ -7,8 +7,11 @@ import 'package:provider/provider.dart';
 /// This dependency list uses repositories that provide local data.
 List<SingleChildWidget> get providersLocal {
   return [
-    Provider(
-      create: (context) => ShortcutsRepositoryLocal() as ShortcutsRepository,
+    FutureProvider<ShortcutsRepository?>(
+      create: (_) => ShortcutsRepositoryLocal.create()
+        .then((r) => r)
+        .catchError((_) => null),
+      initialData: null, 
     ),
   ];
 }

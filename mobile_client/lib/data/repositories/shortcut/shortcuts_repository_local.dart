@@ -9,12 +9,28 @@ import 'package:mobile_client/utils/result.dart';
 class ShortcutsRepositoryLocal extends ShortcutsRepository {
   static const String _shortcutsBoxName = "shortcuts";
 
-  final _log = Logger("ShortcutsRepositoryLocal");
+  static final _log = Logger("ShortcutsRepositoryLocal");
 
   late Box<ShortcutData>? _shortcutsBox;
 
   // private constructor
-  ShortcutsRepositoryLocal();
+  ShortcutsRepositoryLocal._();
+
+  static Future<ShortcutsRepositoryLocal> create() async {
+    final repo = ShortcutsRepositoryLocal._();
+
+    _log.info("Initializing shortcuts repo");
+    final result = await repo.init();
+
+    switch (result) {
+      case Ok():
+        _log.info("Successfully initialized");
+        return repo;
+      case Error(:final Exception error):
+        _log.warning(error);
+        throw error;
+    }
+  }
 
   @override
   Future<Result<void>> init() async {

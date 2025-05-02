@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
 import 'package:mobile_client/presentation/core/ui/wide_styled_button.dart';
 import 'package:mobile_client/presentation/core/themes/colors.dart';
 import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
@@ -21,7 +22,6 @@ class ShortcutsSheet extends StatefulWidget {
 }
 
 class _ShortcutsSheetState extends State<ShortcutsSheet> {
-
   late DraggableScrollableController _controller;
   final double _closeThreshold = 0.2;
   final double _defaultOpenSize = 0.4;
@@ -30,8 +30,9 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
   final _openAnimationTime = const Duration(milliseconds: 500);
 
   bool _sheetIsFullyOpen = false;
-  bool _isClosingAnimation = false; // specifies if we are playing the closing animation
-  
+  bool _isClosingAnimation =
+      false; // specifies if we are playing the closing animation
+
   @override
   void initState() {
     super.initState();
@@ -48,18 +49,24 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     super.dispose();
   }
 
-  // animate when slide down 
+  // animate when slide down
   void _onScroll() {
-    if (_sheetIsFullyOpen && _controller.size <= _closeThreshold && !_isClosingAnimation) {
+    // Check constraints to start the animation
+    // 1. Sheet is open
+    // 2. Sheet size is less than the closing threshold
+    // 3. Closing animation isn't on yet
+    if (_sheetIsFullyOpen &&
+        _controller.size <= _closeThreshold &&
+        !_isClosingAnimation) {
       setState(() {
         _isClosingAnimation = true;
       });
 
-      _controller.animateTo(
-        0, 
-        duration: const Duration(milliseconds: 500), 
-        curve: Curves.easeInOut
-      ).then((_) => widget.closeScrollableSheets());
+      _controller
+          .animateTo(0,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut)
+          .then((_) => widget.closeScrollableSheets());
     }
   }
 
@@ -68,11 +75,10 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     // This check is needed since the DraggableScrollableController is only attached
     // after the DraggableScrollableSheet is built into the widget tree.
     if (_controller.isAttached) {
-      _controller.animateTo(
-        _defaultOpenSize, 
-        duration: _openAnimationTime, 
-        curve: Curves.easeInOut
-      ).then((_) {
+      _controller
+          .animateTo(_defaultOpenSize,
+              duration: _openAnimationTime, curve: Curves.easeInOut)
+          .then((_) {
         _sheetIsFullyOpen = true;
       });
     } else {
@@ -80,11 +86,36 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
+    print("Building shortcut sheet");
+
+    return Consumer<HomeViewModel>(builder: (context, viewModel, child) {
+      if (viewModel.loadShortcuts.running) {
+        print("loading is running");
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (viewModel.loadShortcuts.error) {
+        print("Some error" +
+            viewModel.loadShortcuts.result!.asError.error.toString());
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(
+                  viewModel.loadShortcuts.result!.asError.error.toString())));
+        });
+        return const SizedBox.shrink();
+      }
+
+      print("Building shortcuts");
+      return _buildShortcutsSheet(context, viewModel.shortcuts);
+    });
+  }
+
+  Widget _buildShortcutsSheet(BuildContext context, List<Shortcut> shortcuts) {
     final customColors = Theme.of(context).extension<CustomColors>();
-    return  SizedBox(
+    return SizedBox(
       height: MediaQuery.of(context).size.height,
       child: Stack(
         children: [
@@ -92,99 +123,86 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
             duration: const Duration(milliseconds: 500),
             curve: Curves.linear,
             child: DraggableScrollableSheet(
-              controller: _controller,
-              initialChildSize: 0.0,
-              minChildSize: 0,
-              maxChildSize: 0.6,
-              builder: (context, scrollController) {
-                return Container(
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(30.0),
-                      topRight: Radius.circular(30.0),
+                controller: _controller,
+                initialChildSize: 0.0,
+                minChildSize: 0,
+                maxChildSize: 0.6,
+                builder: (context, scrollController) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(30.0),
+                        topRight: Radius.circular(30.0),
+                      ),
+                      border: Border.all(
+                        width: 3.0,
+                        color: customColors!.border,
+                      ),
+                      color: Theme.of(context).colorScheme.surface,
                     ),
-                    border: Border.all(
-                      width: 3.0,
-                      color: customColors!.border,
-                    ),
-                    color: Theme.of(context).colorScheme.surface,
-                    
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      left: 20.0,
-                      right: 20.0,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        left: 20.0,
+                        right: 20.0,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
                           const SizedBox(
-                          height: 60,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              "Shortcuts",
-                              style: TextStyle(
-                                fontSize: 25.0
+                            height: 60,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Text(
+                                "Shortcuts",
+                                style: TextStyle(fontSize: 25.0),
                               ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: Consumer<HomeViewModel>(
-                            builder: (context, shortcuts, child) {
-                              if (shortcuts.loadShortcuts.running) {
-                                return const Text("Loading");
-                              } else if (shortcuts.loadShortcuts.error) {
-                                return Text(shortcuts.loadShortcuts.result!.asError.error.toString());
-                              } else {
-                                return GridView(
-                                  controller: scrollController,
-                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 4,
-                                    crossAxisSpacing: 15.0,
-                                    mainAxisSpacing: 15.0,
-                                  ), 
-                                  children: shortcuts.shortcuts.map((shortcut) {
-                                      return ShortcutIcon(shortcut: shortcut);
-                                    } 
-                                  ).toList(),
-                                );
-                              }
-                            }
+                          Expanded(
+                            child: GridView(
+                              controller: scrollController,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 4,
+                                crossAxisSpacing: 15.0,
+                                mainAxisSpacing: 15.0,
+                              ),
+                              children:
+                                  shortcuts.map((shortcut) {
+                                return ShortcutIcon(shortcut: shortcut);
+                              }).toList(),
+                            ),
                           ),
-                        ),
-                      ],
-                    )
-                  ),
-                );
-              }
-            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
           ),
 
           // ADD BUTTON
           Positioned(
-            left: 0,
-            right: 0,
-            bottom: 30.0,
-            child: FractionallySizedBox(
-              widthFactor: 0.8,
-              alignment: Alignment.center,
-              child: Center(
-                child: WideStyledButton(
-                  icon: Icons.add, 
-                  onPressed: () {
-                    Navigator.push(
-                      context, 
-                      MaterialPageRoute(builder: (context) => const AddCustomShortcut()));
-                  }, 
-                  iconColor: Theme.of(context).colorScheme.onSecondary,
-                  backgroundColor: Theme.of(context).colorScheme.secondary,
+              left: 0,
+              right: 0,
+              bottom: 30.0,
+              child: FractionallySizedBox(
+                widthFactor: 0.8,
+                alignment: Alignment.center,
+                child: Center(
+                  child: WideStyledButton(
+                    icon: Icons.add,
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const AddCustomShortcut()));
+                    },
+                    iconColor: Theme.of(context).colorScheme.onSecondary,
+                    backgroundColor: Theme.of(context).colorScheme.secondary,
+                  ),
                 ),
-              ),
-            )
-          )
+              ))
         ],
       ),
     );

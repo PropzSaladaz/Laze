@@ -10,10 +10,7 @@ import 'package:mobile_client/presentation/home/widgets/shortcuts_sheet.dart';
 import 'command_btns.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({
-    super.key,
-    required this.viewModel  
-  });
+  const HomeScreen({super.key, required this.viewModel});
 
   final HomeViewModel viewModel;
 
@@ -61,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // PAGE BODY
           () {
-
             // NOT CONNECTED
             if (connectionStatus == ServerConnector.NOT_CONNECTED) {
               return Expanded(
@@ -69,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Image.asset("assets/images/NoConnection.png")),
               );
 
-            // CONNECTED
+              // CONNECTED
             } else {
               return Expanded(
                 child: Center(
@@ -80,8 +76,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
                           return CircularProgressIndicator.adaptive(
-                              backgroundColor: Theme.of(context).colorScheme.onPrimary
-                              );
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.onPrimary);
                         } else if (snapshot.hasError) {
                           return Text(snapshot.error.toString());
                         }
@@ -149,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _turnOffPc() {
     ServerConnector.sendInput(Input.shutdown());
-    
+
     setState(() {
       ServerConnector.disconnect();
     });
