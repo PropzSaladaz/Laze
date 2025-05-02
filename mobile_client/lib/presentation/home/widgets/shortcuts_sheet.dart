@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/data/state/shortcuts_provider.dart';
-import 'package:mobile_client/presentation/core/ui/styled_button.dart';
 import 'package:mobile_client/presentation/core/ui/wide_styled_button.dart';
 import 'package:mobile_client/presentation/core/themes/colors.dart';
 import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
 import 'package:mobile_client/presentation/new_shortcut/widgets/add_custom_shortcut.dart';
-import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
 import 'package:mobile_client/presentation/home/widgets/shortcut_icon.dart';
 import 'package:provider/provider.dart';
 

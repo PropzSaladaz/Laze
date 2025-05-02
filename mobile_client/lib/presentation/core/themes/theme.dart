@@ -49,23 +49,31 @@ class AppTheme {
     ),
   );
 
+  /// -----------------------------------------------------------
+  ///                       Light Theme
+  /// -----------------------------------------------------------
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: AppColors.lightColorScheme,
     textTheme: _textTheme,
     inputDecorationTheme: _inputDecorationTheme,
+    // pass extra color definition for more specific cases
     extensions: const [
       CustomColors.light
     ]
   );
 
+  /// -----------------------------------------------------------
+  ///                       Dark Theme
+  /// -----------------------------------------------------------
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: AppColors.darkColorScheme,
     textTheme: _textTheme,
     inputDecorationTheme: _inputDecorationTheme,
+    // pass extra color definition for more specific cases
     extensions: const [
       CustomColors.dark
     ]

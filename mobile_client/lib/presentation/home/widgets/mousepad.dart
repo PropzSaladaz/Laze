@@ -124,11 +124,11 @@ class _MousePadState extends State<MousePad> {
                 width: double.infinity,
                 height: widget.fullscreen ? double.infinity : 0.4 * screenSize.height,
                 decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
                   border: Border.all(
                     color: customColors!.border, 
                     width: 3,
                   ),
-                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
               () {

@@ -58,14 +58,18 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(
             height: 23,
           ),
+
           // PAGE BODY
           () {
+
             // NOT CONNECTED
             if (connectionStatus == ServerConnector.NOT_CONNECTED) {
               return Expanded(
                 child: Center(
                     child: Image.asset("assets/images/NoConnection.png")),
               );
+
+            // CONNECTED
             } else {
               return Expanded(
                 child: Center(
@@ -75,9 +79,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         // WAITING FOR CONNECTION
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return const CircularProgressIndicator.adaptive(
-                              /*backgroundColor: 
-                            ColorConstants.darkPrimary*/
+                          return CircularProgressIndicator.adaptive(
+                              backgroundColor: Theme.of(context).colorScheme.onPrimary
                               );
                         } else if (snapshot.hasError) {
                           return Text(snapshot.error.toString());
