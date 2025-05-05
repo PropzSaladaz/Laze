@@ -4,7 +4,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mobile_client/config/dependencies.dart';
 import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
 import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
-import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
 import 'package:mobile_client/presentation/home/widgets/home_screen.dart';
 import 'package:mobile_client/presentation/core/themes/theme.dart';
 import 'package:provider/provider.dart';
@@ -68,12 +67,7 @@ class MyApp extends StatelessWidget {
             }
 
             // Build app
-            return ChangeNotifierProvider<HomeViewModel>(
-              create: (_) => HomeViewModel(shortcutsRepository: shortcutsRepo),
-              child: Consumer<HomeViewModel>(
-                builder: (ctx, vm, _) => HomeScreen(viewModel: vm),
-              ),
-            );
+            return HomeScreen(shortcutsRepository: shortcutsRepo);
           },
         ));
   }

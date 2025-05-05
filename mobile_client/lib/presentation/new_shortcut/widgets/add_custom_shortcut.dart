@@ -2,18 +2,16 @@ import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:mobile_client/core/os_config.dart';
-import 'package:mobile_client/data/state/shortcuts_provider.dart';
+import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
 import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
 import 'package:mobile_client/presentation/core/ui/wide_styled_button.dart';
+import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
 import 'package:mobile_client/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
-import 'package:mobile_client/services/server_connector.dart';
 import 'package:mobile_client/presentation/core/themes/colors.dart';
 import 'package:mobile_client/presentation/core/ui/controller_page.dart';
-import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
 import 'package:provider/provider.dart';
 
 class AddCustomShortcut extends StatefulWidget {
-
   const AddCustomShortcut({super.key});
 
   @override
@@ -21,14 +19,27 @@ class AddCustomShortcut extends StatefulWidget {
 }
 
 class _AddCustomShortcutState extends State<AddCustomShortcut> {
-
   // initial shortcut data
   IconData icon = Icons.abc;
   String shortcutName = "";
   Map<String, String> commands = HashMap();
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return _buildWidget(context);
+  }
+
+  AddCustomShortcutViewModel _createViewModel(BuildContext context) {
+    final repo = context.read<ShortcutsRepository>();
+    return AddCustomShortcutViewModel(shortcutsRepository: repo);
+  }
+
+  Widget _buildWidget(BuildContext context) {
     final customColors = Theme.of(context).extension<CustomColors>();
 
     return ControllerPage(
@@ -41,54 +52,49 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  Column(
-                    children: [
-                      const SizedBox(height: 20.0),
-                      // Shortcut Icon
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: FractionallySizedBox(
-                              widthFactor: 0.7,
-                              child: TextField(
-                                style: const TextStyle(
-                                  // color: ColorConstants.darkText,
-                                  fontSize: 39,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                decoration: const InputDecoration(
-                                  hintText: "Shortcut Name"
-                                ),
-                                onChanged: (name) {
-                                  setState(() {
-                                    shortcutName = name;
-                                  });
-                                },
+                  Column(children: [
+                    const SizedBox(height: 20.0),
+                    // Shortcut Icon
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: FractionallySizedBox(
+                            widthFactor: 0.7,
+                            child: TextField(
+                              style: const TextStyle(
+                                // color: ColorConstants.darkText,
+                                fontSize: 39,
+                                fontWeight: FontWeight.w600,
                               ),
+                              decoration: const InputDecoration(
+                                  hintText: "Shortcut Name"),
+                              onChanged: (name) {
+                                setState(() {
+                                  shortcutName = name;
+                                });
+                              },
                             ),
                           ),
-                          const Icon(
-                            Icons.abc,
-                            size: 50,
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 40.0),
-                      const Text(
-                        style: TextStyle(
-                          // color: ColorConstants.darkText,
-                          fontSize: 24
                         ),
-                        "Type the commands to run in the host machine's terminal"
-                      ),
-                      const SizedBox(height: 40.0),
-                          
-                      // add input box for all supported OSes
-                      for (var os in SUPPORTED_OSES) 
-                        _terminalCommand(os.name, context),  
-                    ]
-                  ),
+                        const Icon(
+                          Icons.abc,
+                          size: 50,
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 40.0),
+                    const Text(
+                        style: TextStyle(
+                            // color: ColorConstants.darkText,
+                            fontSize: 24),
+                        "Type the commands to run in the host machine's terminal"),
+                    const SizedBox(height: 40.0),
+
+                    // add input box for all supported OSes
+                    for (var os in SUPPORTED_OSES)
+                      _terminalCommand(os.name, context),
+                  ]),
                 ],
               ),
             ),
@@ -103,8 +109,8 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                     child: FractionallySizedBox(
                       widthFactor: 0.8,
                       child: WideStyledButton(
-                        onPressed: () { 
-                          Navigator.of(context).pop(); 
+                        onPressed: () {
+                          Navigator.of(context).pop();
                         },
                         text: "CANCEL",
                         fontSize: 20,
@@ -117,18 +123,18 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                   Expanded(
                     child: FractionallySizedBox(
                       widthFactor: 0.8,
-                      child: Consumer<AddCustomShortcutViewModel>(
-                        builder: (context, shortcutsViewModel, child) {
-                          return WideStyledButton(
-                            backgroundColor: customColors.negativePrimary,
-                            onPressed: () => _saveShortcutData(shortcutsViewModel),
-                            text: "CREATE",
-                            // textColor: ColorConstants.darkText,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                          );
-                        }
-                      ),
+                      child: Consumer<HomeViewModel>(
+                          builder: (context, shortcutsViewModel, child) {
+                        return WideStyledButton(
+                          backgroundColor: customColors.negativePrimary,
+                          onPressed: () =>
+                              _saveShortcutData(shortcutsViewModel),
+                          text: "CREATE",
+                          // textColor: ColorConstants.darkText,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        );
+                      }),
                     ),
                   ),
                 ],
@@ -140,16 +146,12 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
     );
   }
 
-// TODO - should we be using setState? Or maybe waiting for the async saveShortcut?
-  void _saveShortcutData(AddCustomShortcutViewModel shortcutsViewModel) {
-    Shortcut toBeSaved = Shortcut(
-      commands: commands,
-      icon: icon,
-      name: shortcutName
-    );
+  void _saveShortcutData(HomeViewModel shortcutsViewModel) {
+    Shortcut toBeSaved =
+        Shortcut(commands: commands, icon: icon, name: shortcutName);
     shortcutsViewModel.saveShortcut.execute(toBeSaved);
     print("Shortcut added!");
-    Navigator.of(context).pop(); 
+    Navigator.of(context).pop();
   }
 
   Widget _terminalCommand(String os, BuildContext context) {
@@ -162,19 +164,17 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
           Padding(
             padding: const EdgeInsets.only(left: 6),
             child: Text(
-              style: const TextStyle(
-                fontSize: 20,
-                // color: ColorConstants.darkText,
-              ),
-              os
-            ),
+                style: const TextStyle(
+                  fontSize: 20,
+                  // color: ColorConstants.darkText,
+                ),
+                os),
           ),
           const SizedBox(height: 5),
           Container(
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.secondary,
-              borderRadius: BorderRadius.all(Radius.circular(25.0)),
-              
+              borderRadius: const BorderRadius.all(Radius.circular(25.0)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: TextField(
@@ -184,8 +184,8 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                 });
               },
               style: const TextStyle(
-                // color: ColorConstants.darkText
-              ),
+                  // color: ColorConstants.darkText
+                  ),
               maxLines: 2,
               maxLength: 256,
               decoration: const InputDecoration(
