@@ -13,6 +13,7 @@ class HomeViewModel extends ChangeNotifier {
   final _log = Logger('HomeViewModel');
   late final AsyncCommand loadShortcuts;
   late final AsyncCommand deleteShortcut;
+  late final AsyncCommand1<void, Shortcut> saveShortcut;
 
   List<Shortcut> get shortcuts => _shortcuts;
 
@@ -20,6 +21,7 @@ class HomeViewModel extends ChangeNotifier {
       : _shortcutsRepository = shortcutsRepository {
     loadShortcuts = AsyncCommand0(_loadShortcuts)..execute();
     deleteShortcut = AsyncCommand1(_deleteShortcut);
+    saveShortcut = AsyncCommand1(_saveShortcut);
   }
 
   Future<Result<void>> _loadShortcuts() async {
@@ -46,6 +48,17 @@ class HomeViewModel extends ChangeNotifier {
     }
 
     _shortcuts.removeWhere((stc) => stc.name == shortcut.name);
+    notifyListeners();
+    return result;
+  }
+
+  Future<Result<void>> _saveShortcut(Shortcut shortcut) async {
+    final result = await _shortcutsRepository.saveShortcut(shortcut);
+
+    if (result is Error) {
+      _log.warning("Error deleting shortcut");
+    }
+
     notifyListeners();
     return result;
   }
