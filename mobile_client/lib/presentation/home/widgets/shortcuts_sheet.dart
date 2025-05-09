@@ -49,44 +49,6 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     super.dispose();
   }
 
-  // animate when slide down
-  void _onScroll() {
-    // Check constraints to start the animation
-    // 1. Sheet is open
-    // 2. Sheet size is less than the closing threshold
-    // 3. Closing animation isn't on yet
-    if (_sheetIsFullyOpen &&
-        _controller.size <= _closeThreshold &&
-        !_isClosingAnimation) {
-      setState(() {
-        _isClosingAnimation = true;
-      });
-
-      _controller
-          .animateTo(0,
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeInOut)
-          .then((_) => widget.closeScrollableSheets());
-    }
-  }
-
-// animate when opening sheet
-  void _onOpen() {
-    // This check is needed since the DraggableScrollableController is only attached
-    // after the DraggableScrollableSheet is built into the widget tree.
-    if (_controller.isAttached) {
-      _controller
-          .animateTo(_defaultOpenSize,
-              duration: _openAnimationTime, curve: Curves.easeInOut)
-          .then((_) {
-        _sheetIsFullyOpen = true;
-      });
-    } else {
-      // try again next frame
-      WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     print("Building shortcut sheet");
@@ -168,8 +130,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                                 crossAxisSpacing: 15.0,
                                 mainAxisSpacing: 15.0,
                               ),
-                              children:
-                                  shortcuts.map((shortcut) {
+                              children: shortcuts.map((shortcut) {
                                 return ShortcutIcon(shortcut: shortcut);
                               }).toList(),
                             ),
@@ -193,10 +154,11 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                   child: WideStyledButton(
                     icon: Icons.add,
                     onPressed: () {
+                      final model = context.read<HomeViewModel>();
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const AddCustomShortcut()));
+                              builder: (_) => AddCustomShortcut(viewModel: model)));
                     },
                     iconColor: Theme.of(context).colorScheme.onSecondary,
                     backgroundColor: Theme.of(context).colorScheme.secondary,
@@ -206,5 +168,43 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
         ],
       ),
     );
+  }
+
+  // animate when slide down
+  void _onScroll() {
+    // Check constraints to start the animation
+    // 1. Sheet is open
+    // 2. Sheet size is less than the closing threshold
+    // 3. Closing animation isn't on yet
+    if (_sheetIsFullyOpen &&
+        _controller.size <= _closeThreshold &&
+        !_isClosingAnimation) {
+      setState(() {
+        _isClosingAnimation = true;
+      });
+
+      _controller
+          .animateTo(0,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut)
+          .then((_) => widget.closeScrollableSheets());
+    }
+  }
+
+// animate when opening sheet
+  void _onOpen() {
+    // This check is needed since the DraggableScrollableController is only attached
+    // after the DraggableScrollableSheet is built into the widget tree.
+    if (_controller.isAttached) {
+      _controller
+          .animateTo(_defaultOpenSize,
+              duration: _openAnimationTime, curve: Curves.easeInOut)
+          .then((_) {
+        _sheetIsFullyOpen = true;
+      });
+    } else {
+      // try again next frame
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
+    }
   }
 }
