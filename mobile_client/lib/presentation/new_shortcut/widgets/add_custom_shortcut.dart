@@ -12,7 +12,8 @@ import 'package:mobile_client/presentation/core/ui/controller_page.dart';
 import 'package:provider/provider.dart';
 
 class AddCustomShortcut extends StatefulWidget {
-  const AddCustomShortcut({super.key});
+  final HomeViewModel viewModel;
+  const AddCustomShortcut({super.key, required this.viewModel});
 
   @override
   State<AddCustomShortcut> createState() => _AddCustomShortcutState();
@@ -34,11 +35,6 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
     return _buildWidget(context);
   }
 
-  AddCustomShortcutViewModel _createViewModel(BuildContext context) {
-    final repo = context.read<ShortcutsRepository>();
-    return AddCustomShortcutViewModel(shortcutsRepository: repo);
-  }
-
   Widget _buildWidget(BuildContext context) {
     final customColors = Theme.of(context).extension<CustomColors>();
 
@@ -47,6 +43,7 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
         height: MediaQuery.of(context).size.height,
         child: Stack(
           children: [
+            // Main Page
             SingleChildScrollView(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -98,6 +95,8 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                 ],
               ),
             ),
+
+            // CANCEL / CREATE buttons
             Positioned(
               bottom: 0,
               left: 0,
@@ -123,18 +122,14 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                   Expanded(
                     child: FractionallySizedBox(
                       widthFactor: 0.8,
-                      child: Consumer<HomeViewModel>(
-                          builder: (context, shortcutsViewModel, child) {
-                        return WideStyledButton(
-                          backgroundColor: customColors.negativePrimary,
-                          onPressed: () =>
-                              _saveShortcutData(shortcutsViewModel),
-                          text: "CREATE",
-                          // textColor: ColorConstants.darkText,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                        );
-                      }),
+                      child: WideStyledButton(
+                        backgroundColor: customColors.negativePrimary,
+                        onPressed: () => _saveShortcutData(),
+                        text: "CREATE",
+                        // textColor: ColorConstants.darkText,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                 ],
@@ -146,10 +141,10 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
     );
   }
 
-  void _saveShortcutData(HomeViewModel shortcutsViewModel) {
+  void _saveShortcutData() {
     Shortcut toBeSaved =
         Shortcut(commands: commands, icon: icon, name: shortcutName);
-    shortcutsViewModel.saveShortcut.execute(toBeSaved);
+    widget.viewModel.saveShortcut.execute(toBeSaved);
     print("Shortcut added!");
     Navigator.of(context).pop();
   }
