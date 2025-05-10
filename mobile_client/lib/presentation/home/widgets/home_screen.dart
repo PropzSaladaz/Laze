@@ -12,10 +12,7 @@ import 'package:provider/provider.dart';
 import 'command_btns.dart';
 
 class HomeScreen extends StatefulWidget {
-
-  const HomeScreen({super.key, required this.shortcutsRepository});
-
-  final ShortcutsRepository shortcutsRepository;
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -32,96 +29,96 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     ServerConnector.init(_setConnectionState, _getConnectionState);
-    
   }
 
   @override
   Widget build(BuildContext context) {
+    final shortcutsRepo = Provider.of<ShortcutsRepository>(context);
     return ChangeNotifierProvider<HomeViewModel>(
-        create: (_) => HomeViewModel(shortcutsRepository: widget.shortcutsRepository),
-        child: ControllerPage(
-            resizeToAvoidBottomInset: false,
-            body: Column(
-              children: [
-                ConnectionHeader(
-                  connectionStatus: connectionStatus,
-                  connect: _connect,
-                  cancelSearch: _cancelSearch,
-                  disconnect: _disconnect,
-                  turnOffPc: _turnOffPc,
-                ),
-                const SizedBox(
-                  height: 23,
-                ),
-
-                // PAGE BODY
-                () {
-                  // NOT CONNECTED
-                  if (connectionStatus == ServerConnector.NOT_CONNECTED) {
-                    return Expanded(
-                      child: Center(
-                          child: Image.asset("assets/images/NoConnection.png")),
-                    );
-
-                    // CONNECTED
-                  } else {
-                    return Expanded(
-                      child: Center(
-                        child: FutureBuilder(
-                            future: connected,
-                            builder: (context, snapshot) {
-                              // WAITING FOR CONNECTION
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return CircularProgressIndicator.adaptive(
-                                    backgroundColor: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimary);
-                              } else if (snapshot.hasError) {
-                                return Text(snapshot.error.toString());
-                              }
-                              // CONNECTED
-                              return Column(
-                                children: [
-                                  const MousePad(
-                                    fullscreen: false,
-                                  ),
-                                  const SizedBox(height: 15),
-                                  CommandBtns(onShowShortcutsSheet: () {
-                                    setState(() {
-                                      showShortcutsScrollableSheet = true;
-                                    });
-                                  }),
-                                ],
-                              );
-                            }),
-                      ),
-                    );
-                  }
-                }()
-                // BODY
-              ],
+      create: (_) =>
+          HomeViewModel(shortcutsRepository: shortcutsRepo),
+      child: ControllerPage(
+        resizeToAvoidBottomInset: false,
+        body: Column(
+          children: [
+            ConnectionHeader(
+              connectionStatus: connectionStatus,
+              connect: _connect,
+              cancelSearch: _cancelSearch,
+              disconnect: _disconnect,
+              turnOffPc: _turnOffPc,
             ),
-            stackedBody:
-                // SCROLABLE SHORTCUTS
-                Visibility(
-                    visible: showShortcutsScrollableSheet,
-                    child: Positioned(
-                      bottom: 0,
-                      right: 0,
-                      left: 0,
-                      // Propagates changes to widgets in the tree
-                      child: ShortcutsSheet(
-                        isVisible: showShortcutsScrollableSheet,
-                        closeScrollableSheets: () {
-                          setState(() {
-                            showShortcutsScrollableSheet = false;
-                          });
-                        },
-                      ),
-                    )),
-          ),
-        );
+            const SizedBox(
+              height: 23,
+            ),
+
+            // PAGE BODY
+            () {
+              // NOT CONNECTED
+              if (connectionStatus == ServerConnector.NOT_CONNECTED) {
+                return Expanded(
+                  child: Center(
+                      child: Image.asset("assets/images/NoConnection.png")),
+                );
+
+                // CONNECTED
+              } else {
+                return Expanded(
+                  child: Center(
+                    child: FutureBuilder(
+                        future: connected,
+                        builder: (context, snapshot) {
+                          // WAITING FOR CONNECTION
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return CircularProgressIndicator.adaptive(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.onPrimary);
+                          } else if (snapshot.hasError) {
+                            return Text(snapshot.error.toString());
+                          }
+                          // CONNECTED
+                          return Column(
+                            children: [
+                              const MousePad(
+                                fullscreen: false,
+                              ),
+                              const SizedBox(height: 15),
+                              CommandBtns(onShowShortcutsSheet: () {
+                                setState(() {
+                                  showShortcutsScrollableSheet = true;
+                                });
+                              }),
+                            ],
+                          );
+                        }),
+                  ),
+                );
+              }
+            }()
+            // BODY
+          ],
+        ),
+        stackedBody:
+            // SCROLABLE SHORTCUTS
+            Visibility(
+                visible: showShortcutsScrollableSheet,
+                child: Positioned(
+                  bottom: 0,
+                  right: 0,
+                  left: 0,
+                  // Propagates changes to widgets in the tree
+                  child: ShortcutsSheet(
+                    isVisible: showShortcutsScrollableSheet,
+                    closeScrollableSheets: () {
+                      setState(() {
+                        showShortcutsScrollableSheet = false;
+                      });
+                    },
+                  ),
+                )),
+      ),
+    );
   }
 
   void _setConnectionState(String state) {
