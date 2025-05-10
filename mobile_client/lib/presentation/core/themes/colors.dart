@@ -10,7 +10,7 @@ class AppColors {
   static const Color white2 = Color(0xFFF3F3F3); // scroll
   static const Color white3 = Color(0XFFEFEFEF); // border
   static const Color white4 = Color(0xFFE7E7E7); // scroll text / mainText
-  
+
   static const Color grey1 = Color(0xFFDDDDDD); // dark text
   static const Color grey2 = Color(0xFFD1D1D1); // dark action button
   static const Color grey3 = Color(0xFFA1A1A1); // dark primary
@@ -20,6 +20,8 @@ class AppColors {
   static const Color black1 = Color(0xFF111111);
   static const Color black2 = Color(0xFF333333);
   static const Color black3 = Color(0xFF555555);
+
+  static const Color blue = Colors.blue;
 
   static const lightColorScheme = ColorScheme(
     brightness: Brightness.light,
@@ -46,7 +48,6 @@ class AppColors {
   );
 }
 
-
 /// ------------------------------------------------------------
 /// - Custom Colors
 /// Defines extra colors that may be used for some specific
@@ -63,21 +64,30 @@ class CustomColors extends ThemeExtension<CustomColors> {
   final Color negativeSecondary;
   final Color negativeOnSecondary;
 
+  final Color selected;
+
   const CustomColors({
-    required this.shadowColorBright, 
+    required this.shadowColorBright,
     required this.shadowColorDark,
-    required this.border,  
+    required this.border,
     required this.negativePrimary,
     required this.negativeOnPrimary,
     required this.negativeSecondary,
     required this.negativeOnSecondary,
+    required this.selected,
   });
-
 
   @override
   ThemeExtension<CustomColors> copyWith({
-    Color? shadowColorBright, Color? shadowColorDark, Color? border,
-    Color? negativePrimary, Color? negativeOnPrimary, Color? negativeSecondary, Color? negativeOnSecondary,}) {
+    Color? shadowColorBright,
+    Color? shadowColorDark,
+    Color? border,
+    Color? negativePrimary,
+    Color? negativeOnPrimary,
+    Color? negativeSecondary,
+    Color? negativeOnSecondary,
+    Color? selected,
+  }) {
     return CustomColors(
       shadowColorBright: shadowColorBright ?? this.shadowColorBright,
       shadowColorDark: shadowColorDark ?? this.shadowColorDark,
@@ -86,11 +96,13 @@ class CustomColors extends ThemeExtension<CustomColors> {
       negativeOnPrimary: negativeOnPrimary ?? this.negativeOnPrimary,
       negativeSecondary: negativeSecondary ?? this.negativeSecondary,
       negativeOnSecondary: negativeOnSecondary ?? this.negativeOnSecondary,
+      selected: selected ?? this.selected,
     );
   }
 
   @override
-  ThemeExtension<CustomColors> lerp(covariant ThemeExtension<CustomColors>? other, double t) {
+  ThemeExtension<CustomColors> lerp(
+      covariant ThemeExtension<CustomColors>? other, double t) {
     // TODO: implement lerp
     throw UnimplementedError();
   }
@@ -104,7 +116,8 @@ class CustomColors extends ThemeExtension<CustomColors> {
     negativeOnPrimary: AppColors.grey2,
     negativeSecondary: AppColors.grey4,
     negativeOnSecondary: AppColors.white3,
-  );  
+    selected: AppColors.blue,
+  );
 
   // dark theme
   static const dark = CustomColors(
@@ -115,5 +128,6 @@ class CustomColors extends ThemeExtension<CustomColors> {
     negativeOnPrimary: AppColors.white2,
     negativeSecondary: AppColors.black3,
     negativeOnSecondary: AppColors.grey3,
-  );  
+    selected: AppColors.blue,
+  );
 }

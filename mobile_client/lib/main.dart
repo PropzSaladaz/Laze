@@ -34,8 +34,11 @@ void main() async {
   // register Hive adapters
   Hive.registerAdapter(ShortcutDataAdapter());
 
+  // Await for shortcuts repo
+  final repositoryService = await RepositoryService.initializeLocal();
+
   runApp(
-    MultiProvider(providers: providersLocal, child: const MyApp()),
+    MultiProvider(providers: repositoryService.providers, child: const MyApp()),
   );
 }
 
@@ -47,28 +50,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     debugPaintSizeEnabled = false;
     return MaterialApp(
-        title: 'Flutter Demo',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        debugShowCheckedModeBanner: false,
-
-        // Need to await for initial shortcuts repo setting
-        home: Consumer<ShortcutsRepository?>(
-          builder: (ctx, shortcutsRepo, _) {
-            // Show loading screen while repo is not initialized
-            if (shortcutsRepo == null) {
-              return Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(
-                      color: Theme.of(context).colorScheme.onPrimary),
-                ),
-              );
-            }
-
-            // Build app
-            return HomeScreen(shortcutsRepository: shortcutsRepo);
-          },
-        ));
+      title: 'Flutter Demo',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      debugShowCheckedModeBanner: false,
+      home: const HomeScreen()
+    );
   }
 }

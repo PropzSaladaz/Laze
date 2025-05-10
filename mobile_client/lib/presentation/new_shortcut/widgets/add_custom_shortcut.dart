@@ -9,6 +9,8 @@ import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart'
 import 'package:mobile_client/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
 import 'package:mobile_client/presentation/core/themes/colors.dart';
 import 'package:mobile_client/presentation/core/ui/controller_page.dart';
+import 'package:mobile_client/presentation/new_shortcut/widgets/shortcut_input_row.dart';
+import 'package:mobile_client/presentation/new_shortcut/widgets/terminal_command.dart';
 import 'package:provider/provider.dart';
 
 class AddCustomShortcut extends StatefulWidget {
@@ -37,6 +39,7 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
 
   Widget _buildWidget(BuildContext context) {
     final customColors = Theme.of(context).extension<CustomColors>();
+    final textTheme    = Theme.of(context).textTheme;
 
     return ControllerPage(
       body: SizedBox(
@@ -51,46 +54,28 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                 children: [
                   Column(children: [
                     const SizedBox(height: 20.0),
-                    // Shortcut Icon
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: FractionallySizedBox(
-                            widthFactor: 0.7,
-                            child: TextField(
-                              style: const TextStyle(
-                                // color: ColorConstants.darkText,
-                                fontSize: 39,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              decoration: const InputDecoration(
-                                  hintText: "Shortcut Name"),
-                              onChanged: (name) {
-                                setState(() {
-                                  shortcutName = name;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                        const Icon(
-                          Icons.abc,
-                          size: 50,
-                        )
-                      ],
-                    ),
+
+                    ShortcutInputRow(
+                        selectedIcon: icon,
+                        onNameChanged: _onShortcutNameChanged,
+                        onIconSelected: _onIconSelected),
+
                     const SizedBox(height: 40.0),
-                    const Text(
-                        style: TextStyle(
-                            // color: ColorConstants.darkText,
-                            fontSize: 24),
-                        "Type the commands to run in the host machine's terminal"),
+
+                    Text(
+                      "Type the commands to run in the host machine's terminal",
+                      style: textTheme.titleSmall,
+                    ),
+
                     const SizedBox(height: 40.0),
 
                     // add input box for all supported OSes
                     for (var os in SUPPORTED_OSES)
-                      _terminalCommand(os.name, context),
+                      TerminalCommandInput(
+                          operativeSystemName: os.name,
+                          onCommandUpdated: (newCommand) {
+                            commands[os.name] = newCommand;
+                          })
                   ]),
                 ],
               ),
@@ -141,57 +126,19 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
     );
   }
 
+  void _onShortcutNameChanged(String newName) {
+    setState(() => shortcutName = newName);
+  }
+
+  void _onIconSelected(IconData newIcon) {
+    setState(() => icon = newIcon);
+  }
+
   void _saveShortcutData() {
     Shortcut toBeSaved =
         Shortcut(commands: commands, icon: icon, name: shortcutName);
     widget.viewModel.saveShortcut.execute(toBeSaved);
     print("Shortcut added!");
     Navigator.of(context).pop();
-  }
-
-  Widget _terminalCommand(String os, BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 6),
-            child: Text(
-                style: const TextStyle(
-                  fontSize: 20,
-                  // color: ColorConstants.darkText,
-                ),
-                os),
-          ),
-          const SizedBox(height: 5),
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondary,
-              borderRadius: const BorderRadius.all(Radius.circular(25.0)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: TextField(
-              onChanged: (command) {
-                setState(() {
-                  commands[os] = command;
-                });
-              },
-              style: const TextStyle(
-                  // color: ColorConstants.darkText
-                  ),
-              maxLines: 2,
-              maxLength: 256,
-              decoration: const InputDecoration(
-                prefixText: "\$ ",
-                hintText: "firefox 'https://google.com'",
-                border: InputBorder.none,
-              ),
-            ),
-          )
-        ],
-      ),
-    );
   }
 }

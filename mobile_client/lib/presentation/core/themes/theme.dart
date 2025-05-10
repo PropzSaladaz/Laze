@@ -15,6 +15,10 @@ class AppTheme {
       fontSize: 18,
       fontWeight: FontWeight.w500,
     ),
+    titleSmall: TextStyle(
+      fontSize: 17,
+      fontWeight: FontWeight.w500,
+    ),
     bodyLarge: TextStyle(
       fontSize: 18,
       fontWeight: FontWeight.w400,
@@ -26,24 +30,19 @@ class AppTheme {
     bodySmall: TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.w400,
-      color: AppColors.grey3,
     ),
     labelSmall: TextStyle(
       fontSize: 10,
       fontWeight: FontWeight.w500,
-      color: AppColors.grey3,
     ),
     labelLarge: TextStyle(
       fontSize: 18,
       fontWeight: FontWeight.w400,
-      color: AppColors.grey3,
     ),
   );
 
   static const _inputDecorationTheme = InputDecorationTheme(
     hintStyle: TextStyle(
-      // grey3 works for both light and dark themes
-      color: AppColors.grey3,
       fontSize: 18.0,
       fontWeight: FontWeight.w400,
     ),
