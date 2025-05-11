@@ -15,17 +15,36 @@ import 'package:provider/provider.dart';
 
 class AddCustomShortcut extends StatefulWidget {
   final HomeViewModel viewModel;
-  const AddCustomShortcut({super.key, required this.viewModel});
+
+  final String? shortcutName;
+  final IconData? icon;
+  final Map<String, String>? commands;
+
+  /// Specifies whether the widget has been called to create a brand new
+  /// widget, or to edit an existing one
+  /// This will affect the saveShortcut call:
+  /// 1 - If new widget, and there is a widget with same name, throw error
+  /// 2 - If editing, then edit inplace the existing shortcut
+  final bool? isNewShortcut;
+
+  const AddCustomShortcut({
+    super.key,
+    required this.viewModel,
+    this.shortcutName,
+    this.icon,
+    this.commands,
+    this.isNewShortcut,
+  });
 
   @override
   State<AddCustomShortcut> createState() => _AddCustomShortcutState();
 }
 
 class _AddCustomShortcutState extends State<AddCustomShortcut> {
-  // initial shortcut data
-  IconData icon = Icons.abc;
-  String shortcutName = "";
-  Map<String, String> commands = HashMap();
+  late IconData icon;
+  late String shortcutName;
+  late Map<String, String> commands;
+  late bool isNewShortcut;
 
   @override
   void initState() {
@@ -34,12 +53,18 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
 
   @override
   Widget build(BuildContext context) {
+    // init shortcut data
+    icon = widget.icon ?? Icons.abc;
+    shortcutName = widget.shortcutName ?? "";
+    commands = widget.commands ?? HashMap();
+    isNewShortcut = widget.isNewShortcut ?? false;
+
     return _buildWidget(context);
   }
 
   Widget _buildWidget(BuildContext context) {
     final customColors = Theme.of(context).extension<CustomColors>();
-    final textTheme    = Theme.of(context).textTheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return ControllerPage(
       body: SizedBox(
@@ -56,7 +81,8 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                     const SizedBox(height: 20.0),
 
                     ShortcutInputRow(
-                        selectedIcon: icon,
+                        initShortcutName: shortcutName,
+                        initIcon: icon,
                         onNameChanged: _onShortcutNameChanged,
                         onIconSelected: _onIconSelected),
 
@@ -67,12 +93,15 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                       style: textTheme.titleSmall,
                     ),
 
-                    const SizedBox(height: 40.0),
+                    const SizedBox(height: 20.0),
 
                     // add input box for all supported OSes
                     for (var os in SUPPORTED_OSES)
                       TerminalCommandInput(
                           operativeSystemName: os.name,
+                          initCommand: commands.containsKey(os.name)
+                              ? commands[os.name]
+                              : "",
                           onCommandUpdated: (newCommand) {
                             commands[os.name] = newCommand;
                           })
@@ -109,7 +138,7 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
                       widthFactor: 0.8,
                       child: WideStyledButton(
                         backgroundColor: customColors.negativePrimary,
-                        onPressed: () => _saveShortcutData(),
+                        onPressed: () => _saveShortcutData(isNewShortcut),
                         text: "CREATE",
                         // textColor: ColorConstants.darkText,
                         fontSize: 20,
@@ -134,11 +163,14 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
     setState(() => icon = newIcon);
   }
 
-  void _saveShortcutData() {
+  void _saveShortcutData(bool inplace) {
     Shortcut toBeSaved =
         Shortcut(commands: commands, icon: icon, name: shortcutName);
-    widget.viewModel.saveShortcut.execute(toBeSaved);
+    widget.viewModel.saveShortcut.execute(toBeSaved, inplace);
     print("Shortcut added!");
+    print("commands: $commands");
+    print("icon: $icon");
+    print("name: $shortcutName");
     Navigator.of(context).pop();
   }
 }

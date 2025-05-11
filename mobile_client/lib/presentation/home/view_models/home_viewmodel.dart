@@ -12,8 +12,8 @@ class HomeViewModel extends ChangeNotifier {
 
   final _log = Logger('HomeViewModel');
   late final AsyncCommand loadShortcuts;
-  late final AsyncCommand deleteShortcut;
-  late final AsyncCommand1<void, Shortcut> saveShortcut;
+  late final AsyncCommand1<void, Shortcut> deleteShortcut;
+  late final AsyncCommand2<void, Shortcut, bool> saveShortcut;
 
   List<Shortcut> get shortcuts => _shortcuts;
 
@@ -21,7 +21,7 @@ class HomeViewModel extends ChangeNotifier {
       : _shortcutsRepository = shortcutsRepository {
     loadShortcuts = AsyncCommand0(_loadShortcuts)..execute();
     deleteShortcut = AsyncCommand1(_deleteShortcut);
-    saveShortcut = AsyncCommand1(_saveShortcut);
+    saveShortcut = AsyncCommand2(_saveShortcut);
   }
 
   Future<Result<void>> _loadShortcuts() async {
@@ -52,11 +52,26 @@ class HomeViewModel extends ChangeNotifier {
     return result;
   }
 
-  Future<Result<void>> _saveShortcut(Shortcut shortcut) async {
-    final result = await _shortcutsRepository.saveShortcut(shortcut);
+  Future<Result<void>> _saveShortcut(Shortcut shortcut, bool inplace) async {
+    final index = _shortcuts.indexWhere((s) => s.name == shortcut.name);
 
+    // shortcut already exists!
+    if (index != -1) {
+      if (inplace) {
+        _shortcuts[index] = shortcut;
+      } else {
+        return Result.error(Exception("Shortcut already exists"));
+      }
+    }
+
+    // new shortcut
+    else {
+      _shortcuts.add(shortcut);
+    }
+
+    final result = await _shortcutsRepository.saveShortcut(shortcut);
     if (result is Error) {
-      _log.warning("Error deleting shortcut");
+      _log.warning("Error saving shortcut");
     }
 
     notifyListeners();

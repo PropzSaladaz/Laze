@@ -32,8 +32,8 @@ class _IconPickerState extends State<IconPicker> {
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(
-        horizontal: 50,
-        vertical: 200
+        horizontal: 10,
+        vertical: 10
       ) ,
       child: Padding(
         padding: EdgeInsets.all(Dimens.padding.vertical),
@@ -68,8 +68,8 @@ class _IconPickerState extends State<IconPicker> {
               child: GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 5,
-                    crossAxisSpacing: 30,
-                    mainAxisSpacing: 30),
+                    crossAxisSpacing: 7,
+                    mainAxisSpacing: 7),
                 itemCount: _iconList.length,
                 itemBuilder: (context, index) {
                   final icon = _iconList[index];

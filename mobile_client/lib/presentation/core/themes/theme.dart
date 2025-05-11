@@ -44,7 +44,7 @@ class AppTheme {
   static const _inputDecorationTheme = InputDecorationTheme(
     hintStyle: TextStyle(
       fontSize: 18.0,
-      fontWeight: FontWeight.w400,
+      fontWeight: FontWeight.w100,
     ),
   );
 

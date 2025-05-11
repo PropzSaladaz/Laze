@@ -4,6 +4,7 @@ import 'package:mobile_client/utils/result.dart';
 // Represents a closure with 0 args, returning a type T
 typedef CommandFunction0<T> = Future<Result<T>> Function();
 typedef CommandFunction1<T, A> = Future<Result<T>> Function(A arg);
+typedef CommandFunction2<T, A, B> = Future<Result<T>> Function(A arg1, B arg2);
 
 /// Wrapper around async functions to ease ViewModel's implementation
 abstract class AsyncCommand<T> extends ChangeNotifier {
@@ -51,5 +52,16 @@ class AsyncCommand1<T, A> extends AsyncCommand<T> {
 
   Future<void> execute(A argument) async {
     await _execute(() => _command(argument));
+  }
+}
+
+
+class AsyncCommand2<T, A, B> extends AsyncCommand<T> {
+  final CommandFunction2<T, A, B> _command;
+
+  AsyncCommand2(this._command);
+
+  Future<void> execute(A argument1, B argument2) async {
+    await _execute(() => _command(argument1, argument2));
   }
 }

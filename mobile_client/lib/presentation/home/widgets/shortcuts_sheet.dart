@@ -6,6 +6,12 @@ import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart'
 import 'package:mobile_client/presentation/new_shortcut/widgets/add_custom_shortcut.dart';
 import 'package:mobile_client/presentation/home/widgets/shortcut_icon.dart';
 import 'package:provider/provider.dart';
+import 'package:mobile_client/utils/async_command.dart';
+
+enum ShortcutEditPageOpeningReason {
+  createNewShortcut,
+  editShortcut,
+}
 
 class ShortcutsSheet extends StatefulWidget {
   final void Function() closeScrollableSheets;
@@ -51,17 +57,12 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    print("Building shortcut sheet");
-
     return Consumer<HomeViewModel>(builder: (context, viewModel, child) {
       if (viewModel.loadShortcuts.running) {
-        print("loading is running");
         return const Center(child: CircularProgressIndicator());
       }
 
       if (viewModel.loadShortcuts.error) {
-        print("Some error" +
-            viewModel.loadShortcuts.result!.asError.error.toString());
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(
@@ -69,13 +70,11 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
         });
         return const SizedBox.shrink();
       }
-
-      print("Building shortcuts");
-      return _buildShortcutsSheet(context, viewModel.shortcuts);
+      return _buildShortcutsSheet(context, viewModel);
     });
   }
 
-  Widget _buildShortcutsSheet(BuildContext context, List<Shortcut> shortcuts) {
+  Widget _buildShortcutsSheet(BuildContext context, HomeViewModel viewModel) {
     final customColors = Theme.of(context).extension<CustomColors>();
     return SizedBox(
       height: MediaQuery.of(context).size.height,
@@ -130,8 +129,14 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                                 crossAxisSpacing: 15.0,
                                 mainAxisSpacing: 15.0,
                               ),
-                              children: shortcuts.map((shortcut) {
-                                return ShortcutIcon(shortcut: shortcut);
+                              children: viewModel.shortcuts.map((shortcut) {
+                                return GestureDetector(
+                                  onLongPressStart: (details) {
+                                    _showOptionsMenu(context, viewModel,
+                                        details.globalPosition, shortcut);
+                                  },
+                                  child: ShortcutIcon(shortcut: shortcut),
+                                );
                               }).toList(),
                             ),
                           ),
@@ -154,11 +159,8 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                   child: WideStyledButton(
                     icon: Icons.add,
                     onPressed: () {
-                      final model = context.read<HomeViewModel>();
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => AddCustomShortcut(viewModel: model)));
+                      _openShortcutsEditPage(context,
+                          ShortcutEditPageOpeningReason.createNewShortcut);
                     },
                     iconColor: Theme.of(context).colorScheme.onSecondary,
                     backgroundColor: Theme.of(context).colorScheme.secondary,
@@ -206,5 +208,50 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
       // try again next frame
       WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
     }
+  }
+
+  void _showOptionsMenu(BuildContext context, HomeViewModel viewModel,
+      Offset position, Shortcut shortcut) async {
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
+      elevation: 20.0,
+      items: [
+        const PopupMenuItem<String>(
+          value: 'edit',
+          child: Text('Edit'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'delete',
+          child: Text('Delete'),
+        ),
+      ],
+    );
+
+    if (result == 'edit') {
+      _openShortcutsEditPage(
+          context, ShortcutEditPageOpeningReason.editShortcut);
+    } else if (result == 'delete') {
+      await viewModel.deleteShortcut.execute(shortcut);
+    }
+  }
+
+  void _openShortcutsEditPage(
+      BuildContext context, ShortcutEditPageOpeningReason reason) {
+    final model = context.read<HomeViewModel>();
+    bool isNewShortcut =
+        (reason == ShortcutEditPageOpeningReason.createNewShortcut);
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => AddCustomShortcut(
+                  viewModel: model,
+                  isNewShortcut: isNewShortcut,
+                )));
   }
 }
