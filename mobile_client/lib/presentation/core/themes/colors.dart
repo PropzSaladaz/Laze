@@ -28,7 +28,7 @@ class AppColors {
     primary: AppColors.white1,
     onPrimary: AppColors.grey1,
     secondary: AppColors.white2,
-    onSecondary: AppColors.grey4,
+    onSecondary: AppColors.grey3,
     surface: AppColors.white1,
     onSurface: AppColors.grey1,
     error: Colors.white,
@@ -66,6 +66,8 @@ class CustomColors extends ThemeExtension<CustomColors> {
 
   final Color selected;
 
+  final Color hintText;
+
   const CustomColors({
     required this.shadowColorBright,
     required this.shadowColorDark,
@@ -75,6 +77,7 @@ class CustomColors extends ThemeExtension<CustomColors> {
     required this.negativeSecondary,
     required this.negativeOnSecondary,
     required this.selected,
+    required this.hintText,
   });
 
   @override
@@ -87,6 +90,7 @@ class CustomColors extends ThemeExtension<CustomColors> {
     Color? negativeSecondary,
     Color? negativeOnSecondary,
     Color? selected,
+    Color? hintText,
   }) {
     return CustomColors(
       shadowColorBright: shadowColorBright ?? this.shadowColorBright,
@@ -97,6 +101,7 @@ class CustomColors extends ThemeExtension<CustomColors> {
       negativeSecondary: negativeSecondary ?? this.negativeSecondary,
       negativeOnSecondary: negativeOnSecondary ?? this.negativeOnSecondary,
       selected: selected ?? this.selected,
+      hintText: hintText ?? this.hintText,
     );
   }
 
@@ -117,6 +122,7 @@ class CustomColors extends ThemeExtension<CustomColors> {
     negativeSecondary: AppColors.grey4,
     negativeOnSecondary: AppColors.white3,
     selected: AppColors.blue,
+    hintText: AppColors.grey2,
   );
 
   // dark theme
@@ -129,5 +135,6 @@ class CustomColors extends ThemeExtension<CustomColors> {
     negativeSecondary: AppColors.black3,
     negativeOnSecondary: AppColors.grey3,
     selected: AppColors.blue,
+    hintText: AppColors.black2
   );
 }

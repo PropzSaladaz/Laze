@@ -34,11 +34,14 @@ void main() async {
   // register Hive adapters
   Hive.registerAdapter(ShortcutDataAdapter());
 
-  // Await for shortcuts repo
+  // Await for all repository services
   final repositoryService = await RepositoryService.initializeLocal();
 
   runApp(
-    MultiProvider(providers: repositoryService.providers, child: const MyApp()),
+    MultiProvider(
+      providers: repositoryService.providers, 
+      child: const MyApp()
+    ),
   );
 }
 
