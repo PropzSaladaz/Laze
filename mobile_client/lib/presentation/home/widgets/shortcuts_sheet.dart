@@ -6,12 +6,6 @@ import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart'
 import 'package:mobile_client/presentation/new_shortcut/widgets/add_custom_shortcut.dart';
 import 'package:mobile_client/presentation/home/widgets/shortcut_icon.dart';
 import 'package:provider/provider.dart';
-import 'package:mobile_client/utils/async_command.dart';
-
-enum ShortcutEditPageOpeningReason {
-  createNewShortcut,
-  editShortcut,
-}
 
 class ShortcutsSheet extends StatefulWidget {
   final void Function() closeScrollableSheets;

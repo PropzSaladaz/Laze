@@ -53,7 +53,12 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<Result<void>> _saveShortcut(Shortcut shortcut, bool inplace) async {
-    final index = _shortcuts.indexWhere((s) => s.name == shortcut.name);
+    print("Adding new shortcut - INplace: $inplace,     shortcut: ${shortcut.id}");
+    final index = _shortcuts.indexWhere((s) {
+      print("Running shortcut: ${s.id}");
+      return s.id == shortcut.id;
+    
+    });
 
     // shortcut already exists!
     if (index != -1) {
