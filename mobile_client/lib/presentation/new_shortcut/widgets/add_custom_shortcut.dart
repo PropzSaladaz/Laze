@@ -16,24 +16,12 @@ import 'package:provider/provider.dart';
 class AddCustomShortcut extends StatefulWidget {
   final HomeViewModel viewModel;
 
-  final String? shortcutName;
-  final IconData? icon;
-  final Map<String, String>? commands;
-
-  /// Specifies whether the widget has been called to create a brand new
-  /// widget, or to edit an existing one
-  /// This will affect the saveShortcut call:
-  /// 1 - If new widget, and there is a widget with same name, throw error
-  /// 2 - If editing, then edit inplace the existing shortcut
-  final bool? isNewShortcut;
+  final Shortcut? shortcut;
 
   const AddCustomShortcut({
     super.key,
     required this.viewModel,
-    this.shortcutName,
-    this.icon,
-    this.commands,
-    this.isNewShortcut,
+    this.shortcut
   });
 
   @override
@@ -41,6 +29,7 @@ class AddCustomShortcut extends StatefulWidget {
 }
 
 class _AddCustomShortcutState extends State<AddCustomShortcut> {
+  late String shortcutId;
   late IconData icon;
   late String shortcutName;
   late Map<String, String> commands;
@@ -48,21 +37,27 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
 
   @override
   void initState() {
+    // init shortcut data
+    if (widget.shortcut != null) {
+      shortcutId = widget.shortcut!.id;
+      icon = widget.shortcut!.icon;
+      shortcutName = widget.shortcut!.name;
+      commands = widget.shortcut!.commands;
+    }
+    else {
+      shortcutId = "";
+      icon = Icons.abc;
+      shortcutName = "";
+      commands = HashMap();
+    }
+
+    isNewShortcut = widget.shortcut == null;
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    // init shortcut data
-    icon = widget.icon ?? Icons.abc;
-    shortcutName = widget.shortcutName ?? "";
-    commands = widget.commands ?? HashMap();
-    isNewShortcut = widget.isNewShortcut ?? false;
-
-    return _buildWidget(context);
-  }
-
-  Widget _buildWidget(BuildContext context) {
     final customColors = Theme.of(context).extension<CustomColors>();
     final textTheme = Theme.of(context).textTheme;
 
@@ -164,8 +159,10 @@ class _AddCustomShortcutState extends State<AddCustomShortcut> {
   }
 
   void _saveShortcutData(bool inplace) {
-    Shortcut toBeSaved =
-        Shortcut(commands: commands, icon: icon, name: shortcutName);
+    Shortcut toBeSaved = inplace 
+      ? Shortcut.withId(id: shortcutId, name: shortcutName, icon: icon, commands: commands)
+      : Shortcut(commands: commands, icon: icon, name: shortcutName);
+
     widget.viewModel.saveShortcut.execute(toBeSaved, inplace);
     print("Shortcut added!");
     print("commands: $commands");

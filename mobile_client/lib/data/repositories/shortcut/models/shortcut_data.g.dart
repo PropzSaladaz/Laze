@@ -17,24 +17,27 @@ class ShortcutDataAdapter extends TypeAdapter<ShortcutData> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return ShortcutData(
-      name: fields[3] as String,
-      commands: (fields[4] as Map).cast<String, String>(),
-      iconCodePoint: fields[2] as int,
-      iconFontFamily: fields[1] as String?,
+      id: fields[1] as String,
+      name: fields[4] as String,
+      commands: (fields[5] as Map).cast<String, String>(),
+      iconCodePoint: fields[3] as int,
+      iconFontFamily: fields[2] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ShortcutData obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(1)
-      ..write(obj.iconFontFamily)
+      ..write(obj.id)
       ..writeByte(2)
-      ..write(obj.iconCodePoint)
+      ..write(obj.iconFontFamily)
       ..writeByte(3)
-      ..write(obj.name)
+      ..write(obj.iconCodePoint)
       ..writeByte(4)
+      ..write(obj.name)
+      ..writeByte(5)
       ..write(obj.commands);
   }
 

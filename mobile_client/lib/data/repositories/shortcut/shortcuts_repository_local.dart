@@ -60,7 +60,7 @@ class ShortcutsRepositoryLocal extends ShortcutsRepository {
   @override
   Future<Result<void>> saveShortcut(Shortcut shortcut) async {
     try {
-      await _shortcutsBox!.put(shortcut.name, ShortcutsMapper.toData(shortcut));
+      await _shortcutsBox!.put(shortcut.id, ShortcutsMapper.toData(shortcut));
       return const Ok(null);
     } catch (e) {
       _log.warning("Error when saving shortcut");
@@ -71,7 +71,7 @@ class ShortcutsRepositoryLocal extends ShortcutsRepository {
   @override
   Future<Result<void>> deleteShortcut(Shortcut shortcut) async {
     try {
-      await _shortcutsBox!.delete(shortcut.name);
+      await _shortcutsBox!.delete(shortcut.id);
       return const Ok(null);
     } catch (e) {
       return Error(Exception(e));
