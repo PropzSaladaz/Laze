@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/presentation/core/themes/colors.dart';
 import 'package:mobile_client/presentation/core/ui/styled_input.dart';
 
 class TerminalCommandInput extends StatefulWidget {
