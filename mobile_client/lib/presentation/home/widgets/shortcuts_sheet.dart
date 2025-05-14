@@ -159,8 +159,9 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                   child: WideStyledButton(
                     icon: Icons.add,
                     onPressed: () {
-                      _openShortcutsEditPage(context,
-                          ShortcutEditPageOpeningReason.createNewShortcut);
+                      _openShortcutsEditPage(
+                        context: context
+                      );
                     },
                     iconColor: Theme.of(context).colorScheme.onSecondary,
                     backgroundColor: Theme.of(context).colorScheme.secondary,
@@ -234,24 +235,23 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     );
 
     if (result == 'edit') {
-      _openShortcutsEditPage(
-          context, ShortcutEditPageOpeningReason.editShortcut);
+      _openShortcutsEditPage( 
+        context: context, 
+        shortcut: shortcut
+      );
     } else if (result == 'delete') {
       await viewModel.deleteShortcut.execute(shortcut);
     }
   }
 
-  void _openShortcutsEditPage(
-      BuildContext context, ShortcutEditPageOpeningReason reason) {
+  void _openShortcutsEditPage({required BuildContext context, Shortcut? shortcut}) {
     final model = context.read<HomeViewModel>();
-    bool isNewShortcut =
-        (reason == ShortcutEditPageOpeningReason.createNewShortcut);
     Navigator.push(
         context,
         MaterialPageRoute(
             builder: (_) => AddCustomShortcut(
                   viewModel: model,
-                  isNewShortcut: isNewShortcut,
+                  shortcut: shortcut,
                 )));
   }
 }

@@ -11,7 +11,8 @@ class ShortcutsMapper {
 
   /// Converts a serialize-friendly Shortcut object into a model Shortcut object
   static Shortcut fromData(ShortcutData data) {
-    return Shortcut(
+    return Shortcut.withId(
+      id: data.id,
       icon: IconData(
         data.iconCodePoint,
         fontFamily: data.iconFontFamily
@@ -24,6 +25,7 @@ class ShortcutsMapper {
   /// Converts a model Shortcut object into a serialize-friendly Shortcut object
   static ShortcutData toData(Shortcut shortcut) {
     return ShortcutData(
+      id: shortcut.id,
       name: shortcut.name,
       commands: shortcut.commands,
       iconCodePoint: shortcut.icon.codePoint,

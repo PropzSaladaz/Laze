@@ -12,24 +12,28 @@ class ShortcutData {
 
     static const int TERMINAL_COMMAND_MAX_SIZE = 256;
 
-    // Icon data needed for serialization in Hive
     @HiveField(1)
-    final String? iconFontFamily;
+    final String id;
+
+    // Icon data needed for serialization in Hive
     @HiveField(2)
+    final String? iconFontFamily;
+    @HiveField(3)
     final int iconCodePoint;
     
     // shortcut name
-    @HiveField(3)
+    @HiveField(4)
     final String name;
 
     // Variation of the command for each supported OS
     // Windows - commandWindows
     // Linux - commandLinux
     // ...
-    @HiveField(4)
+    @HiveField(5)
     final Map<String, String> commands;
 
     ShortcutData({
+      required this.id,
       required this.name,
       required this.commands,
       required this.iconCodePoint,
@@ -37,11 +41,12 @@ class ShortcutData {
     });
 
     ShortcutData.empty():
+      id = "",
       iconCodePoint = Icons.abc.codePoint,
       iconFontFamily = null,
       name = "",
       commands = Map.fromEntries(
-        SUPPORTED_OSES.map((os) => MapEntry(os.name, ""))
+        SUPPORTED_OSES.map((os) => MapEntry(os.name, "")),
       );
 
 }
