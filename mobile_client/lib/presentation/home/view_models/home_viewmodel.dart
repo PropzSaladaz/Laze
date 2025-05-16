@@ -13,7 +13,7 @@ class HomeViewModel extends ChangeNotifier {
   final _log = Logger('HomeViewModel');
   late final AsyncCommand loadShortcuts;
   late final AsyncCommand1<void, Shortcut> deleteShortcut;
-  late final AsyncCommand2<void, Shortcut, bool> saveShortcut;
+  late final AsyncCommand1<void, Shortcut> saveShortcut;
 
   List<Shortcut> get shortcuts => _shortcuts;
 
@@ -21,7 +21,7 @@ class HomeViewModel extends ChangeNotifier {
       : _shortcutsRepository = shortcutsRepository {
     loadShortcuts = AsyncCommand0(_loadShortcuts)..execute();
     deleteShortcut = AsyncCommand1(_deleteShortcut);
-    saveShortcut = AsyncCommand2(_saveShortcut);
+    saveShortcut = AsyncCommand1(_saveShortcut);
   }
 
   Future<Result<void>> _loadShortcuts() async {
@@ -52,24 +52,17 @@ class HomeViewModel extends ChangeNotifier {
     return result;
   }
 
-  Future<Result<void>> _saveShortcut(Shortcut shortcut, bool inplace) async {
-    print("Adding new shortcut - INplace: $inplace,     shortcut: ${shortcut.id}");
+  Future<Result<void>> _saveShortcut(Shortcut shortcut) async {
     final index = _shortcuts.indexWhere((s) {
-      print("Running shortcut: ${s.id}");
       return s.id == shortcut.id;
     
     });
 
-    // shortcut already exists!
+    // Overwrite in case it exists
+    // UUIDs should never overlap for new shortcuts
     if (index != -1) {
-      if (inplace) {
-        _shortcuts[index] = shortcut;
-      } else {
-        return Result.error(Exception("Shortcut already exists"));
-      }
+      _shortcuts[index] = shortcut;
     }
-
-    // new shortcut
     else {
       _shortcuts.add(shortcut);
     }

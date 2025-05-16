@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/presentation/core/themes/dimensions.dart';
 import 'package:mobile_client/presentation/core/ui/styled_button.dart';
 import 'package:mobile_client/presentation/new_shortcut/widgets/icon_picker.dart';
 
@@ -27,7 +26,6 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
   late TextEditingController _controller;
 
   late String shortcutName = widget.initShortcutName ?? "";
-  late IconData selectedIcon = widget.initIcon;
 
   @override
   void initState() {
@@ -73,7 +71,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
         Column(
           children: [
             StyledButton(
-              icon: selectedIcon,
+              icon: widget.initIcon,
               onPressed: () => _openIconPicker(context),
             ),
             Text(
@@ -90,7 +88,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
     showDialog(
       context: context,
       builder: (context) => IconPicker(
-        initialIcon: selectedIcon, 
+        initialIcon: widget.initIcon, 
         onIconSelected: widget.onIconSelected
       ),
     );

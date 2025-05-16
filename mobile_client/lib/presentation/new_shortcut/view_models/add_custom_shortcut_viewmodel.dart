@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
 import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
@@ -6,8 +8,7 @@ import 'package:mobile_client/utils/async_command.dart';
 import 'package:mobile_client/utils/result.dart';
 
 class AddCustomShortcutViewModel extends ChangeNotifier {
-  late final AsyncCommand0 createNewShortcut;
-  late final AsyncCommand0 updateShortcut;
+  late final AsyncCommand0 saveShortcut;
 
   final HomeViewModel homeViewModel;
   
@@ -19,11 +20,19 @@ class AddCustomShortcutViewModel extends ChangeNotifier {
   bool _isNew = true;
 
   AddCustomShortcutViewModel({
-    required this.homeViewModel
+    required this.homeViewModel,
+    Shortcut? shortcut,
   }) {
-    createNewShortcut = AsyncCommand0(_createNewShortcut);
-    updateShortcut = AsyncCommand0(_updateShortcut);
+    saveShortcut = AsyncCommand0(_saveShortcut);
+    if (shortcut != null) {
+      loadFromShortcut(shortcut);
+    }
   }
+
+  IconData get icon => _icon;
+  String get name => _name;
+  Map<String, String> get commands => _commands;
+  bool get isNew => _isNew;
 
   void loadFromShortcut(Shortcut shortcut) {
     _id = shortcut.id;
@@ -35,6 +44,7 @@ class AddCustomShortcutViewModel extends ChangeNotifier {
 
   void setIcon(IconData icon) {
     _icon = icon;
+    print("Icon set: $icon");
     notifyListeners();
   }
 
@@ -48,30 +58,25 @@ class AddCustomShortcutViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Result<void>> _createNewShortcut() async {
-    bool inplaceSaving = false;
-    Shortcut shortcut = Shortcut.withId(
-      id: _id, 
-      icon: _icon, 
-      name: _name, 
-      commands: _commands
-    );
-    await homeViewModel.saveShortcut.execute(shortcut, inplaceSaving);
+  Future<Result<void>> _saveShortcut() async {
+    Shortcut shortcut;
+    if (_isNew) {
+      shortcut = Shortcut(
+        icon: _icon, 
+        name: _name, 
+        commands: _commands
+      );
+    }
+    else  {
+      shortcut = Shortcut.withId(
+        id: _id, 
+        icon: _icon, 
+        name: _name, 
+        commands: _commands
+      );
+    }
+    await homeViewModel.saveShortcut.execute(shortcut);
     notifyListeners();
     return const Ok(null);
   }
-
-  Future<Result<void>> _updateShortcut() async {
-    bool inplaceSaving = false;
-    Shortcut shortcut = Shortcut(
-      icon: _icon, 
-      name: _name, 
-      commands: _commands
-    );
-    await homeViewModel.saveShortcut.execute(shortcut, inplaceSaving);
-    notifyListeners();
-    return const Ok(null);
-  }
-
-
 }
