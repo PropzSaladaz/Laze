@@ -3,6 +3,7 @@ import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
 import 'package:mobile_client/presentation/core/ui/wide_styled_button.dart';
 import 'package:mobile_client/presentation/core/themes/colors.dart';
 import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
+import 'package:mobile_client/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
 import 'package:mobile_client/presentation/new_shortcut/widgets/add_custom_shortcut.dart';
 import 'package:mobile_client/presentation/home/widgets/shortcut_icon.dart';
 import 'package:provider/provider.dart';
@@ -240,12 +241,18 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
 
   void _openShortcutsEditPage({required BuildContext context, Shortcut? shortcut}) {
     final model = context.read<HomeViewModel>();
+
     Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (_) => AddCustomShortcut(
-                  viewModel: model,
-                  shortcut: shortcut,
-                )));
+            builder: (_) => ChangeNotifierProvider(
+              create: (_) => AddCustomShortcutViewModel(
+                homeViewModel: model, 
+                shortcut: shortcut
+              ),
+              child: const AddCustomShortcut() ,
+            )
+        )
+    );
   }
 }
