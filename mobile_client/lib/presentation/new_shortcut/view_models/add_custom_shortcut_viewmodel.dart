@@ -44,7 +44,6 @@ class AddCustomShortcutViewModel extends ChangeNotifier {
 
   void setIcon(IconData icon) {
     _icon = icon;
-    print("Icon set: $icon");
     notifyListeners();
   }
 
