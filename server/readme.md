@@ -5,6 +5,10 @@ sudo apt install build-essential libxdo-dev
 ```
 
 ```
-sudo chmod ugo+wrx /dev/uinput
 cargo run
 ```
+
+Run with loggers (level info & lower):
+```
+RUST_LOG=info cargo run
+
