@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:logging/logging.dart';
 import 'package:mobile_client/config/dependencies.dart';
 import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
 import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
@@ -8,7 +9,18 @@ import 'package:mobile_client/presentation/home/widgets/home_screen.dart';
 import 'package:mobile_client/presentation/core/themes/theme.dart';
 import 'package:provider/provider.dart';
 
+void setupLogging() {
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    print(
+      '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}',
+    );
+  });
+}
+
 void main() async {
+  setupLogging();
+
   // This is likely a mistake, as Provider will not automatically update dependents
   // when ShortcutsProvider is updated. Instead, consider changing Provider for more specific
   // implementation that handles the update mechanism, such as:

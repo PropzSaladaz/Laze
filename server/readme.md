@@ -11,4 +11,5 @@ cargo run
 Run with loggers (level info & lower):
 ```
 RUST_LOG=info cargo run
+```
 

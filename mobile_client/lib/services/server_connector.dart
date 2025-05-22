@@ -1,4 +1,5 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
+import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -6,6 +7,8 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:mobile_client/data/dto/new_client_response.dart';
+import 'package:mobile_client/services/connection_status.dart';
+import 'package:mobile_client/utils/result.dart';
 
 typedef CallbackSetStatus = void Function(String connectionStatus);
 typedef CallbackGetStatus = String Function();
@@ -26,7 +29,7 @@ class ServerConnector {
   static const connectionWaitTIme = 1000; // 1s
 
   static late Socket server;
-  static Map<String, Future<bool>> connections = {};
+  static Map<String, Future<TwoStepConnection>> connections = {};
 
   // Used to inform application of current connection status
   static late CallbackSetStatus setConnectionStatus;
@@ -58,8 +61,11 @@ class ServerConnector {
     server.add(bytes);
   }
 
+  /// Searches for a server listening for requests in local network
+  /// 
   static Future<bool> findServer() async {
-    setConnectionStatus(ServerConnector.SEARCHING);
+    connections.clear();
+    setConnectionStatus(SEARCHING);
 
     int n_LANs = 255;
     for (int lan = 0; lan < n_LANs; lan++) {
@@ -81,9 +87,22 @@ class ServerConnector {
         connections[testIp.address] = _connectToHost(testIp.address);
 
         // waits for responses from X requests at a time
-        if (i % connectionBatchedTries == 0 &&
-            await _waitForBatchedConnections()) {
-          return true;
+        if (i % connectionBatchedTries == 0) {
+          ConnectionStatus status = await _waitForBatchedConnections();
+          switch (status) {
+            case ConnectionEstablished():
+              // halt search
+              setConnectionStatus(CONNECTED);
+              return true;
+            case ConnectionRejectedByServer(reason: var r):
+              _log.warning("Connection rejected by server. Reason: $r");
+              // halt search
+              setConnectionStatus(NOT_CONNECTED);
+              return false;
+            default:
+              // any other type -> continue searching
+              break;
+          } 
         }
       }
     }
@@ -95,49 +114,113 @@ class ServerConnector {
   /// Waits for all requests currently in the map of sent requests
   /// Returns true if one of the requests was accepted at the server,
   /// and also
-  static Future<bool> _waitForBatchedConnections() async {
+  static Future<ConnectionStatus> _waitForBatchedConnections() async {
+
+    connection_search:
     for (var conn in connections.keys) {
-      var future = connections[conn];
-      if (future != null && await future) {
-        _log.info("Connection Successful with $conn");
-        // Connection to server was made
-        // now wait for connection to the new dedicated port
-        sleep(const Duration(microseconds: 2000));
-        // the new connection replaced the old one
-        var newConn = connections[conn];
-        if (newConn != null && await newConn) {
-          _log.info("Connected to the server!");
-          setConnectionStatus(CONNECTED);
-          connections.clear();
-          return true;
+
+      // will be in a loop trying to reach step 2 of communication.
+      while(true) {
+        var future = connections[conn];
+        if (future != null) {
+          // await connection from main server port
+          TwoStepConnection connStep = await future;
+          print("Received communcation");
+          switch (connStep) {
+
+            // connection from base server port
+            case BasePortServerConnection(status: var status):
+              switch (status) {
+
+                case ConnectionEstablished():
+                  _log.info("Successfully connected to server base port: "
+                  "$conn\n Now waiting for dedicated port...");
+                  // Connection to server was made
+                  // now wait for connection to the new dedicated port
+                  
+                  // sleep is to give time for connection type to be updated by the async thread
+                  // from `_connectToHost`
+                  sleep(const Duration(microseconds: 2000));
+                  break;
+
+                case ConnectionRejectedByServer():
+                  _log.severe("Server rejected communication - max clients reached");
+                  // halt batch search
+                  return status;
+                
+                default:
+                  // Even if there was some timeout, we accept as a non-error
+                  // and continue searching
+                  _log.info("Other");
+                  continue connection_search; 
+              }
+            
+            // connection from the dedicated port
+            case DedicatedPortServerConnection(status: var status):
+              switch (status) {
+
+                case ConnectionEstablished():
+                  _log.info("Successfully connected to server dedicated port ");
+                  return status;
+
+                default:
+                  _log.warning("Unexpected connection status from dedicated port!");
+                  return status;
+              }
+          }
         }
       }
     }
-    connections.clear();
-    return false;
+    // there was no connection established and no connections rejected
+    return const ConnectionRefused();
   }
 
-  static Future<bool> _connectToHost(String ipAddress) async {
+
+  static Future<BasePortServerConnection> _connectToHost(String ipAddress) async {
     try {
+      // try connecting to base port
       var socket = await Socket.connect(ipAddress, serverPort,
           timeout: const Duration(milliseconds: connectionWaitTIme));
-      _log.info("CONNECTED");
+
+      /// This is non-blocking - we will set this async function to
+      /// whenever a message is received by the socket. Then we jump to the
+      /// return ConnectionEstablished to indicate we established connection 
+      /// with server base port
       socket.listen((jsonBytes) async {
         // upon receiving the new dedicated port
         var json = jsonDecode(utf8.decode(jsonBytes));
         NewClientResponse resp = NewClientResponse.fromJson(json);
-        // try connecting to it
+        
+        // check for error from server
+        if (resp.port == -1) {
+          connections[ipAddress] = Future.value(
+            const BasePortServerConnection(
+              ConnectionRejectedByServer("Server reached max clients!")
+            )
+          );
+          return;
+        }
+
+        // try connecting to dedicated port
         var newSocket = await Socket.connect(ipAddress, resp.port);
         server = newSocket;
+        // Update the future
+        connections[ipAddress] = Future.value(
+            const DedicatedPortServerConnection(
+              ConnectionEstablished()
+            )
+          );
         _serverOS = resp.server_os;
         // !IMPORTANT! this is set to force all data to be sent in a different tcp packet
         server.setOption(SocketOption.tcpNoDelay, true);
       }, onDone: () => socket.destroy());
 
-      return true;
+      return const BasePortServerConnection(ConnectionEstablished());
+
     } catch (e) {
+      // Due to socket timeout
       _log.warning("$ipAddress -> !!NOT CONNECTED: $e");
-      return false;
+      return const BasePortServerConnection(ConnectionRefused());
     }
   }
 

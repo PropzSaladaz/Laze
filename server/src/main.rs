@@ -10,7 +10,7 @@ const PORT: usize = 7878;
 
 
 fn main() {
-    let config = ServerConfig::new(PORT, 2);
+    let config = ServerConfig::new(PORT, 0);
     let app = MobileController::new(
             1, 
             1,

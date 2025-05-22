@@ -48,7 +48,7 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
                 onPressed: () {
                   showDialog(
                       context: context,
-                      builder: (BuildContext context) => _disconnectPopup());
+                      builder: (BuildContext context) => _disconnectPopup(context));
                 },
                 icon: Icons.power_settings_new,
               );
@@ -70,7 +70,9 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
     );
   }
 
-  Widget _disconnectPopup() {
+  Widget _disconnectPopup(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme; 
+
     return AlertDialog(
       alignment: Alignment.center,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -82,32 +84,32 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
         )),
       actions: [
         TextButton(
-          style: const ButtonStyle(
-            // backgroundColor: WidgetStatePropertyAll(ColorConstants.border)
+          style: ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(colorScheme.secondary),
           ),
           onPressed: () {
             widget.disconnect();
             Navigator.of(context).pop();
           },
-          child: const Text(
+          child: Text(
             "Disconnect",
             style: TextStyle(
-              // color: ColorConstants.darkPrimary
+              color: colorScheme.onPrimary
             ),
           ),
         ),
         TextButton(
-          style: const ButtonStyle(
-            // backgroundColor: WidgetStatePropertyAll(ColorConstants.border)
+          style: ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(colorScheme.secondary)
           ),
           onPressed: () {
             widget.turnOffPc();
             Navigator.of(context).pop();
           },
-          child: const Text(
+          child: Text(
             "Turn OFF PC",
             style: TextStyle(
-              // color: ColorConstants.darkPrimary
+              color: colorScheme.onPrimary,
             ),
           ),
         )
