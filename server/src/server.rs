@@ -82,12 +82,14 @@ pub struct Server<A: Application> {
     app: Arc<Mutex<A>>,
 }
 
+const SERVER_REACHED_MAX_CONCURRENT_CLIENTS: i32 = -1;
+
 /// Data sent to a brand new client specifying both:
 /// 1) The new port to which the client should connect.
 /// 2) The server's OS type
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewClientResponse {
-    port: usize,
+    port: i32,
     server_os: String,
 }
 
@@ -133,18 +135,23 @@ impl<A: Application + 'static> Server<A> {
                 Ok((mut stream, addr)) => {
                     log::info!("Received client connection");
                     // try adding new client to pool
-                    match self.clients.add(addr, Arc::clone(&self.app)) {
-                        Ok(port) => {
-                            let data = serde_json::to_vec(&NewClientResponse { 
-                                port,
-                                server_os: std::env::consts::OS.to_owned(), // send the server OS to client
-                            }).unwrap();
-                            stream.write_all(data.as_slice())
-                                .expect("Could not write into socket's client");
-
+                    let port = match self.clients.add(addr, Arc::clone(&self.app)) {
+                        Ok(connection_port) => {
+                            log::info!("Opened socket for new client at {connection_port}");
+                            connection_port as i32
                         },
-                        Err(reason) => log::error!("{reason}")
-                    }
+                        Err(reason) => {
+                            log::error!("{reason}");
+                            SERVER_REACHED_MAX_CONCURRENT_CLIENTS
+                        }
+                    };
+
+                    let data = serde_json::to_vec(&NewClientResponse { 
+                        port,
+                        server_os: std::env::consts::OS.to_owned(), // send the server OS to client
+                    }).unwrap();
+                    stream.write_all(data.as_slice())
+                                .expect("Could not write into socket's client");
                 }
                 Err(e) => log::error!("Could not accept connection! {}", e)
             }

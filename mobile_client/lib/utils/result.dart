@@ -17,6 +17,17 @@ sealed class Result<T> {
 
   // mehtod to convert result into Error
   Error<T> get asError => this as Error<T>;
+
+  /// Apply some user-defined logic for each possible case, returning a
+  /// user-defined type
+  R apply<R>(R Function(T) isOk, R Function(Exception) isError) {
+    switch(this) {
+      case Ok(value: T val):
+        return isOk(val);
+      case Error(error: Exception err):
+        return isError(err);
+    }
+  }
 }
 
 
