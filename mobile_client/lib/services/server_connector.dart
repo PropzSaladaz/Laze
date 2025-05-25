@@ -7,11 +7,13 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:mobile_client/data/dto/new_client_response.dart';
+import 'package:mobile_client/presentation/core/ui/styled_button.dart';
 import 'package:mobile_client/services/connection_status.dart';
 import 'package:mobile_client/utils/result.dart';
 
 typedef CallbackSetStatus = void Function(String connectionStatus);
 typedef CallbackGetStatus = String Function();
+typedef CallbackOnConnectionError = void Function(String errorMessage);
 
 class ServerConnector {
   // specifies server's operative system
@@ -37,6 +39,8 @@ class ServerConnector {
   // this can happen if the user cancels the search manually.
   static late CallbackGetStatus getConnectionStatus;
 
+  static late CallbackOnConnectionError onConnectionError;
+
   static final Logger _log = Logger("ServerConnector");
 
   static String getServerOS() {
@@ -45,10 +49,14 @@ class ServerConnector {
 
   // Sets the callback function to be used by the application that uses the server connector to update
   // its state upon server connector changes
-  static void init(CallbackSetStatus setConnectionStatus,
-      CallbackGetStatus getConnectionStatus) {
+  static void init(
+    CallbackSetStatus setConnectionStatus,
+    CallbackGetStatus getConnectionStatus,
+    CallbackOnConnectionError onConnectionError,
+  ) {
     ServerConnector.setConnectionStatus = setConnectionStatus;
     ServerConnector.getConnectionStatus = getConnectionStatus;
+    ServerConnector.onConnectionError = onConnectionError;
   }
 
   static void disconnect() {
@@ -144,7 +152,9 @@ class ServerConnector {
                   break;
 
                 case ConnectionRejectedByServer():
-                  _log.severe("Server rejected communication - max clients reached");
+                  String error = "Server rejected communication - max clients reached";
+                  _log.severe(error);
+                  onConnectionError(error);
                   // halt batch search
                   return status;
                 
@@ -164,7 +174,9 @@ class ServerConnector {
                   return status;
 
                 default:
-                  _log.warning("Unexpected connection status from dedicated port!");
+                  String error = "Unexpected connection status from dedicated port";
+                  _log.severe(error);
+                  onConnectionError(error);
                   return status;
               }
           }

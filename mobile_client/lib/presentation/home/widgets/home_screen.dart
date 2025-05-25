@@ -24,11 +24,16 @@ class _HomeScreenState extends State<HomeScreen> {
   bool showShortcutsScrollableSheet = false;
 
   String connectionStatus = ServerConnector.NOT_CONNECTED;
+  String? errorMessage;
 
   @override
   void initState() {
     super.initState();
-    ServerConnector.init(_setConnectionState, _getConnectionState);
+    ServerConnector.init(
+      _setConnectionState, 
+      _getConnectionState,
+      _onConnectionError
+    );
   }
 
   @override
@@ -56,6 +61,16 @@ class _HomeScreenState extends State<HomeScreen> {
             () {
               // NOT CONNECTED
               if (connectionStatus == ServerConnector.NOT_CONNECTED) {
+                // show error snackbar if any error message is set
+                if (errorMessage != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(errorMessage!),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                  errorMessage = null;
+                }
                 return Expanded(
                   child: Center(
                       child: Image.asset("assets/images/NoConnection.png")),
@@ -145,6 +160,12 @@ class _HomeScreenState extends State<HomeScreen> {
     ServerConnector.sendInput(Input.disconnect());
     setState(() {
       ServerConnector.disconnect();
+    });
+  }
+
+  void _onConnectionError(String error) {
+    setState(() {
+      errorMessage = error;
     });
   }
 
