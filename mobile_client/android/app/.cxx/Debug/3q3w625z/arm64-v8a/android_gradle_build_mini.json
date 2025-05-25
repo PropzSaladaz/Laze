@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/home/seed/apps/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/home/seed/Android/Sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/home/seed/Documents/IToffSchool/Projects/mobile-virtual-device/mobile_client/android/app/.cxx/Debug/3q3w625z/arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/home/seed/Android/Sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/home/seed/Documents/IToffSchool/Projects/mobile-virtual-device/mobile_client/android/app/.cxx/Debug/3q3w625z/arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

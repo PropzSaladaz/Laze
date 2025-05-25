@@ -22,91 +22,94 @@ class AddCustomShortcut extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return ControllerPage(
-      body: SizedBox(
-        height: MediaQuery.of(context).size.height,
-        child: Stack(
-          children: [
-            // Main Page
-            SingleChildScrollView(
+      body: LayoutBuilder(
+        builder: (context, constraints) { 
+          return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
                 children: [
-                  Column(children: [
-                    const SizedBox(height: 20.0),
-
-                    ShortcutInputRow(
-                        initShortcutName: shortcutVM.name,
-                        initIcon: shortcutVM.icon,
-                        onNameChanged: shortcutVM.setName,
-                        onIconSelected: shortcutVM.setIcon),
-
-                    const SizedBox(height: 40.0),
-
-                    Text(
-                      "Type the commands to run in the host machine's terminal",
-                      style: textTheme.titleSmall,
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Column(
+                          children: [
+                            const SizedBox(height: 20.0),
+              
+                            ShortcutInputRow(
+                                initShortcutName: shortcutVM.name,
+                                initIcon: shortcutVM.icon,
+                                onNameChanged: shortcutVM.setName,
+                                onIconSelected: shortcutVM.setIcon),
+              
+                            const SizedBox(height: 40.0),
+              
+                            Text(
+                              "Type the commands to run in the host machine's terminal",
+                              style: textTheme.titleSmall,
+                            ),
+              
+                            const SizedBox(height: 20.0),
+              
+                            // add input box for all supported OSes
+                            for (var os in SUPPORTED_OSES)
+                              TerminalCommandInput(
+                                  operativeSystemName: os.name,
+                                  initCommand: shortcutVM.commands.containsKey(os.name)
+                                      ? shortcutVM.commands[os.name]
+                                      : "",
+                                  onCommandUpdated: (newCommand) {
+                                    shortcutVM.setCommand(os.name, newCommand);
+                                  })
+                          ],
+                        ),
+              
+                        const SizedBox(height: 20.0),
+              
+                        // TEST COMMAND
+                        WideStyledButton(
+                          backgroundColor:  customColors.negativeOnSecondary,
+                          onPressed: () => {
+                            ServerConnector.sendInput(Input.runCommand(shortcutVM.commands))
+                          },
+                          text:  "Test Command",
+                          // textColor: ColorConstants.darkText,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ],
                     ),
-
-                    const SizedBox(height: 20.0),
-
-                    // add input box for all supported OSes
-                    for (var os in SUPPORTED_OSES)
-                      TerminalCommandInput(
-                          operativeSystemName: os.name,
-                          initCommand: shortcutVM.commands.containsKey(os.name)
-                              ? shortcutVM.commands[os.name]
-                              : "",
-                          onCommandUpdated: (newCommand) {
-                            shortcutVM.setCommand(os.name, newCommand);
-                          })
-                  ]),
-
-                  const SizedBox(height: 20.0),
-
-                  // TEST COMMAND
-                  WideStyledButton(
-                    backgroundColor:  customColors.negativeOnSecondary,
-                    onPressed: () => {
-                      ServerConnector.sendInput(Input.runCommand(shortcutVM.commands))
-                    },
-                    text:  "Test Command",
-                    // textColor: ColorConstants.darkText,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
+                  ),
+              
+                  Row(
+                    children: [
+                      _expandedFractionalButton(
+                          text: "CANCEL",
+                          backgroundColor:  customColors.negativeSecondary,
+                          onPressed: () => Navigator.of(context).pop(),
+                      ),
+              
+                      _expandedFractionalButton(
+                          text: shortcutVM.isNew 
+                            ? "CREATE"
+                            : "SAVE",
+                          backgroundColor:  customColors.negativePrimary,
+                          onPressed: () {
+                            shortcutVM.saveShortcut.execute();
+                            Navigator.of(context).pop();
+                          },
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-
-            // CANCEL / CREATE buttons
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Row(
-                children: [
-                  _expandedFractionalButton(
-                      text: "CANCEL",
-                      backgroundColor:  customColors.negativeSecondary,
-                      onPressed: () => Navigator.of(context).pop(),
-                  ),
-
-                  _expandedFractionalButton(
-                      text: shortcutVM.isNew 
-                        ? "CREATE"
-                        : "SAVE",
-                      backgroundColor:  customColors.negativePrimary,
-                      onPressed: () {
-                        shortcutVM.saveShortcut.execute();
-                        Navigator.of(context).pop();
-                      },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          )
+        );
+        }
       ),
     );
   }

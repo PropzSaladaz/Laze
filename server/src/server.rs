@@ -105,7 +105,7 @@ impl<A: Application + 'static> Server<A> {
         env_logger::init(); 
         let (clients, receiver) = ClientPool::new(config.max_clients);
 
-        // await client termination commands
+        // start async await client termination commands thread
         clients.start_termination_listener(receiver);
 
         Ok(Server {
@@ -210,8 +210,9 @@ impl ClientPool {
     /// For each new client, the id increases by 1, as well as the port.
     /// Client ids start at 0, and go up to max usize
     pub fn add<A: Application + 'static>(&mut self, addr: SocketAddr, app: Arc<Mutex<A>>) -> Result<usize, String> {
+        let mut clients = self.clients.lock().unwrap();
 
-        if self.client_id_counter == self.max_concurrent_clients_allowed + 1 {
+        if clients.len() == self.max_concurrent_clients_allowed {
             return Err("Maximum number of concurrent clients reached!".to_string());
         }
 
@@ -223,8 +224,7 @@ impl ClientPool {
         );
         // insert new client only if it doesn't exist yet
         let port = new_client.port;
-        let mut clients_lock = self.clients.lock().unwrap();
-        clients_lock.entry(self.client_id_counter).or_insert(new_client);
+        clients.entry(self.client_id_counter).or_insert(new_client);
 
 
         self.client_id_counter+=1;
@@ -299,7 +299,7 @@ impl Client {
             }
 
             // remove the client upon error or connection termination
-            remove_client.send(Terminate{ client_id: id }).unwrap_err();
+            remove_client.send(Terminate{ client_id: id }).unwrap();
         });
         client.clone()
     }
