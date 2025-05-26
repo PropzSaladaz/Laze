@@ -1,2 +1,0 @@
-/home/seed/Documents/IToffSchool/Projects/mobile-virtual-device/mobile_client/android/app/.cxx/Debug/3q3w625z/x86_64/CMakeFiles/edit_cache.dir
-/home/seed/Documents/IToffSchool/Projects/mobile-virtual-device/mobile_client/android/app/.cxx/Debug/3q3w625z/x86_64/CMakeFiles/rebuild_cache.dir

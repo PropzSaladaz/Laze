@@ -36,9 +36,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  
   @override
   Widget build(BuildContext context) {
     final shortcutsRepo = Provider.of<ShortcutsRepository>(context);
+
+    _checkAndShowErrorSnackbar(context);
+    
     return ChangeNotifierProvider<HomeViewModel>(
       create: (_) =>
           HomeViewModel(shortcutsRepository: shortcutsRepo),
@@ -61,16 +65,6 @@ class _HomeScreenState extends State<HomeScreen> {
             () {
               // NOT CONNECTED
               if (connectionStatus == ServerConnector.NOT_CONNECTED) {
-                // show error snackbar if any error message is set
-                if (errorMessage != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(errorMessage!),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                  errorMessage = null;
-                }
                 return Expanded(
                   child: Center(
                       child: Image.asset("assets/images/NoConnection.png")),
@@ -175,5 +169,29 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       ServerConnector.disconnect();
     });
+  }
+
+  void _checkAndShowErrorSnackbar(BuildContext context) {
+    ColorScheme colors = Theme.of(context).colorScheme;
+    // show error snackbar if any error message is set
+    if (errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage!),
+            backgroundColor: colors.error,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: "OK",
+              onPressed: () {
+                // Dismiss the snackbar
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
+        );
+        errorMessage = null;
+      });
+    }
   }
 }
