@@ -31,8 +31,8 @@ class AppColors {
     onSecondary: AppColors.grey3,
     surface: AppColors.white1,
     onSurface: AppColors.grey1,
-    error: Colors.white,
-    onError: Colors.red,
+    error: Colors.red,
+    onError: Colors.white,
   );
 
   static const darkColorScheme = ColorScheme(
@@ -43,8 +43,8 @@ class AppColors {
     onSecondary: AppColors.black3,
     surface: AppColors.black,
     onSurface: AppColors.black3,
-    error: Colors.black,
-    onError: Colors.red,
+    error: Colors.red,
+    onError: Colors.black,
   );
 }
 

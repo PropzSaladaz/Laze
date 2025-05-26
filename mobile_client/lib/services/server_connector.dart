@@ -133,7 +133,6 @@ class ServerConnector {
         if (future != null) {
           // await connection from main server port
           TwoStepConnection connStep = await future;
-          print("Received communcation");
           switch (connStep) {
 
             // connection from base server port
