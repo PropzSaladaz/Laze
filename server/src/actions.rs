@@ -125,7 +125,12 @@ pub enum Key {
     VolumeDown = 2,
     VolumeUp = 3,
     Pause = 4,
-    Enter = 5,
+    Play = 5,
+    Enter = 6,
+    Fullscreen = 7,
+    CloseTab = 8,
+    NextTab = 9,
+    PreviousTab = 10,
 }
 
 impl DeserializableAction for Key {
@@ -139,7 +144,12 @@ impl DeserializableAction for Key {
             2 => Key::VolumeDown,
             3 => Key::VolumeUp,
             4 => Key::Pause,
-            5 => Key::Enter,
+            5 => Key::Play,
+            6 => Key::Enter,
+            7 => Key::Fullscreen,
+            8 => Key::CloseTab,
+            9 => Key::NextTab,
+            10 => Key::PreviousTab,
             _ => unreachable!("Key type not supported!")
         }
     }

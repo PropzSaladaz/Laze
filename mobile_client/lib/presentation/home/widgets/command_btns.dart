@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_client/presentation/core/ui/styled_button.dart';
 import 'package:mobile_client/services/server_connector.dart';
@@ -80,39 +82,65 @@ class _CommandBtnsState extends State<CommandBtns> {
               ),
             ],
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              // MUTE
-              StyledButton(
-                icon: Icons.volume_off,
-                onPressed: () {
-                  ServerConnector.sendInput(Input.mute());
-                },
-              ),
-              // BRIGHTNESS
-              StyledButton(
-                icon: Icons.brightness_high_sharp,
-                onPressed: () {
-                  ServerConnector.sendInput(Input.brightnessDown());
-                },
-              ),
-              //PAUSE
-              StyledButton(
-                icon: Icons.pause,
-                onPressed: () {
-                  ServerConnector.sendInput(Input.pause());
-                },
-              ),
-              // PLAY
-              StyledButton(
-                icon: Icons.play_arrow,
-                onPressed: () {},
-              ),
-            ],
-          ),
+          _fourButtonRow([
+            _ButtonData(Icons.volume_off, Input.mute()),
+            _ButtonData(Icons.brightness_high_sharp, Input.brightnessDown()),
+            _ButtonData(Icons.pause, Input.pause()),
+            _ButtonData(Icons.play_arrow, Input.play()),
+          ]),
+          _fourButtonRow([
+            _ButtonData(Icons.fullscreen, Input.fullScreen()),
+            _ButtonData(Icons.close, Input.closeTab()),
+            _ButtonData(Icons.arrow_left, Input.previousTab()),
+            _ButtonData(Icons.arrow_right, Input.nextTab()),
+          ]),
         ],
       ),
     );
   }
+
+  Widget _fourButtonRow(List<_ButtonData> buttons) {
+    assert(buttons.length == 4, "There must be exactly 4 buttons");
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        // MUTE
+        StyledButton(
+          icon: buttons[0].icon,
+          onPressed: () {
+            ServerConnector.sendInput(buttons[0].dataToSend);
+          },
+        ),
+        // BRIGHTNESS
+        StyledButton(
+          icon: buttons[1].icon,
+          onPressed: () {
+            ServerConnector.sendInput(buttons[1].dataToSend);
+          },
+        ),
+        //PAUSE
+        StyledButton(
+          icon: buttons[2].icon,
+          onPressed: () {
+            ServerConnector.sendInput(buttons[2].dataToSend);
+          },
+        ),
+        // PLAY
+        StyledButton(
+          icon: buttons[3].icon,
+          onPressed: () {
+            ServerConnector.sendInput(buttons[3].dataToSend);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ButtonData {
+  final IconData icon;
+  Uint8List dataToSend;
+
+  _ButtonData(this.icon, this.dataToSend);
 }

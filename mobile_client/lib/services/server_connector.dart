@@ -1,5 +1,5 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
-import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:logging/logging.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -7,13 +7,11 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:mobile_client/data/dto/new_client_response.dart';
-import 'package:mobile_client/presentation/core/ui/styled_button.dart';
 import 'package:mobile_client/services/connection_status.dart';
-import 'package:mobile_client/utils/result.dart';
 
 typedef CallbackSetStatus = void Function(String connectionStatus);
 typedef CallbackGetStatus = String Function();
-typedef CallbackOnConnectionError = void Function(String errorMessage);
+typedef CallbackOnError = void Function(String errorMessage);
 
 class ServerConnector {
   // specifies server's operative system
@@ -39,7 +37,7 @@ class ServerConnector {
   // this can happen if the user cancels the search manually.
   static late CallbackGetStatus getConnectionStatus;
 
-  static late CallbackOnConnectionError onConnectionError;
+  static late CallbackOnError onError;
 
   static final Logger _log = Logger("ServerConnector");
 
@@ -52,11 +50,11 @@ class ServerConnector {
   static void init(
     CallbackSetStatus setConnectionStatus,
     CallbackGetStatus getConnectionStatus,
-    CallbackOnConnectionError onConnectionError,
+    CallbackOnError onError,
   ) {
     ServerConnector.setConnectionStatus = setConnectionStatus;
     ServerConnector.getConnectionStatus = getConnectionStatus;
-    ServerConnector.onConnectionError = onConnectionError;
+    ServerConnector.onError = onError;
   }
 
   static void disconnect() {
@@ -69,10 +67,25 @@ class ServerConnector {
     server.add(bytes);
   }
 
+  static Future<bool> _isWifiEnabled() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult.contains(ConnectivityResult.wifi);
+  }
+
   /// Searches for a server listening for requests in local network
   /// 
   static Future<bool> findServer() async {
     connections.clear();
+
+    bool isWifiEnabled = await _isWifiEnabled();
+    if (!isWifiEnabled) {
+      String message = "You must be connected to a Wi-Fi network to search for servers.";
+      _log.warning(message);
+      onError(message);
+      setConnectionStatus(NOT_CONNECTED);
+      return false;
+    }
+
     setConnectionStatus(SEARCHING);
 
     int n_LANs = 255;
@@ -153,7 +166,7 @@ class ServerConnector {
                 case ConnectionRejectedByServer():
                   String error = "Server rejected communication - max clients reached";
                   _log.severe(error);
-                  onConnectionError(error);
+                  onError(error);
                   // halt batch search
                   return status;
                 
@@ -175,7 +188,7 @@ class ServerConnector {
                 default:
                   String error = "Unexpected connection status from dedicated port";
                   _log.severe(error);
-                  onConnectionError(error);
+                  onError(error);
                   return status;
               }
           }

@@ -57,6 +57,15 @@ impl MobileController {
         self.enigo.key(key, Direction::Click).unwrap();
     }
 
+    pub fn press_key_combo(&mut self, keys: &[enigo::Key]) {
+        for key in keys {
+            self.enigo.key(*key, Direction::Press).unwrap();
+        }
+        for key in keys.iter().rev() {
+            self.enigo.key(*key, Direction::Release).unwrap();
+        }
+    }
+
     fn mouse_button(&mut self, button: enigo::Button) {
         self.enigo.button(button, Direction::Click).unwrap();
     }
@@ -84,8 +93,8 @@ impl MobileController {
             Action::SensitivityDown     => self.add_sensitivity(-1),
 
             Action::KeyPress(key) => {
-                if let Some(key_code) = self.key_bindings.translate_to_os_key(&key) {
-                    self.press_key(key_code);
+                if let Some(key_combo) = self.key_bindings.translate_to_os_key(&key) {
+                    self.press_key_combo(&key_combo);
                 }
                 else {
                     println!("Key: {:?} is not mapped for current OS", key);

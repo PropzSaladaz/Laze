@@ -75,6 +75,7 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
 
     return AlertDialog(
       alignment: Alignment.center,
+      backgroundColor: colorScheme.secondary,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       // backgroundColor: ColorConstants.background,
       title: const Text(
@@ -85,7 +86,7 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
       actions: [
         TextButton(
           style: ButtonStyle(
-            backgroundColor: WidgetStatePropertyAll(colorScheme.secondary),
+            backgroundColor: WidgetStatePropertyAll(colorScheme.onSecondary),
           ),
           onPressed: () {
             widget.disconnect();
@@ -94,13 +95,13 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
           child: Text(
             "Disconnect",
             style: TextStyle(
-              color: colorScheme.onPrimary
+              color: colorScheme.surface
             ),
           ),
         ),
         TextButton(
           style: ButtonStyle(
-            backgroundColor: WidgetStatePropertyAll(colorScheme.secondary)
+            backgroundColor: WidgetStatePropertyAll(colorScheme.error)
           ),
           onPressed: () {
             widget.turnOffPc();
