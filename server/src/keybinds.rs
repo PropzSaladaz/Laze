@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use crate::actions;
 
+type KeyCombo = Vec<enigo::Key>;
 
 pub struct KeyBindings {
     // binds an action into the respective OS key code
-    key_bindings: HashMap<actions::Key, enigo::Key>,
+    key_bindings: HashMap<actions::Key, KeyCombo>,
     button_bindings: HashMap<actions::Button, enigo::Button>,
 }
 
@@ -17,7 +18,7 @@ impl KeyBindings {
         }
     }
 
-    pub fn translate_to_os_key(&self, key: &actions::Key) -> Option<enigo::Key> {
+    pub fn translate_to_os_key(&self, key: &actions::Key) -> Option<KeyCombo> {
         self.key_bindings.get(key).cloned()
     }
 
@@ -29,15 +30,20 @@ impl KeyBindings {
 /// Create maps that bind interfaced key codes used by this application into the
 /// underlying OS keys
 impl KeyBindings {
-    fn get_key_mapping() -> HashMap<actions::Key, enigo::Key> {
+    fn get_key_mapping() -> HashMap<actions::Key, KeyCombo> {
         return HashMap::from([
             // keyboard
-            (actions::Key::Backspace, enigo::Key::Backspace),
-            (actions::Key::VolumeMute, enigo::Key::VolumeMute),
-            (actions::Key::VolumeDown, enigo::Key::VolumeDown),
-            (actions::Key::VolumeUp, enigo::Key::VolumeUp),
-            (actions::Key::Pause, enigo::Key::Pause),
-            (actions::Key::Enter, enigo::Key::Return),
+            (actions::Key::Backspace,   vec![enigo::Key::Backspace]),
+            (actions::Key::VolumeMute,  vec![enigo::Key::VolumeMute]),
+            (actions::Key::VolumeDown,  vec![enigo::Key::VolumeDown]),
+            (actions::Key::VolumeUp,    vec![enigo::Key::VolumeUp]),
+            (actions::Key::Pause,       vec![enigo::Key::MediaStop]),
+            (actions::Key::Play,        vec![enigo::Key::MediaPlayPause]),
+            (actions::Key::Enter,       vec![enigo::Key::Return]),
+            (actions::Key::Fullscreen,  vec![enigo::Key::F11]),
+            (actions::Key::CloseTab,    vec![enigo::Key::Control, enigo::Key::Unicode('w')]),
+            (actions::Key::NextTab,     vec![enigo::Key::Control, enigo::Key::Shift, enigo::Key::Tab]),
+            (actions::Key::PreviousTab, vec![enigo::Key::Control, enigo::Key::Tab]),
         ]);
     }
 

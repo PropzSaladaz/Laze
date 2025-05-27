@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ServerConnector.init(
       _setConnectionState, 
       _getConnectionState,
-      _onConnectionError
+      _onError,
     );
   }
 
@@ -157,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _onConnectionError(String error) {
+  void _onError(String error) {
     setState(() {
       errorMessage = error;
     });

@@ -44,12 +44,32 @@ class Input {
     return Uint8List.fromList([0, 4]);
   }
 
-  static Uint8List keyboardEnter() {
+  static Uint8List play() {
     return Uint8List.fromList([0, 5]);
   }
 
+  static Uint8List keyboardEnter() {
+    return Uint8List.fromList([0, 6]);
+  }
+
+  static Uint8List fullScreen() {
+    return Uint8List.fromList([0, 7]);
+  }
+
+  static Uint8List closeTab() {
+    return Uint8List.fromList([0, 8]);
+  }
+
+  static Uint8List previousTab() {
+    return Uint8List.fromList([0, 9]);
+  }
+
+  static Uint8List nextTab() {
+    return Uint8List.fromList([0, 10]);
+  }
+
   static Uint8List brightnessDown() {
-    return Uint8List.fromList([0, 10]); // unsuported yet
+    return Uint8List.fromList([0, 11]); // unsuported yet
   }
 
   // ------ Text: [1, char] -------
