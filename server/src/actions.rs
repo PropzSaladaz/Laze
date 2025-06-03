@@ -212,12 +212,12 @@ mod tests {
         let mut key_pause: &[u8] = &[0u8, 4u8];
         let mut key_enter: &[u8] = &[0u8, 5u8];
 
-        matches!(Action::decode(&mut key_backspace),    Action::KeyPress(Key::Backspace));
-        matches!(Action::decode(&mut key_vol_mute),     Action::KeyPress(Key::VolumeMute));
-        matches!(Action::decode(&mut key_vol_down),     Action::KeyPress(Key::VolumeDown));
-        matches!(Action::decode(&mut key_vol_up),       Action::KeyPress(Key::VolumeUp));
-        matches!(Action::decode(&mut key_pause),        Action::KeyPress(Key::Pause));
-        matches!(Action::decode(&mut key_enter),  Action::KeyPress(Key::Enter));
+        assert!(matches!(Action::decode(&mut key_backspace),    Action::KeyPress(Key::Backspace)));
+        assert!(matches!(Action::decode(&mut key_vol_mute),     Action::KeyPress(Key::VolumeMute)));
+        assert!(matches!(Action::decode(&mut key_vol_down),     Action::KeyPress(Key::VolumeDown)));
+        assert!(matches!(Action::decode(&mut key_vol_up),       Action::KeyPress(Key::VolumeUp)));
+        assert!(matches!(Action::decode(&mut key_pause),        Action::KeyPress(Key::Pause)));
+        assert!(matches!(Action::decode(&mut key_enter),  Action::KeyPress(Key::Enter)));
     }
 
     #[test]
@@ -225,8 +225,8 @@ mod tests {
         let mut text_a_lower: &[u8] = &[1u8, 'a' as u8];
         let mut text_v_upper: &[u8] = &[1u8, 'V' as u8];
 
-        matches!(Action::decode(&mut text_a_lower),    Action::Text('a'));
-        matches!(Action::decode(&mut text_v_upper),    Action::Text('V'));
+        assert!(matches!(Action::decode(&mut text_a_lower),    Action::Text('a')));
+        assert!(matches!(Action::decode(&mut text_v_upper),    Action::Text('V')));
 
     }
 
@@ -236,8 +236,8 @@ mod tests {
         let mut scroll1: &[u8] = &[2u8, 2u8];
         let mut scroll2: &[u8] = &[2u8, (-5i8) as u8];
 
-        matches!(Action::decode(&mut scroll1),    Action::Scroll(2));
-        matches!(Action::decode(&mut scroll2),    Action::Scroll(-5));
+        assert!(matches!(Action::decode(&mut scroll1),    Action::Scroll(2)));
+        assert!(matches!(Action::decode(&mut scroll2),    Action::Scroll(-5)));
 
     }
 
@@ -245,13 +245,13 @@ mod tests {
     fn mouse_move() {
         let mut mouse_move: &[u8] = &[3u8, 2u8, (-8i8) as u8];
 
-        matches!(Action::decode(&mut mouse_move),    Action::MouseMove(DeltaCoordinates { x: 2, y: -8 }));
+        assert!(matches!(Action::decode(&mut mouse_move),    Action::MouseMove(DeltaCoordinates { x: 2, y: -8 })));
     }
 
     #[test]
     fn mouse_button() {
         let mut mouse_btn: &[u8] = &[4u8, 0u8];
-        matches!(Action::decode(&mut mouse_btn),    Action::MouseButton(Button::Left));
+        assert!(matches!(Action::decode(&mut mouse_btn),    Action::MouseButton(Button::Left)));
     }
 
     #[test]
@@ -259,14 +259,14 @@ mod tests {
         let mut sense_down: &[u8] = &[5u8];
         let mut sense_up: &[u8] = &[6u8];
 
-        matches!(Action::decode(&mut sense_down),    Action::SensitivityDown);
-        matches!(Action::decode(&mut sense_up),    Action::SensitivityUp);
+        assert!(matches!(Action::decode(&mut sense_down),    Action::SensitivityDown));
+        assert!(matches!(Action::decode(&mut sense_up),    Action::SensitivityUp));
     }
 
     #[test]
     fn disconnect() {
         let mut disconnect: &[u8] = &[7u8];
-        matches!(Action::decode(&mut disconnect),    Action::Disconnect);
+        assert!(matches!(Action::decode(&mut disconnect),    Action::Disconnect));
     }
 
     #[test]
