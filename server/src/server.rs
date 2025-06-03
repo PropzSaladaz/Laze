@@ -256,7 +256,11 @@ impl ClientPool {
     }
 
     pub fn shutdown(&self) {
-        self.sender.send(Terminate { client_id: CLIENT_POOL_RESERVED_ID }).unwrap_err();
+        self.sender
+            .send(Terminate {
+                client_id: CLIENT_POOL_RESERVED_ID,
+            })
+            .unwrap();
     }
 }
 
