@@ -9,7 +9,7 @@ mod keybinds;
 
 const PORT: usize = 7878;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() {
     let config = ServerConfig::new(PORT, 10);
     let app = MobileController::new(
@@ -32,7 +32,7 @@ async fn main() {
                 println!("Unexpected response during initialization.");
             }
         }
-        sleep(Duration::from_secs(2)).await;
+        sleep(Duration::from_secs(6)).await;
 
         server_comm.send_request(server::ServerRequest::TerminateClient(2)).await;
         match server_comm.receive_response().await {
@@ -44,7 +44,7 @@ async fn main() {
             }
         }
 
-        sleep(Duration::from_secs(2)).await;
+        sleep(Duration::from_secs(6)).await;
 
         server_comm.send_request(server::ServerRequest::TerminateServer).await;
         match server_comm.receive_response().await {
@@ -55,7 +55,7 @@ async fn main() {
                 println!("Unexpected response during server termination.");
             }
         }
-        sleep(Duration::from_secs(2)).await;
+        sleep(Duration::from_secs(6)).await;
     
     }
 }
