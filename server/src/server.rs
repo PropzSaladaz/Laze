@@ -1,10 +1,24 @@
 use std::{
     collections::HashMap, 
     io::{Read, Write}, 
-    net::{SocketAddr, TcpListener, TcpStream}, 
-    sync::{mpsc, Arc, Mutex}, 
+    net::{SocketAddr}, 
+    sync::{Arc, Mutex}, 
     thread
 };
+
+// Sync
+use std::sync::mpsc::Sender as SyncSender;
+use std::sync::mpsc::Receiver as SyncReceiver;
+use std::sync::mpsc::channel as sync_channel;
+use std::net::TcpListener as SyncTcpListener;
+use std::net::TcpStream as SyncTcpStream;
+
+// Async
+use tokio::{io::AsyncWriteExt, sync::mpsc::channel as async_channel};
+use tokio::sync::mpsc::Sender as AsyncSender;
+use tokio::sync::mpsc::Receiver as AsyncReceiver;
+use tokio::net::TcpStream as AsyncTcpStream;
+use tokio::net::TcpListener as AsyncTcpListener;
 
 use local_ip_address::local_ip;
 use serde::{Deserialize, Serialize};
@@ -12,10 +26,18 @@ use serde::{Deserialize, Serialize};
 const DEFAULT_CLIENT_PORT: usize = 7878;
 
 /// Creates a TcpListener using the local machine's IP address
-fn create_socket(port: usize) -> TcpListener {
+async fn create_async_socket(port: usize) -> AsyncTcpListener {
     let local_ip = local_ip().unwrap();
     log::debug!("Created new socket: {local_ip}:{port}");
-    TcpListener::bind(format!("{local_ip}:{port}")).unwrap()
+    AsyncTcpListener::bind(format!("{local_ip}:{port}")).await.unwrap()
+}
+
+
+/// Creates a TcpListener using the local machine's IP address
+fn create_sync_socket(port: usize) -> SyncTcpListener {
+    let local_ip = local_ip().unwrap();
+    log::debug!("Created new socket: {local_ip}:{port}");
+    SyncTcpListener::bind(format!("{local_ip}:{port}")).unwrap()
 }
 
 //  ---------------------------------------
@@ -93,27 +115,36 @@ pub struct NewClientResponse {
     server_os: String,
 }
 
+pub enum ServerRequest {
+    InitServer,
+    TerminateServer,
+    TerminateClient(usize),
+}
+pub enum ServerResponse {
+    ServerStarted(String),
+    ServerTerminated,
+    ClientTerminated(usize),
+}
+
+pub struct ServerCommunicator<ServerRequest, ServerResponse> {
+    sender_channel: AsyncSender::<ServerRequest>,
+    receiver_channel: AsyncReceiver::<ServerResponse>,
+}
+
+impl<ServerRequest, ServerResponse> ServerCommunicator<ServerRequest, ServerResponse> {
+    /// Sends a request to the server.
+    pub async fn send_request(&self, request: ServerRequest) {
+        self.sender_channel.send(request).await.unwrap();
+    }
+
+    /// Receives a response from the server.
+    pub async fn receive_response(&mut self) -> Option<ServerResponse> {
+        self.receiver_channel.recv().await
+    }
+}
+
 
 impl<A: Application + 'static> Server<A> {
-    /// Initialize server's internal structures.
-    ///
-    /// # Arguments
-    /// * `config` - Server configuration.
-    /// * `app` - The application that will be called to handle incomming requests.
-    pub fn build(config: ServerConfig, app: A) -> Result<Self, ServerError> {
-        // Initialize logger with default settings
-        env_logger::init(); 
-        let (clients, receiver) = ClientPool::new(config.max_clients);
-
-        // start async await client termination commands thread
-        clients.start_termination_listener(receiver);
-
-        Ok(Server {
-            clients, 
-            config,
-            app: Arc::new(Mutex::new(app))
-        })
-    }
 
     /// Runs the server.
     ///
@@ -125,13 +156,78 @@ impl<A: Application + 'static> Server<A> {
     /// assigned socket.
     /// 
     /// The port 7878 is only used as a common ground to establish new connections with new clients.
-    pub fn start(&mut self) {
-        let socket = create_socket(self.config.starting_port);
+    pub fn start(config: ServerConfig, app: A) -> ServerCommunicator<ServerRequest, ServerResponse> {
+        // Initialize logger with default settings
+        env_logger::init(); 
+        let (clients, receiver) = ClientPool::new(config.max_clients);
+
+        // start async await client termination commands thread
+        clients.start_termination_listener(receiver);
+
+        let (send_to_server, receive_from_client) = async_channel::<ServerRequest>(10);
+        let (send_to_client, receive_from_server) = async_channel::<ServerResponse>(10);
+        let starting_port = config.starting_port;
+
+        let mut server = Server {
+            clients, 
+            config,
+            app: Arc::new(Mutex::new(app))
+        };
+
+        tokio::spawn(async move {
+            let socket = create_async_socket(starting_port).await;
+            server.main_loop(socket, send_to_client, receive_from_client).await;
+        });
+
+        // return channel endpoints to send messages and also receive messages to / from the server
+        ServerCommunicator {
+            sender_channel: send_to_server,
+            receiver_channel: receive_from_server,
+        }
+    }
+
+    /// Main loop.
+    /// Waits on either a server command or a new client connection.
+    /// Processes whichever comes first.
+    async fn main_loop(&mut self,socket: AsyncTcpListener, sender: AsyncSender<ServerResponse>, mut receiver: AsyncReceiver<ServerRequest>) {
         loop {
-            // Upon receiving a new connection request, create a new client
-            // waiting on a new port and send the new socket's port dedicated
-            // to that connection to the client
-            match socket.accept() {
+            tokio::select! {
+                // Accept new client connections
+                connection = socket.accept() => {
+                    self.handle_new_client(connection).await;
+                }
+
+                // Handle server requests
+                request = receiver.recv() => {
+                    if let Some(request) = request {
+                        match request {
+                            ServerRequest::InitServer => {
+                                log::info!("Server started successfully");
+                                sender.send(ServerResponse::ServerStarted(socket.local_addr().unwrap().to_string())).await.unwrap();
+                            }
+                            ServerRequest::TerminateServer => {
+                                // Terminate Logic
+                                log::warn!("This call is incomplete! Server will not terminate properly.");
+                                sender.send(ServerResponse::ServerTerminated).await.unwrap();
+                            }
+                            ServerRequest::TerminateClient(c) => {
+                                log::warn!("This call is incomplete! Server will not terminate client properly.");
+                                sender.send(ServerResponse::ClientTerminated(c)).await.unwrap();
+                               // Terminate client 
+                            }
+                        }
+                    }
+                }
+            }
+        
+        }
+    }
+
+    // Upon receiving a new connection request, create a new client
+    // waiting on a new port and send the new socket's port dedicated
+    // to that connection to the client
+    async fn handle_new_client(&mut self, connection: Result<(AsyncTcpStream, SocketAddr), std::io::Error>) {
+            match connection {
                 Ok((mut stream, addr)) => {
                     log::info!("Received client connection");
                     // try adding new client to pool
@@ -150,12 +246,11 @@ impl<A: Application + 'static> Server<A> {
                         port,
                         server_os: std::env::consts::OS.to_owned(), // send the server OS to client
                     }).unwrap();
-                    stream.write_all(data.as_slice())
-                                .expect("Could not write into socket's client");
+
+                    stream.write_all(data.as_slice()).await.unwrap();
                 }
                 Err(e) => log::error!("Could not accept connection! {}", e)
             }
-        }
     }
 }
 
@@ -187,13 +282,13 @@ struct ClientPool {
     
     /// Passed to each client in the client pool
     /// Used to send the `Terminate` command
-    sender: mpsc::Sender<Terminate>,
+    sender: SyncSender<Terminate>,
 }
 
 impl ClientPool {
 
-    pub fn new(max_clients: usize) -> (ClientPool, mpsc::Receiver<Terminate>) {
-        let (sender, receiver) = mpsc::channel();
+    pub fn new(max_clients: usize) -> (ClientPool, SyncReceiver<Terminate>) {
+        let (sender, receiver) = sync_channel();
         let pool = ClientPool {
             // IDs must start at 1, to differ from base port used to receive new client requests
             client_id_counter: 1,
@@ -222,6 +317,7 @@ impl ClientPool {
             app,
             self.sender.clone()
         );
+
         // insert new client only if it doesn't exist yet
         let port = new_client.port;
         clients.entry(self.client_id_counter).or_insert(new_client);
@@ -235,10 +331,10 @@ impl ClientPool {
     /// Starts a thread that listens for client thread's termination requests.
     /// These 'clients' are actually the threads running in the server. The requests
     /// are used to remove the respective client from the pool.
-    pub fn start_termination_listener(&self, receiver: mpsc::Receiver<Terminate>) {
+    pub fn start_termination_listener(&self, receiver: SyncReceiver<Terminate>) {
         let clients = Arc::clone(&self.clients);
 
-        thread::spawn(move || {
+        tokio::spawn(async move {
             while let Ok(Terminate { client_id }) = receiver.recv() {
 
                 // terminate listener
@@ -282,16 +378,15 @@ impl Client {
         address: SocketAddr, 
         id: usize, 
         app: Arc<Mutex<A>>,
-        remove_client: mpsc::Sender<Terminate>
+        remove_client: SyncSender<Terminate>
     ) -> Client {
-
         let port = DEFAULT_CLIENT_PORT + id;
-        let socket = create_socket(port);
+        let socket = create_sync_socket(port);
 
         let client = Client{ address, id, port };
-
+        
         // Create thread
-        thread::spawn(move || {
+        tokio::spawn(async move {
             log::info!("Client created {:?} @ {:?}:{:?}", id, address, port);
             match socket.accept() {
                 Ok((stream, _)) => {
@@ -311,9 +406,9 @@ impl Client {
     /// Handle incomming client inputs.
     ///
     /// Sends the received bytes up to the application to handle the input
-    fn handle_requests(client: &Client, mut stream: TcpStream, app: Arc<Mutex<impl Application + 'static>>) {
+    fn handle_requests(client: &Client, mut stream: SyncTcpStream, app: Arc<Mutex<impl Application + 'static>>) {
         // make the reads blocking - wait indefinetely for client input
-        stream.set_read_timeout(None).expect("Could not set read timeout."); 
+        // stream.set_read_timeout(None).expect("Could not set read timeout."); 
         loop {
             let mut bytes = [0 ; 1024];
 
