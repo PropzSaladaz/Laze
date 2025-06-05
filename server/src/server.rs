@@ -14,7 +14,7 @@ use std::net::TcpListener as SyncTcpListener;
 use std::net::TcpStream as SyncTcpStream;
 
 // Async
-use tokio::{io::AsyncWriteExt, sync::mpsc::channel as async_channel};
+use tokio::{io::AsyncWriteExt, sync::mpsc::channel as async_channel, time::{timeout, Duration}};
 use tokio::sync::mpsc::Sender as AsyncSender;
 use tokio::sync::mpsc::Receiver as AsyncReceiver;
 use tokio::net::TcpStream as AsyncTcpStream;
@@ -28,7 +28,7 @@ const DEFAULT_CLIENT_PORT: usize = 7878;
 /// Creates a TcpListener using the local machine's IP address
 async fn create_async_socket(port: usize) -> AsyncTcpListener {
     let local_ip = local_ip().unwrap();
-    log::debug!("Created new socket: {local_ip}:{port}");
+    log::debug!("Created new Async socket: {local_ip}:{port}");
     AsyncTcpListener::bind(format!("{local_ip}:{port}")).await.unwrap()
 }
 
@@ -36,7 +36,7 @@ async fn create_async_socket(port: usize) -> AsyncTcpListener {
 /// Creates a TcpListener using the local machine's IP address
 fn create_sync_socket(port: usize) -> SyncTcpListener {
     let local_ip = local_ip().unwrap();
-    log::debug!("Created new socket: {local_ip}:{port}");
+    log::debug!("Created new Sync socket: {local_ip}:{port}");
     SyncTcpListener::bind(format!("{local_ip}:{port}")).unwrap()
 }
 
@@ -194,12 +194,14 @@ impl<A: Application + 'static> Server<A> {
             tokio::select! {
                 // Accept new client connections
                 connection = socket.accept() => {
+                    log::debug!("Received new client connection request");
                     self.handle_new_client(connection).await;
                 }
 
                 // Handle server requests
                 request = receiver.recv() => {
                     if let Some(request) = request {
+                        log::debug!("Received new server request");
                         match request {
                             ServerRequest::InitServer => {
                                 log::info!("Server started successfully");
@@ -227,30 +229,37 @@ impl<A: Application + 'static> Server<A> {
     // waiting on a new port and send the new socket's port dedicated
     // to that connection to the client
     async fn handle_new_client(&mut self, connection: Result<(AsyncTcpStream, SocketAddr), std::io::Error>) {
-            match connection {
-                Ok((mut stream, addr)) => {
-                    log::info!("Received client connection");
-                    // try adding new client to pool
-                    let port = match self.clients.add(addr, Arc::clone(&self.app)) {
-                        Ok(connection_port) => {
-                            log::info!("Opened socket for new client at {connection_port}");
-                            connection_port as i32
-                        },
-                        Err(reason) => {
-                            log::error!("{reason}");
-                            SERVER_REACHED_MAX_CONCURRENT_CLIENTS
-                        }
-                    };
+        match connection {
+            Ok((mut stream, addr)) => {
+                log::info!("Received client connection");
+                stream.set_nodelay(true).unwrap();
 
-                    let data = serde_json::to_vec(&NewClientResponse { 
-                        port,
-                        server_os: std::env::consts::OS.to_owned(), // send the server OS to client
-                    }).unwrap();
+                // try adding new client to pool
+                let port = match self.clients.add(addr, Arc::clone(&self.app)) {
+                    Ok(connection_port) => {
+                        log::info!("Opened socket for new client at {connection_port}");
+                        connection_port as i32
+                    },
+                    Err(reason) => {
+                        log::error!("{reason}");
+                        SERVER_REACHED_MAX_CONCURRENT_CLIENTS
+                    }
+                };
 
-                    stream.write_all(data.as_slice()).await.unwrap();
+                let data = serde_json::to_vec(&NewClientResponse { 
+                    port,
+                    server_os: std::env::consts::OS.to_owned(), // send the server OS to client
+                }).unwrap();
+
+                
+                if let Err(e) = timeout(Duration::from_secs(3), stream.write_all(&data)).await {
+                    log::error!("Timed out writing to client: {}", e);
                 }
-                Err(e) => log::error!("Could not accept connection! {}", e)
+                stream.flush().await.unwrap();
+                log::debug!("Sent new client response: {:?}", data);
             }
+            Err(e) => log::error!("Could not accept connection! {}", e)
+        }
     }
 }
 

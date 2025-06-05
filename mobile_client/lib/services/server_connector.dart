@@ -160,7 +160,7 @@ class ServerConnector {
                   
                   // sleep is to give time for connection type to be updated by the async thread
                   // from `_connectToHost`
-                  sleep(const Duration(microseconds: 2000));
+                  await Future.delayed(const Duration(seconds: 2));
                   break;
 
                 case ConnectionRejectedByServer():
@@ -205,12 +205,18 @@ class ServerConnector {
       // try connecting to base port
       var socket = await Socket.connect(ipAddress, serverPort,
           timeout: const Duration(milliseconds: connectionWaitTIme));
+      socket.setOption(SocketOption.tcpNoDelay, true);
 
       /// This is non-blocking - we will set this async function to
       /// whenever a message is received by the socket. Then we jump to the
       /// return ConnectionEstablished to indicate we established connection 
       /// with server base port
+      int activeHandlers = 0;
       socket.listen((jsonBytes) async {
+        // register async reader -> used to avoid destroying the socket while there is still
+        // a handler reading the data
+        activeHandlers++;
+        _log.info("Client received what was supposed to be a JSON response with dedicated port");
         // upon receiving the new dedicated port
         var json = jsonDecode(utf8.decode(jsonBytes));
         NewClientResponse resp = NewClientResponse.fromJson(json);
@@ -225,6 +231,7 @@ class ServerConnector {
           return;
         }
 
+        _log.info("Received new dedicated port: ${resp.port} from server");
         // try connecting to dedicated port
         var newSocket = await Socket.connect(ipAddress, resp.port);
         server = newSocket;
@@ -237,7 +244,16 @@ class ServerConnector {
         _serverOS = resp.server_os;
         // !IMPORTANT! this is set to force all data to be sent in a different tcp packet
         server.setOption(SocketOption.tcpNoDelay, true);
-      }, onDone: () => socket.destroy());
+        activeHandlers--;
+      
+      }, onDone: () async {
+        while (activeHandlers > 0) {
+          _log.info("Still active listeners $ipAddress");
+          await Future.delayed(const Duration(milliseconds: 100));
+        } 
+        socket.destroy();
+        _log.info("Socket destroyed for $ipAddress");
+    });
 
       return const BasePortServerConnection(ConnectionEstablished());
 
@@ -246,6 +262,10 @@ class ServerConnector {
       _log.warning("$ipAddress -> !!NOT CONNECTED: $e");
       return const BasePortServerConnection(ConnectionRefused());
     }
+  }
+
+  Future<void> _handleNewClientResponse() async {
+
   }
 
   static int _ipToInt(String address) {
