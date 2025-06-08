@@ -1,20 +1,23 @@
-# Depedencies
+# Server
 
-On Linux it must be runned with X11 windowing system.
-If you are on Wayland, you can log out and change to Ubuntu Xorg to use X11
+## Dependencies
+The server targets Linux and requires the X11 windowing system. On Wayland based
+desktops, log out and choose an Xorg session.
+Install the build tools and `libxdo`:
 
-# How to run
-
-```
+```bash
 sudo apt install build-essential libxdo-dev
 ```
 
-```
+## Running
+Use `cargo run` while inside the `server` directory:
+```bash
 cargo run
 ```
 
-Run with loggers (level info & lower):
-```
+Enable logging:
+```bash
 RUST_LOG=info cargo run
 ```
 
+For release builds use `cargo build --release`.
