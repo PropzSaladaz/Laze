@@ -3,9 +3,9 @@
 This project enables using a mobile phone as a remote pointing device for a desktop machine.
 It is composed of:
 
-- **server** – a Rust application that listens for incoming connections and forwards
+- **controller_server** – a Rust application that listens for incoming connections and forwards
   the received bytes to a virtual input device.
-- **client** – a simple Rust command line program used for experiments.
+- **desktop_app** – A Tauri desktop app that spins up `controller_server` and shows some UI to the user.
 - **mobile_client** – a Flutter application that provides a mobile UI.
 
 Each client initially connects to the server on port `7878`. The server then assigns
