@@ -7,6 +7,8 @@ mobile_client/build/
 mobile_client/.dart_tool/
 mobile_client/.packages
 
+target/
+
 # Common
 *.log
 *.tmp
