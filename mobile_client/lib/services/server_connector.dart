@@ -207,6 +207,8 @@ class ServerConnector {
           timeout: const Duration(milliseconds: connectionWaitTIme));
       socket.setOption(SocketOption.tcpNoDelay, true);
 
+      _log.info("Awaiting for $ipAddress:$serverPort");
+
       /// This is non-blocking - we will set this async function to
       /// whenever a message is received by the socket. Then we jump to the
       /// return ConnectionEstablished to indicate we established connection 
@@ -253,7 +255,7 @@ class ServerConnector {
         } 
         socket.destroy();
         _log.info("Socket destroyed for $ipAddress");
-    });
+      });
 
       return const BasePortServerConnection(ConnectionEstablished());
 
