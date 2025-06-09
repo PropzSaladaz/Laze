@@ -98,13 +98,18 @@ pub struct NewClientResponse {
     server_os: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ServerRequest {
     InitServer,
     TerminateServer,
     TerminateClient(usize),
 }
+
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ServerResponse {
     ServerStarted(String),
+    ErrCouldNotStartServer(String),
+    
     ServerTerminated,
     ClientTerminated(usize),
 }
@@ -127,13 +132,40 @@ impl ServerCommunicator {
     }
 }
 
+struct InternalServerCommunicator {
+    socket: TcpStream,
+}
+
+impl InternalServerCommunicator {
+    /// Creates a new internal server communicator.
+    pub fn new(port: usize) -> Self {
+        let socket = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
+        InternalServerCommunicator { socket }
+    }
+
+    fn init_server(&mut self) -> Result<String, std::io::Error> {
+        // send request to initialize the server
+        let req = serde_json::to_vec(&ServerRequest::InitServer).unwrap();
+        self.socket.write_all(&req).unwrap();
+        // await for response
+        let mut buf = vec![0; 1024];
+        self.socket.read(&mut buf)?;
+        let response: ServerResponse = serde_json::from_slice(&buf)?;
+        if let ServerResponse::ServerStarted(address) = response {
+            Ok(address)
+        } else {
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to initialize server"))
+        }
+    }
+}
 
 impl<A: Application + 'static> Server<A> {
 
     /// Runs the server.
     ///
-    /// This call is blocking, and allows the server to wait for
+    /// This call is non-blocking, and allows the server to wait for
     /// new client connection requests at port 7878.
+    /// It also creates a thread that listens for server commands
     /// 
     /// Once a new connection to a new client is established, that client is assigned a new
     /// isolated socket with its own port. Each client then connects to the server through its own
@@ -163,7 +195,7 @@ impl<A: Application + 'static> Server<A> {
         thread::spawn(move || {
             let socket = create_socket(starting_port);
             // non blocking
-            server.start_commands_listener(send_to_client, receive_from_client);
+            server.start_commands_listener(send_to_client, receive_from_client, starting_port);
             // blocking
             server.start_client_listener(socket);
         });
@@ -176,17 +208,31 @@ impl<A: Application + 'static> Server<A> {
     }
 
     /// Creates a new thread that listens for server commands.
-    fn start_commands_listener(&self, sender: Sender<ServerResponse>, receiver: Receiver<ServerRequest>) {
+    fn start_commands_listener(&self, sender: Sender<ServerResponse>, receiver: Receiver<ServerRequest>, server_port: usize) {
         let port: usize = self.config.starting_port;
+        let mut internal_comm = InternalServerCommunicator::new(server_port);
 
         thread::spawn( move || {
             loop {
                 match receiver.recv() {
                     Ok(ServerRequest::InitServer) => {
                         log::info!("Server initialized successfully.");
-                        let local_ip = local_ip().unwrap();
-                        let response = ServerResponse::ServerStarted(format!("{local_ip}:{}", port));
-                        sender.send(response).unwrap();
+                        
+                        match internal_comm.init_server() {
+                            Ok(address) => {
+                                log::info!("Server started at address: {address}");
+                                // send response back to the client
+                                let response = ServerResponse::ServerStarted(address);
+                                sender.send(response).unwrap();
+                            }
+                            Err(e) => {
+                                log::error!("Failed to initialize server: {}", e);
+                                // send error response back to the client
+                                let response = ServerResponse::ErrCouldNotStartServer(e.to_string());
+                                sender.send(response).unwrap();
+                                continue;
+                            }
+                        }
                     }
                     Ok(ServerRequest::TerminateServer) => {
                         log::info!("Server terminated successfully.");
