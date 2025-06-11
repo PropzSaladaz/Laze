@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap, 
-    io::{Read, Write}, 
-    net::{SocketAddr}, 
+    io::{self, Read, Write}, 
+    net::SocketAddr, 
     sync::{Arc, Mutex}, 
     thread
 };
@@ -80,13 +80,6 @@ impl ServerConfig {
 #[derive(Debug)]
 pub enum ServerError {}
 
-pub struct Server<A: Application> {
-    clients: ClientPool,
-    config: ServerConfig,
-    /// The application that will handle all client's requests.
-    app: Arc<Mutex<A>>,
-}
-
 const SERVER_REACHED_MAX_CONCURRENT_CLIENTS: i32 = -1;
 
 /// Data sent to a brand new client specifying both:
@@ -132,31 +125,81 @@ impl ServerCommunicator {
     }
 }
 
-struct InternalServerCommunicator {
+struct InternalServerCommReceiver {
+}
+
+struct InternalServerCommSender {
     socket: TcpStream,
 }
 
-impl InternalServerCommunicator {
+impl InternalServerCommReceiver {
+
+    fn try_parse_request(mut socket: &TcpStream, addr: &SocketAddr) -> Result<Option<ServerRequest>, std::io::Error> {
+        if addr.ip().is_loopback() {
+            let mut buffer = [0; 1024];
+            let bytes = socket.read(&mut buffer)?;
+            if bytes == 0 {
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, String::from("No data received from server, exiting...")));
+            }
+
+            let request: ServerRequest = serde_json::from_slice(&buffer[..bytes])
+                .expect("Failed to parse server request");
+            Ok(Some(request))
+        } else {
+            log::debug!("Received request from external server at {addr}");
+            Ok(None)
+        }
+
+    }
+}
+
+impl InternalServerCommSender {
     /// Creates a new internal server communicator.
     pub fn new(port: usize) -> Self {
         let socket = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
-        InternalServerCommunicator { socket }
+        InternalServerCommSender { socket }
+    }
+
+    fn send_and_receive(&mut self, request: &ServerRequest) -> Result<ServerResponse, std::io::Error> {
+        // Serialize the request
+        let req = serde_json::to_vec(request).unwrap();
+        // Send the request
+        self.socket.write_all(&req)?;
+        // Read the response
+        let mut buf = vec![0; 1024];
+        self.socket.read(&mut buf)?;
+        // Deserialize the response
+        let response = serde_json::from_slice(&buf)?;
+        Ok(response)
     }
 
     fn init_server(&mut self) -> Result<String, std::io::Error> {
-        // send request to initialize the server
-        let req = serde_json::to_vec(&ServerRequest::InitServer).unwrap();
-        self.socket.write_all(&req).unwrap();
-        // await for response
-        let mut buf = vec![0; 1024];
-        self.socket.read(&mut buf)?;
-        let response: ServerResponse = serde_json::from_slice(&buf)?;
-        if let ServerResponse::ServerStarted(address) = response {
+        if let ServerResponse::ServerStarted(address) = self.send_and_receive(&ServerRequest::InitServer)? {
             Ok(address)
         } else {
             Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to initialize server"))
         }
     }
+
+    fn terminate_server(&mut self) -> Result<(), std::io::Error> {
+        if let ServerResponse::ServerTerminated = self.send_and_receive(&ServerRequest::TerminateServer)? {
+            Ok(())
+        } else {
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to initialize server"))
+        }
+    }
+
+
+}
+
+pub struct Server<A: Application> {
+    clients: ClientPool,
+    config: ServerConfig,
+    /// The application that will handle all client's requests.
+    app: Arc<Mutex<A>>,
+
+    listening_to_clients: bool,
+    terminate_signal: bool,
 }
 
 impl<A: Application + 'static> Server<A> {
@@ -187,7 +230,9 @@ impl<A: Application + 'static> Server<A> {
         let mut server = Server {
             clients, 
             config,
-            app: Arc::new(Mutex::new(app))
+            app: Arc::new(Mutex::new(app)),
+            listening_to_clients: false,
+            terminate_signal: false,
         };
 
         
@@ -195,7 +240,7 @@ impl<A: Application + 'static> Server<A> {
         thread::spawn(move || {
             let socket = create_socket(starting_port);
             // non blocking
-            server.start_commands_listener(send_to_client, receive_from_client, starting_port);
+            server.start_commands_listener(send_to_client, receive_from_client);
             // blocking
             server.start_client_listener(socket);
         });
@@ -208,9 +253,8 @@ impl<A: Application + 'static> Server<A> {
     }
 
     /// Creates a new thread that listens for server commands.
-    fn start_commands_listener(&self, sender: Sender<ServerResponse>, receiver: Receiver<ServerRequest>, server_port: usize) {
-        let port: usize = self.config.starting_port;
-        let mut internal_comm = InternalServerCommunicator::new(server_port);
+    fn start_commands_listener(&self, sender: Sender<ServerResponse>, receiver: Receiver<ServerRequest>) {
+        let mut internal_comm = InternalServerCommSender::new(self.config.starting_port);
 
         thread::spawn( move || {
             loop {
@@ -218,7 +262,7 @@ impl<A: Application + 'static> Server<A> {
                     Ok(ServerRequest::InitServer) => {
                         log::info!("Server initialized successfully.");
                         
-                        match internal_comm.init_server() {
+                        match internal_comm.init_server() { // blocking - sends & awaits for response
                             Ok(address) => {
                                 log::info!("Server started at address: {address}");
                                 // send response back to the client
@@ -264,30 +308,64 @@ impl<A: Application + 'static> Server<A> {
         match connection {
             Ok((mut stream, addr)) => {
                 log::info!("Received client connection");
-                stream.set_nodelay(true).unwrap();
 
-                // try adding new client to pool
-                let port = match self.clients.add(addr, Arc::clone(&self.app)) {
-                    Ok(connection_port) => {
-                        log::info!("Opened socket for new client at {connection_port}");
-                        connection_port as i32
-                    },
-                    Err(reason) => {
-                        log::error!("{reason}");
-                        SERVER_REACHED_MAX_CONCURRENT_CLIENTS
-                    }
-                };
+                if let Some(req) = InternalServerCommReceiver::try_parse_request(&stream, &addr).unwrap() {
+                    // if the request is from the server itself, handle it
+                    let response = self.apply_request(req, addr);
+                    stream.write_all(&serde_json::to_vec(&response).unwrap()).unwrap();
+                }
+                else if self.listening_to_clients {
+                    log::debug!("Received connection from non-local address: {:?}", addr);
+                    // try adding new client to pool
+                    let port = match self.clients.add(addr, Arc::clone(&self.app)) {
+                        Ok(connection_port) => {
+                            log::info!("Opened socket for new client at {connection_port}");
+                            connection_port as i32
+                        },
+                        Err(reason) => {
+                            log::error!("{reason}");
+                            SERVER_REACHED_MAX_CONCURRENT_CLIENTS
+                        }
+                    };
 
-                let data = serde_json::to_vec(&NewClientResponse { 
-                    port,
-                    server_os: std::env::consts::OS.to_owned(), // send the server OS to client
-                }).unwrap();
+                    let data = serde_json::to_vec(&NewClientResponse { 
+                        port,
+                        server_os: std::env::consts::OS.to_owned(), // send the server OS to client
+                    }).unwrap();
 
-                stream.write_all(&data).unwrap();
+                    stream.write_all(&data).unwrap();
 
-                log::debug!("Sent new client response: {:?}", data);
+                    log::debug!("Sent new client response: {:?}", data);
+                }
+                else {
+                    log::warn!("Received connection from non-local address: {:?}, but server is not listening to clients!", addr);
+                }
+
+
             }
             Err(e) => log::error!("Could not accept connection! {}", e)
+        }
+    }
+
+
+    fn apply_request(&mut self, req: ServerRequest, addr: SocketAddr) -> ServerResponse {
+        match req {
+            ServerRequest::InitServer => {
+                log::info!("Received InitServer request from server at {addr}");
+                // send response to the server
+                self.listening_to_clients = true;
+                ServerResponse::ServerStarted(format!("{}:{}", addr.ip(), addr.port()))
+            }
+            ServerRequest::TerminateServer => {
+                log::info!("Received TerminateServer request from server at {addr}");
+                self.terminate_signal = true;
+                ServerResponse::ServerTerminated
+            }
+            ServerRequest::TerminateClient(client_id) => {
+                log::info!("Received TerminateClient request for client {client_id} from server at {addr}");
+                self.clients.sender.send(Terminate { client_id }).unwrap();
+                ServerResponse::ClientTerminated(client_id)
+            }
         }
     }
 }
