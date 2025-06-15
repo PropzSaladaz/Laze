@@ -28,7 +28,7 @@ fn main() {
         server_comm.send_request(server::ServerRequest::InitServer);
         match server_comm.receive_response() {
             Ok(server::ServerResponse::ServerStarted(p)) => {
-                println!("Server initialized successfully. {p}");
+                println!("Server initialized successfully. {}", p.addr);
             },
             _ => {
                 println!("Unexpected response during initialization.");
@@ -39,7 +39,7 @@ fn main() {
         server_comm.send_request(server::ServerRequest::TerminateClient(2));
         match server_comm.receive_response() {
             Ok(server::ServerResponse::ClientTerminated(t)) => {
-                println!("Client terminated successfully.{t}");
+                println!("Client terminated successfully.{}", t.client_id);
             },
             _ => {
                 println!("Unexpected response during client termination.");
@@ -50,7 +50,7 @@ fn main() {
 
         server_comm.send_request(server::ServerRequest::TerminateServer);
         match server_comm.receive_response() {
-            Ok(server::ServerResponse::ServerTerminated) => {
+            Ok(server::ServerResponse::ServerTerminated(_)) => {
                 println!("Server terminated successfully.");
             },
             _ => {
