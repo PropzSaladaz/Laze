@@ -3,9 +3,11 @@ use std::process::Command;
 use copypasta::ClipboardContext;
 use enigo::{Axis, Coordinate, Direction, Enigo, Keyboard, Mouse, Settings};
 
-use crate::actions::TerminalCommand;
-use crate::server::Application;
-use crate::{actions::Action, keybinds::KeyBindings, server::ConnectionStatus};
+use crate::{
+    actions::{Action, TerminalCommand}, 
+    keybinds::KeyBindings, 
+    server::application::{ConnectionStatus, Application},
+};
 
 pub struct MobileController {
     enigo: Enigo,
@@ -190,7 +192,7 @@ fn run_command(command: &str) {
 
 
 mod tests {
-    use crate::server::Application;
+    use crate::server::application::Application;
 
     use super::MobileController;
     use super::run_command;
