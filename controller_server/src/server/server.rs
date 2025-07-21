@@ -85,7 +85,6 @@ impl<A: Application + 'static> Server<A> {
             terminate_signal: false,
         };
 
-        
         thread::spawn(move || {
             let socket = utils::create_socket(starting_port);
             // non blocking

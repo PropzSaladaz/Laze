@@ -15,12 +15,12 @@ pub struct InternalServerCommReceiver {}
 
 impl InternalServerCommReceiver {
 
-    /// Tries to parse a request from the server controller. 
+    /// Tries to parse a request from the server controller (Tauri desktop app). 
     /// Assumes that the controller is running on the same machine
     /// and that the request is sent through a TcpStream.
     /// 
     /// If the request is not from the server controller, it returns None,
-    /// and should be parsed by the server's main loop as a client request. 
+    /// and should be parsed by the server's main loop as a client request (by some other function outside this scope). 
     pub fn try_parse_request<Request: DeserializeOwned>(mut socket: &TcpStream, addr: &SocketAddr) -> Result<Option<Request>, std::io::Error> {
         if addr.ip().is_loopback() {
             let mut buffer = [0; 1024];
