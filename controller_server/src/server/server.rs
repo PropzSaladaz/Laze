@@ -12,6 +12,8 @@ use super::{
     utils
 };
 
+const SERVER_REACHED_MAX_CONCURRENT_CLIENTS: i32 = -1;
+
 /// Represents the server configuration.
 ///
 /// All new connections will start from the specified port
@@ -30,11 +32,6 @@ impl ServerConfig {
     }
 }
 
-#[derive(Debug)]
-pub enum ServerError {}
-
-const SERVER_REACHED_MAX_CONCURRENT_CLIENTS: i32 = -1;
-
 /// Data sent to a brand new client specifying both:
 /// 1) The new port to which the client should connect.
 /// 2) The server's OS type
@@ -48,10 +45,15 @@ pub struct NewClientResponse {
 pub struct Server<A: Application> {
     clients: ClientPool,
     config: ServerConfig,
+    
     /// The application that will handle all client's requests.
     app: Arc<Mutex<A>>,
 
+    /// Indicates whether the server is currently listening to client requests.
+    /// If false, the server will only accept requests from the server controller (tauri app).
     listening_to_clients: bool,
+
+    /// Indicates whether the server is currently terminating.
     terminate_signal: bool,
 }
 
@@ -73,7 +75,9 @@ impl<A: Application + 'static> Server<A> {
         env_logger::init(); 
         let clients = ClientPool::new(config.max_clients);
 
+        // Unidirectional channel from ServerController (client) -> Server
         let (send_to_server, receive_from_client) = channel::<ServerRequest>();
+        // Unidirectional channel from Server -> ServerController (client)
         let (send_to_client, receive_from_server) = channel::<ServerResponse>();
         let starting_port = config.starting_port;
 
@@ -100,9 +104,12 @@ impl<A: Application + 'static> Server<A> {
         )
     }
 
-    /// Creates a new thread that listens for server commands.
+    /// Creates a new thread that listens for ServerController commands.
+    /// This thread listens for commands on a socket port = `starting_port - 1`.
+    /// The server controller (tauri app) should connect to this port to send commands.
+    /// After a command is processed, this thread sends a response back to the server controller.
     fn start_commands_listener(&self, sender: Sender<ServerResponse>, receiver: Receiver<ServerRequest>) {
-        let mut internal_comm = InternalServerCommSender::new(self.config.starting_port);
+        let mut internal_comm = InternalServerCommSender::new(self.config.starting_port - 1);
 
         thread::spawn( move || {
             loop {
@@ -157,8 +164,8 @@ impl<A: Application + 'static> Server<A> {
             Ok((mut stream, addr)) => {
                 log::info!("Received client connection");
 
+                /// Try parsing as ServerController command first.
                 if let Some(req) = InternalServerCommReceiver::try_parse_request(&stream, &addr).unwrap() {
-                    // if the request is from the server itself, handle it
                     let response = self.apply_request(req, addr);
                     stream.write_all(&serde_json::to_vec(&response).unwrap()).unwrap();
                 }
