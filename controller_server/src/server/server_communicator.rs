@@ -2,12 +2,6 @@ use std::sync::mpsc::{Receiver, Sender};
 
 use serde::{Deserialize, Serialize};
 
-pub trait VariantOf<T> {
-    fn assert_variant_of(other: T) -> Self
-    where 
-        Self: Sized;
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ServerRequest {
     InitServer,
@@ -34,6 +28,13 @@ pub struct ServerTerminated;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ClientTerminated {
     pub client_id: usize,
+}
+
+
+pub trait VariantOf<T> {
+    fn assert_variant_of(other: T) -> Self
+    where 
+        Self: Sized;
 }
 
 /// A macro to implement the `VariantOf` trait for each variant of an enum.
