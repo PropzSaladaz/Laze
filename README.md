@@ -35,16 +35,6 @@ dart run build_runner build
 flutter run
 ```
 
-## Virtual mouse helper
-The root of the repository contains a small C helper used to build a virtual mouse
-for testing purposes.
-
-Install dependencies and compile it with:
-```bash
-sudo apt-get install libxtst-dev
-gcc virtual-mouse2.c -o virtual-mouse2 -lX11 -lXtst
-```
-
 ## Architecture
 ![](Architecture.svg)
 
