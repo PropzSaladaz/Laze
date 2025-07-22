@@ -2,7 +2,7 @@ use std::{io::{Read, Write}, net::{SocketAddr, TcpStream}};
 
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::server::server_communicator::VariantOf;
+use crate::server::{server_communicator::VariantOf, utils::get_local_ip};
 
 /// Used to handle communication with the server itself.
 /// This is used by the server thread that has access to the server's socket
@@ -62,7 +62,9 @@ pub struct InternalServerCommSender {
 impl InternalServerCommSender {
     /// Creates a new internal server communicator.
     pub fn new(port: usize) -> Self {
-        let socket = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
+        let local_ip = get_local_ip();
+        log::debug!("InternalServerCommunicator: Connecting to server at {local_ip}:{port}");
+        let socket = TcpStream::connect(format!("{local_ip}:{port}")).unwrap();
         InternalServerCommSender { socket }
     }
 

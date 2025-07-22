@@ -65,6 +65,41 @@ impl_variant_of!(ServerResponse => {
 
 
 
+
+/// A communication interface for interacting with a server through message passing channels.
+/// 
+/// `ServerCommunicator` provides a simple abstraction over message-passing channels to send
+/// requests to a server and receive responses back. It uses Rust's standard library MPSC
+/// (Multi-Producer, Single-Consumer) channels for thread-safe communication.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use std::sync::mpsc;
+/// 
+/// let (req_sender, req_receiver) = mpsc::channel();
+/// let (resp_sender, resp_receiver) = mpsc::channel();
+/// 
+/// let mut communicator = ServerCommunicator::new(req_sender, resp_receiver);
+/// 
+/// // Send a request to initialize the server
+/// communicator.send_request(ServerRequest::InitServer);
+/// 
+/// // Receive the response
+/// match communicator.receive_response() {
+///     Ok(ServerResponse::ServerStarted(info)) => {
+///         println!("Server started at: {}", info.addr);
+///     }
+///     Ok(response) => println!("Received: {:?}", response),
+///     Err(e) => eprintln!("Failed to receive response: {}", e),
+/// }
+/// ```
+/// 
+/// # Thread Safety
+/// 
+/// This struct is designed to be used in multi-threaded environments where one thread
+/// sends requests and waits for responses, while another thread (typically the server)
+/// processes requests and sends back responses through the corresponding channels.
 #[derive(Debug)]
 pub struct ServerCommunicator {
     sender_channel: Sender::<ServerRequest>,
