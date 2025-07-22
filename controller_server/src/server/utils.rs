@@ -8,3 +8,7 @@ pub fn create_socket(port: usize) -> TcpListener {
     log::debug!("Created new Sync socket: {local_ip}:{port}");
     TcpListener::bind(format!("{local_ip}:{port}")).unwrap()
 }
+
+pub fn get_local_ip() -> String {
+    local_ip().unwrap().to_string()
+}

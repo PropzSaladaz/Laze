@@ -1,4 +1,4 @@
-use std::{io::Write, net::{SocketAddr, TcpListener, TcpStream}, sync::{mpsc::{channel, Receiver, Sender}, Arc, Mutex}, thread};
+use std::{io::Write, net::{SocketAddr, TcpListener, TcpStream}, sync::{mpsc::{channel, Receiver, Sender}, Arc, Mutex}, thread, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
@@ -63,7 +63,7 @@ impl<A: Application + 'static> Server<A> {
     ///
     /// This call is non-blocking, and allows the server to wait for
     /// new client connection requests at port 7878.
-    /// It also creates a thread that listens for server commands
+    /// It also creates a thread that listens for server commands at port 7878 - 1 = 7877
     /// 
     /// Once a new connection to a new client is established, that client is assigned a new
     /// isolated socket with its own port. Each client then connects to the server through its own
@@ -90,11 +90,11 @@ impl<A: Application + 'static> Server<A> {
         };
 
         thread::spawn(move || {
-            let socket = utils::create_socket(starting_port);
-            // non blocking
-            server.start_commands_listener(send_to_client, receive_from_client);
+            // non blocking - starts
+            let delay = Duration::from_millis(1000);
+            server.start_commands_listener(send_to_client, receive_from_client, delay);
             // blocking
-            server.start_client_listener(socket);
+            server.start_client_listener();
         });
 
         // return channel endpoints to send messages and also receive messages to / from the server
@@ -105,27 +105,39 @@ impl<A: Application + 'static> Server<A> {
     }
 
     /// Creates a new thread that listens for ServerController commands.
-    /// This thread listens for commands on a socket port = `starting_port - 1`.
+    /// This thread listens for commands on a socket port = `starting_port`.
     /// The server controller (tauri app) should connect to this port to send commands.
     /// After a command is processed, this thread sends a response back to the server controller.
-    fn start_commands_listener(&self, sender: Sender<ServerResponse>, receiver: Receiver<ServerRequest>) {
-        let mut internal_comm = InternalServerCommSender::new(self.config.starting_port - 1);
+    fn start_commands_listener(&self, sender: Sender<ServerResponse>, receiver: Receiver<ServerRequest>, delay: Duration) {
+        let label = "[CommandListener]:";
+        let port = self.config.starting_port;
 
         thread::spawn( move || {
+            // wait for the server listener thread at consfig.starting_port to start
+            thread::sleep(delay);
+
+            log::info!("{label} Starting server command listener on port {port}");
+            let mut internal_comm = InternalServerCommSender::new(port);
+
             loop {
                 match receiver.recv() {
                     Ok(ServerRequest::InitServer) => {
-                        log::info!("Server initialized successfully.");
-                        
+                        log::info!("{label} Received InitServer request from ServerController. Sending request to server port {port}");
+
                         match internal_comm.send_and_receive::<ServerRequest, ServerResponse, ServerStarted>(&ServerRequest::InitServer) { // blocking - sends & awaits for response
                             Ok(addr) => {
-                                log::info!("Server started at address: {}", addr.addr);
                                 // send response back to the client
+                                let address = addr.addr.clone();
                                 let response = ServerResponse::ServerStarted(addr);
+
+                                log::info!("{label} Received confirmation that server started at: {}", address);
+                                log::info!("{label} Sending response back to ServerController");
+                                
                                 sender.send(response).unwrap();
                             },
                             Err(e) => {
-                                log::error!("Failed to initialize server: {}", e);
+                                log::error!("{label} Failed to initialize server: {}", e);
+                                
                                 // send error response back to the client
                                 let response = ServerResponse::Error(e.to_string());
                                 sender.send(response).unwrap();
@@ -134,11 +146,13 @@ impl<A: Application + 'static> Server<A> {
                         }
                     }
                     Ok(ServerRequest::TerminateServer) => {
-                        log::info!("Server terminated successfully.");
+                        log::info!("{label} Received TerminateServer request from ServerController. Sending request to server port {port}");
+                        
                         sender.send(ServerResponse::ServerTerminated(ServerTerminated{})).unwrap();
                     }
                     Ok(ServerRequest::TerminateClient(client_id)) => {
-                        log::info!("Terminating client with id: {}", client_id);
+                        log::info!("{label} Received TerminateClient request for client {client_id} from ServerController. Sending request to server port {port}");
+
                         sender.send(ServerResponse::ClientTerminated(ClientTerminated{client_id})).unwrap();
                     }
                     Err(e) => log::error!("Error receiving server request: {}", e),
@@ -149,7 +163,9 @@ impl<A: Application + 'static> Server<A> {
 
     /// Main loop.
     /// Waits on a new client connection.
-    fn start_client_listener(&mut self, socket: TcpListener) {
+    fn start_client_listener(&mut self) {
+        let socket = utils::create_socket(self.config.starting_port);
+        log::info!("Starting client listener: {}", socket.local_addr().unwrap());
         loop {
             let connection = socket.accept();
             self.handle_new_client(connection);
@@ -164,7 +180,7 @@ impl<A: Application + 'static> Server<A> {
             Ok((mut stream, addr)) => {
                 log::info!("Received client connection");
 
-                /// Try parsing as ServerController command first.
+                // Try parsing as ServerController command first.
                 if let Some(req) = InternalServerCommReceiver::try_parse_request(&stream, &addr).unwrap() {
                     let response = self.apply_request(req, addr);
                     stream.write_all(&serde_json::to_vec(&response).unwrap()).unwrap();
