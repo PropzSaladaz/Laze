@@ -17,7 +17,7 @@ the client are dispatched to the device application running on the server.
 ### Server
 ```bash
 sudo apt install build-essential libxdo-dev
-cd server
+cd controller_ server
 cargo run
 ```
 
