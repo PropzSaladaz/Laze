@@ -36,5 +36,6 @@ flutter run
 ```
 
 ## Architecture
-![](Architecture.svg)
-
+<p align="left">
+  <img src="Architecture.svg" style="width: 70%; min-width: 800px;">
+</p>

@@ -4,6 +4,8 @@ pub use server::{
     server_communicator::{ServerCommunicator, ServerRequest, ServerResponse},
 };
 
+pub mod logger;
+
 pub mod mobile_controller;
 pub use mobile_controller::MobileController;
 
