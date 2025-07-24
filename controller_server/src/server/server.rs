@@ -116,7 +116,7 @@ impl<A: Application + 'static> Server<A> {
             // wait for the server listener thread at consfig.starting_port to start
             thread::sleep(delay);
 
-            log::info!("{label} Starting server command listener on port {port}");
+            log::info!("{label} Starting server command listener thread.");
             let mut internal_comm = InternalServerCommSender::new(port);
 
             loop {
@@ -176,21 +176,25 @@ impl<A: Application + 'static> Server<A> {
     // waiting on a new port and send the new socket's port dedicated
     // to that connection to the client
     fn handle_new_client(&mut self, connection: Result<(TcpStream, SocketAddr), std::io::Error>) {
+        let label = "[ClientListener]:";
         match connection {
             Ok((mut stream, addr)) => {
-                log::info!("Received client connection");
+                log::info!("{label} Received client connection");
 
                 // Try parsing as ServerController command first.
                 if let Some(req) = InternalServerCommReceiver::try_parse_request(&stream, &addr).unwrap() {
                     let response = self.apply_request(req, addr);
-                    stream.write_all(&serde_json::to_vec(&response).unwrap()).unwrap();
+                    log::debug!("{label} Sending response: {:?}", response);
+                    let resp_bytes = &serde_json::to_vec(&response).unwrap();
+                    log::debug!("{label} Response bytes: {:?}", resp_bytes);
+                    stream.write_all(resp_bytes).unwrap();
                 }
                 else if self.listening_to_clients {
-                    log::debug!("Received connection from non-local address: {:?}", addr);
+                    log::debug!("{label} Received connection from non-local address: {:?}", addr);
                     // try adding new client to pool
                     let port = match self.clients.add(addr, Arc::clone(&self.app)) {
                         Ok(connection_port) => {
-                            log::info!("Opened socket for new client at {connection_port}");
+                            log::info!("{label} Opened socket for new client at {connection_port}");
                             connection_port as i32
                         },
                         Err(reason) => {
@@ -206,15 +210,15 @@ impl<A: Application + 'static> Server<A> {
 
                     stream.write_all(&data).unwrap();
 
-                    log::debug!("Sent new client response: {:?}", data);
+                    log::debug!("{label} Sent new client response: {:?}", data);
                 }
                 else {
-                    log::warn!("Received connection from non-local address: {:?}, but server is not listening to clients!", addr);
+                    log::warn!("{label} Received connection from non-local address: {:?}, but server is not listening to clients!", addr);
                 }
 
 
             }
-            Err(e) => log::error!("Could not accept connection! {}", e)
+            Err(e) => log::error!("{label} Could not accept connection! {}", e)
         }
     }
 

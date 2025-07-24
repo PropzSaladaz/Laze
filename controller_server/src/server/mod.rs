@@ -10,5 +10,7 @@ pub use server_communicator::{
     ServerStarted, ServerTerminated, ClientTerminated
 };
 
+pub mod command_listener;
+
 pub mod server;
 pub use server::{Server, ServerConfig};

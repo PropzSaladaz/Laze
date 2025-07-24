@@ -1,8 +1,8 @@
-use std::{io::{Read, Write}, net::{SocketAddr, TcpStream}};
+use std::{fmt::Debug, io::{Read, Write}, net::{SocketAddr, TcpStream}};
 
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::server::{server_communicator::VariantOf, utils::get_local_ip};
+use crate::server::{server_communicator::VariantOf, utils::MY_IP};
 
 /// Used to handle communication with the server itself.
 /// This is used by the server thread that has access to the server's socket
@@ -13,6 +13,8 @@ pub struct InternalServerCommReceiver {}
 
 impl InternalServerCommReceiver {
 
+    const LABEL : &'static str = "[InternalServerCommReceiver]:";
+
     /// Tries to parse a request from the server controller (Tauri desktop app). 
     /// Assumes that the controller is running on the same machine
     /// and that the request is sent through a TcpStream.
@@ -20,7 +22,9 @@ impl InternalServerCommReceiver {
     /// If the request is not from the server controller, it returns None,
     /// and should be parsed by the server's main loop as a client request (by some other function outside this scope). 
     pub fn try_parse_request<Request: DeserializeOwned>(mut socket: &TcpStream, addr: &SocketAddr) -> Result<Option<Request>, std::io::Error> {
-        if addr.ip().is_loopback() {
+        log::debug!("{} Received request from {}", Self::LABEL, addr.ip());
+        log::debug!("{} Server controller: {}", Self::LABEL,  MY_IP.as_str());
+        if addr.ip().to_string() == MY_IP.as_str() {
             let mut buffer = [0; 1024];
             let bytes = socket.read(&mut buffer)?;
             if bytes == 0 {
@@ -60,9 +64,13 @@ pub struct InternalServerCommSender {
 
 
 impl InternalServerCommSender {
+
+    const LABEL : &'static str = "[InternalServerCommSender]:";
+
+
     /// Creates a new internal server communicator.
     pub fn new(port: usize) -> Self {
-        let local_ip = get_local_ip();
+        let local_ip = MY_IP.as_str();
         log::debug!("InternalServerCommunicator: Connecting to server at {local_ip}:{port}");
         let socket = TcpStream::connect(format!("{local_ip}:{port}")).unwrap();
         InternalServerCommSender { socket }
@@ -108,19 +116,24 @@ impl InternalServerCommSender {
     /// ```
     pub fn send_and_receive<Request, ResponseEnum, RespVariant>(&mut self, request: &Request) -> Result<RespVariant, std::io::Error>
     where
-        Request: Serialize,                  // Encodes the request type
-        ResponseEnum: DeserializeOwned,      // Encodes the response enum, which includes all possible response types
+        Request: Serialize + Debug,                  // Encodes the request type
+        ResponseEnum: DeserializeOwned + Debug,      // Encodes the response enum, which includes all possible response types
         RespVariant: VariantOf<ResponseEnum> // Encodes the specific expected response type from all of the possible responses
     {
         // Serialize the request
+        log::debug!("{} Sending request: {:?}", Self::LABEL, request);
         let req = serde_json::to_vec(request).unwrap();
         // Send the request
         self.socket.write_all(&req)?;
         // Read the response
         let mut buf = vec![0; 1024];
-        self.socket.read(&mut buf)?;
+        log::debug!("{} Waiting for response...", Self::LABEL);
+        let n = self.socket.read(&mut buf)?;
+        let data = &buf[..n];
+        log::debug!("{} Received response: {:?}", Self::LABEL, data);
         // Deserialize the response
-        let resp: ResponseEnum = serde_json::from_slice(&buf)?;
+        let resp: ResponseEnum = serde_json::from_slice(&data)?;
+        log::debug!("{} Parsed response: {:?}", Self::LABEL, resp);
 
         Ok(RespVariant::assert_variant_of(resp))
     }
