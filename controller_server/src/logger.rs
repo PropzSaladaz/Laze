@@ -28,6 +28,8 @@ pub trait Loggable {
 
 impl<T> Loggable for T {
     fn label(&self) -> &str {
-        std::any::type_name::<T>()
+        let full = std::any::type_name::<T>();
+        // return only the last part - struct name
+        full.split("::").last().unwrap_or(full) 
     }
 }

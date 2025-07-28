@@ -2,7 +2,7 @@ use std::{io::Write, net::{SocketAddr, TcpListener, TcpStream}, sync::{mpsc::{ch
 
 use serde::{Deserialize, Serialize};
 
-use crate::server::{ClientTerminated, ServerStarted, ServerTerminated};
+use crate::server::{command_listener::CommandListener, concurrent_queue::CommandProcessor, ClientTerminated, ServerStarted, ServerTerminated};
 
 use super::{
     application::Application,
@@ -74,6 +74,7 @@ impl<A: Application + 'static> Server<A> {
         // Initialize logger with default settings
         env_logger::init(); 
         let clients = ClientPool::new(config.max_clients);
+        let command_processor = CommandProcessor::new();
 
         // Unidirectional channel from ServerController (client) -> Server
         let (send_to_server, receive_from_client) = channel::<ServerRequest>();
@@ -89,10 +90,12 @@ impl<A: Application + 'static> Server<A> {
             terminate_signal: false,
         };
 
+        let command_listener = CommandListener::new(send_to_client, receive_from_client);
+
         thread::spawn(move || {
             // non blocking - starts
             let delay = Duration::from_millis(1000);
-            server.start_commands_listener(send_to_client, receive_from_client, delay);
+            command_listener.listen(delay);
             // blocking
             server.start_client_listener();
         });

@@ -12,5 +12,7 @@ pub use server_communicator::{
 
 pub mod command_listener;
 
+pub mod concurrent_queue;
+
 pub mod server;
 pub use server::{Server, ServerConfig};
