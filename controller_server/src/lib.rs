@@ -5,6 +5,7 @@ pub use server::{
 };
 
 pub mod logger;
+pub use logger::Loggable;
 
 pub mod mobile_controller;
 pub use mobile_controller::MobileController;
