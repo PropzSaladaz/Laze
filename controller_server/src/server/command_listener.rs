@@ -1,7 +1,14 @@
 use std::{
     error::Error, sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, thread, time::Duration
 };
-use crate::{logger::Loggable, server::{concurrent_queue::ConcurrentQueue, server_communicator::VariantOf, ClientTerminated, ServerStarted, ServerTerminated}, ServerRequest, ServerResponse};
+
+use super::Loggable;
+
+use crate::{
+    server::{
+        server_communicator::VariantOf, ClientTerminated, ServerStarted, ServerTerminated, ServerRequest, ServerResponse
+    },  
+};
 
 
 #[derive(Debug)]
@@ -23,10 +30,12 @@ impl std::fmt::Display for ProcessError {
 
 impl Error for ProcessError {}
 
-pub struct CommandProcessor<Req, Resp> {
+struct CommandProcessor<Req, Resp> {
     callback: RwLock<Option<Box<dyn Fn(Req) -> Result<Resp, ProcessError> + Send + Sync>>>,
 }
 
+/// Holds a processor callback function that can process commands of type `Req` and return a response of type `Resp`.
+/// The processor can be set using `set_processor` method.
 impl<Req, Resp> CommandProcessor<Req, Resp> {
     pub fn new() -> Self {
         CommandProcessor {
@@ -34,7 +43,7 @@ impl<Req, Resp> CommandProcessor<Req, Resp> {
         }
     }
 
-    pub fn set_processor<F>(&self, processor: F)
+    fn set_processor<F>(&self, processor: F)
     where
         F: Fn(Req) -> Result<Resp, ProcessError> + Send + Sync + 'static,
     {
@@ -42,18 +51,18 @@ impl<Req, Resp> CommandProcessor<Req, Resp> {
         *lock = Some(Box::new(processor));
     }
 
-    pub fn has_processor(&self) -> bool {
+    fn has_processor(&self) -> bool {
         let lock = self.callback.read().unwrap();
         lock.is_some()
     }
 
-    pub fn wait_for_processor(&self) {
+    fn wait_for_processor(&self) {
         while !self.has_processor() {
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
     }
 
-    pub fn process(&self, request: Req) -> Result<Resp, ProcessError> {
+    fn process(&self, request: Req) -> Result<Resp, ProcessError> {
         let lock = self.callback.read().unwrap();
         if let Some(ref processor) = *lock {
             return processor(request);
@@ -62,6 +71,16 @@ impl<Req, Resp> CommandProcessor<Req, Resp> {
     }
 }
 
+
+pub struct CommandListenerHandler {
+    thread_handle: thread::JoinHandle<()>,
+}
+
+impl CommandListenerHandler {
+    pub fn wait_for_exit(self) {
+        self.thread_handle.join().expect("Failed to join command listener thread");
+    }
+}
 
 pub struct CommandListener {
     sender: Sender<ServerResponse>,
@@ -72,6 +91,13 @@ pub struct CommandListener {
 impl CommandListener {
     pub fn new( sender: Sender<ServerResponse>, receiver: Receiver<ServerRequest>) -> Self {
         CommandListener { sender, receiver, command_processor: Arc::new(CommandProcessor::new()) }
+    }
+
+   pub fn set_command_processor<F>(&self, processor: F)
+    where
+        F: Fn(ServerRequest) -> Result<ServerResponse, ProcessError> + Send + Sync + 'static,
+    {
+        self.command_processor.set_processor(processor);
     }
 
     pub fn get_command_processor(&self) -> Arc<CommandProcessor<ServerRequest, ServerResponse>> {
@@ -85,9 +111,10 @@ impl CommandListener {
     /// After a command is processed, this thread sends a response back to the server controller.
     /// 
     /// This method is non-blocking.
-    pub fn listen(&self, delay: Duration) {
+    /// The struct is moved into the thread, so it cannot be used after calling this method.
+    pub fn listen(self, delay: Duration) -> CommandListenerHandler {
 
-        thread::spawn( move || {
+        let thread_handle = thread::spawn( move || {
             // wait for the server listener thread at consfig.starting_port to start
             thread::sleep(delay);
             self.log_info("Waiting for command processor to be set...");
@@ -98,16 +125,14 @@ impl CommandListener {
             loop {
                 match self.receiver.recv() {
                     Ok(ServerRequest::InitServer) => {
-                        self.log_info("Received InitServer request from ServerController. Sending request to server.");
+                        self.log_info("Received InitServer request from ServerController. Processing...");
 
                         match self.command_processor.process(ServerRequest::InitServer) {
                             Ok(resp) => {
                                 let started = ServerStarted::assert_variant_of(resp);
-                                // send response back to the client
-                                let address = started.addr.clone();
                                 let response = ServerResponse::ServerStarted(started);
 
-                                self.log_info(&format!("Received confirmation that server started at: {}", address));
+                                self.log_info(&format!("Received confirmation that server started"));
                                 self.log_info("Sending response back to ServerController");
                                 
                                 self.sender.send(response).unwrap();
@@ -124,7 +149,7 @@ impl CommandListener {
                         }
                     }
                     Ok(ServerRequest::TerminateServer) => {
-                        self.log_info("Received TerminateServer request from ServerController. Sending request to server.");
+                        self.log_info("Received TerminateServer request from ServerController. Processing...");
 
                         match self.command_processor.process(ServerRequest::TerminateServer) {
                             Ok(resp) => {
@@ -144,7 +169,7 @@ impl CommandListener {
                         }   
                     }
                     Ok(ServerRequest::TerminateClient(client_id)) => {
-                        self.log_info(&format!("Received TerminateClient request for client {} from ServerController.", client_id));
+                        self.log_info(&format!("Received TerminateClient request for client {} from ServerController. Processing...", client_id));
 
                         match self.command_processor.process(ServerRequest::TerminateClient(client_id)) {
                             Ok(resp) => {
@@ -167,6 +192,11 @@ impl CommandListener {
                     Err(e) => log::error!("Error receiving server request: {}", e),
                 }
             }
+
         });
+
+        CommandListenerHandler {
+            thread_handle: thread_handle,
+        }
     }
 }

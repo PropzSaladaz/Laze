@@ -1,14 +1,13 @@
-use std::{io::Write, net::{SocketAddr, TcpListener, TcpStream}, sync::{mpsc::{channel, Receiver, Sender}, Arc, Mutex}, thread, time::Duration};
+use std::{io::Write, net::{SocketAddr, TcpStream}, sync::{mpsc::channel, Arc, Mutex}, thread, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
-use crate::server::{command_listener::CommandListener, concurrent_queue::CommandProcessor, ClientTerminated, ServerStarted, ServerTerminated};
+use crate::server::{command_listener::{CommandListener, ProcessError}, ClientTerminated, ServerStarted, ServerTerminated};
 
 use super::{
     application::Application,
     client_pool::ClientPool,
     server_communicator::{ServerCommunicator, ServerRequest, ServerResponse},
-    internal_communicator::{InternalServerCommSender, InternalServerCommReceiver},
     utils
 };
 
@@ -74,30 +73,42 @@ impl<A: Application + 'static> Server<A> {
         // Initialize logger with default settings
         env_logger::init(); 
         let clients = ClientPool::new(config.max_clients);
-        let command_processor = CommandProcessor::new();
 
         // Unidirectional channel from ServerController (client) -> Server
         let (send_to_server, receive_from_client) = channel::<ServerRequest>();
         // Unidirectional channel from Server -> ServerController (client)
         let (send_to_client, receive_from_server) = channel::<ServerResponse>();
-        let starting_port = config.starting_port;
 
-        let mut server = Server {
-            clients, 
-            config,
-            app: Arc::new(Mutex::new(app)),
-            listening_to_clients: false,
-            terminate_signal: false,
-        };
-
+        // will listen for commands from server controller and will parse them.
         let command_listener = CommandListener::new(send_to_client, receive_from_client);
 
         thread::spawn(move || {
+
+            let server = Arc::new(Mutex::new(Server {
+                clients, 
+                config,
+                app: Arc::new(Mutex::new(app)),
+                listening_to_clients: false,
+                terminate_signal: false,
+            }));
+
+            // set command listener callback before starting command listener thread
+            command_listener.set_command_processor({
+                let server = Arc::clone(&server);
+                move |req| {
+                    Self::command_parser(server.clone(), req)
+                }
+            });
+
             // non blocking - starts
             let delay = Duration::from_millis(1000);
-            command_listener.listen(delay);
+            let handler = command_listener.listen(delay);
+            
             // blocking
-            server.start_client_listener();
+            Self::start_client_listener(server);
+
+            // await for non-blocking thread
+            handler.wait_for_exit();
         });
 
         // return channel endpoints to send messages and also receive messages to / from the server
@@ -105,97 +116,39 @@ impl<A: Application + 'static> Server<A> {
             send_to_server,
             receive_from_server
         )
-    }
 
-    /// Creates a new thread that listens for ServerController commands.
-    /// This thread listens for commands on a socket port = `starting_port`.
-    /// The server controller (tauri app) should connect to this port to send commands.
-    /// After a command is processed, this thread sends a response back to the server controller.
-    fn start_commands_listener(&self, sender: Sender<ServerResponse>, receiver: Receiver<ServerRequest>, delay: Duration) {
-        let label = "[CommandListener]:";
-        let port = self.config.starting_port;
-
-        thread::spawn( move || {
-            // wait for the server listener thread at consfig.starting_port to start
-            thread::sleep(delay);
-
-            log::info!("{label} Starting server command listener thread.");
-            let mut internal_comm = InternalServerCommSender::new(port);
-
-            loop {
-                match receiver.recv() {
-                    Ok(ServerRequest::InitServer) => {
-                        log::info!("{label} Received InitServer request from ServerController. Sending request to server port {port}");
-
-                        match internal_comm.send_and_receive::<ServerRequest, ServerResponse, ServerStarted>(&ServerRequest::InitServer) { // blocking - sends & awaits for response
-                            Ok(addr) => {
-                                // send response back to the client
-                                let address = addr.addr.clone();
-                                let response = ServerResponse::ServerStarted(addr);
-
-                                log::info!("{label} Received confirmation that server started at: {}", address);
-                                log::info!("{label} Sending response back to ServerController");
-                                
-                                sender.send(response).unwrap();
-                            },
-                            Err(e) => {
-                                log::error!("{label} Failed to initialize server: {}", e);
-                                
-                                // send error response back to the client
-                                let response = ServerResponse::Error(e.to_string());
-                                sender.send(response).unwrap();
-                                continue;
-                            }
-                        }
-                    }
-                    Ok(ServerRequest::TerminateServer) => {
-                        log::info!("{label} Received TerminateServer request from ServerController. Sending request to server port {port}");
-                        
-                        sender.send(ServerResponse::ServerTerminated(ServerTerminated{})).unwrap();
-                    }
-                    Ok(ServerRequest::TerminateClient(client_id)) => {
-                        log::info!("{label} Received TerminateClient request for client {client_id} from ServerController. Sending request to server port {port}");
-
-                        sender.send(ServerResponse::ClientTerminated(ClientTerminated{client_id})).unwrap();
-                    }
-                    Err(e) => log::error!("Error receiving server request: {}", e),
-                }
-            }
-        });
     }
 
     /// Main loop.
     /// Waits on a new client connection.
-    fn start_client_listener(&mut self) {
-        let socket = utils::create_socket(self.config.starting_port);
+    fn start_client_listener(server: Arc<Mutex<Self>>) {
+        let starting_port = {
+            let lock = server.lock().unwrap();
+            lock.config.starting_port
+        };
+        let socket = utils::create_socket(starting_port);
         log::info!("Starting client listener: {}", socket.local_addr().unwrap());
         loop {
             let connection = socket.accept();
-            self.handle_new_client(connection);
+            Self::handle_new_client(&server, connection);
         }
     }
 
     // Upon receiving a new connection request, create a new client
     // waiting on a new port and send the new socket's port dedicated
     // to that connection to the client
-    fn handle_new_client(&mut self, connection: Result<(TcpStream, SocketAddr), std::io::Error>) {
+    fn handle_new_client(server: &Arc<Mutex<Self>>, connection: Result<(TcpStream, SocketAddr), std::io::Error>) {
         let label = "[ClientListener]:";
         match connection {
             Ok((mut stream, addr)) => {
                 log::info!("{label} Received client connection");
+                let mut lock = server.lock().unwrap();
 
-                // Try parsing as ServerController command first.
-                if let Some(req) = InternalServerCommReceiver::try_parse_request(&stream, &addr).unwrap() {
-                    let response = self.apply_request(req, addr);
-                    log::debug!("{label} Sending response: {:?}", response);
-                    let resp_bytes = &serde_json::to_vec(&response).unwrap();
-                    log::debug!("{label} Response bytes: {:?}", resp_bytes);
-                    stream.write_all(resp_bytes).unwrap();
-                }
-                else if self.listening_to_clients {
+                if lock.listening_to_clients {
                     log::debug!("{label} Received connection from non-local address: {:?}", addr);
                     // try adding new client to pool
-                    let port = match self.clients.add(addr, Arc::clone(&self.app)) {
+                    let app = Arc::clone(&lock.app);
+                    let port = match lock.clients.add(addr, app) {
                         Ok(connection_port) => {
                             log::info!("{label} Opened socket for new client at {connection_port}");
                             connection_port as i32
@@ -218,31 +171,30 @@ impl<A: Application + 'static> Server<A> {
                 else {
                     log::warn!("{label} Received connection from non-local address: {:?}, but server is not listening to clients!", addr);
                 }
-
-
             }
             Err(e) => log::error!("{label} Could not accept connection! {}", e)
         }
     }
 
 
-    fn apply_request(&mut self, req: ServerRequest, addr: SocketAddr) -> ServerResponse {
+    /// Parses a command from the server.
+    /// Should be passed as callback function to the `command_listener` struct when constructing the server.
+    fn command_parser(server: Arc<Mutex<Self>>, req: ServerRequest) -> Result<ServerResponse, ProcessError> {
+        let mut lock = server.lock().unwrap();
+
         match req {
             ServerRequest::InitServer => {
-                log::info!("Received InitServer request from server at {addr}");
                 // send response to the server
-                self.listening_to_clients = true;
-                ServerResponse::ServerStarted(ServerStarted { addr: format!("{}:{}", addr.ip(), addr.port()) })
+                lock.listening_to_clients = true;
+                Ok(ServerResponse::ServerStarted(ServerStarted { }))
             }
             ServerRequest::TerminateServer => {
-                log::info!("Received TerminateServer request from server at {addr}");
-                self.terminate_signal = true;
-                ServerResponse::ServerTerminated(ServerTerminated {})
+                lock.terminate_signal = true;
+                Ok(ServerResponse::ServerTerminated(ServerTerminated {}))
             }
             ServerRequest::TerminateClient(client_id) => {
-                log::info!("Received TerminateClient request for client {client_id} from server at {addr}");
-                self.clients.terminate_client(client_id);
-                ServerResponse::ClientTerminated(ClientTerminated { client_id } )
+                lock.clients.terminate_client(client_id);
+                Ok(ServerResponse::ClientTerminated(ClientTerminated { client_id }))
             }
         }
     }

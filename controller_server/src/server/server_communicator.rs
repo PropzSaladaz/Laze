@@ -18,9 +18,7 @@ pub enum ServerResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ServerStarted {
-    pub addr: String,
-}
+pub struct ServerStarted {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerTerminated;
