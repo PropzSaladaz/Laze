@@ -1,5 +1,5 @@
 // Declaration of the controller_server library
-mod logger;
+pub mod logger;
 mod server;
 mod mobile_controller;
 mod actions;
