@@ -4,6 +4,7 @@ use std::thread::sleep;
 use mobile_controller::MobileController;
 use server::core::{Server, ServerConfig};
 
+mod logger;
 mod mobile_controller;
 mod server;
 mod actions;
