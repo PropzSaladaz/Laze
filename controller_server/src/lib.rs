@@ -1,14 +1,17 @@
-pub mod server;
+// Declaration of the controller_server library
+mod logger;
+mod server;
+mod mobile_controller;
+mod actions;
+mod keybinds;
+
+
+// Re-exported types
 pub use server::{
-    server::{ ServerConfig, Server},
-    server_communicator::{ServerCommunicator, ServerRequest, ServerResponse},
+    application::Application,
+    core::{ServerConfig, Server},
+    command_sender::{CommandSender},
+    commands::{ServerRequest, ServerResponse}
 };
 
-pub mod logger;
-pub use logger::Loggable;
-
-pub mod mobile_controller;
 pub use mobile_controller::MobileController;
-
-pub mod actions;
-pub mod keybinds;

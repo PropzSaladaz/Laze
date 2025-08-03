@@ -2,7 +2,7 @@ use std::time::Duration;
 use std::thread::sleep;
 
 use mobile_controller::MobileController;
-use server::{Server, ServerConfig};
+use server::core::{Server, ServerConfig};
 
 mod mobile_controller;
 mod server;
@@ -25,10 +25,10 @@ fn main() {
     // emulates main thread communication with server
     loop {
         println!("Sending msg to server...");
-        server_comm.send_request(server::ServerRequest::InitServer);
+        server_comm.send_request(server::commands::ServerRequest::InitServer);
         match server_comm.receive_response() {
-            Ok(server::ServerResponse::ServerStarted(p)) => {
-                println!("Server initialized successfully. {}", p.addr);
+            Ok(server::commands::ServerResponse::ServerStarted(_)) => {
+                println!("Server initialized successfully.");
             },
             _ => {
                 println!("Unexpected response during initialization.");
@@ -36,9 +36,9 @@ fn main() {
         }
         sleep(Duration::from_secs(6));
 
-        server_comm.send_request(server::ServerRequest::TerminateClient(2));
+        server_comm.send_request(server::commands::ServerRequest::TerminateClient(2));
         match server_comm.receive_response() {
-            Ok(server::ServerResponse::ClientTerminated(t)) => {
+            Ok(server::commands::ServerResponse::ClientTerminated(t)) => {
                 println!("Client terminated successfully.{}", t.client_id);
             },
             _ => {
@@ -48,9 +48,9 @@ fn main() {
 
         sleep(Duration::from_secs(6));
 
-        server_comm.send_request(server::ServerRequest::TerminateServer);
+        server_comm.send_request(server::commands::ServerRequest::TerminateServer);
         match server_comm.receive_response() {
-            Ok(server::ServerResponse::ServerTerminated(_)) => {
+            Ok(server::commands::ServerResponse::ServerTerminated(_)) => {
                 println!("Server terminated successfully.");
             },
             _ => {
