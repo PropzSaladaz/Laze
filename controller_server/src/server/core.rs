@@ -2,12 +2,12 @@ use std::{io::Write, net::{SocketAddr, TcpStream}, sync::{mpsc::channel, Arc, Mu
 
 use serde::{Deserialize, Serialize};
 
-use crate::server::{command_listener::{CommandListener, ProcessError}, ClientTerminated, ServerStarted, ServerTerminated};
-
 use super::{
     application::Application,
     client_pool::ClientPool,
-    server_communicator::{ServerCommunicator, ServerRequest, ServerResponse},
+    command_listener::{CommandListener, ProcessError},
+    command_sender::CommandSender,
+    commands::{ServerRequest, ServerResponse, ServerStarted, ServerTerminated, ClientTerminated},
     utils
 };
 
@@ -69,7 +69,7 @@ impl<A: Application + 'static> Server<A> {
     /// assigned socket.
     /// 
     /// The port 7878 is only used as a common ground to establish new connections with new clients.
-    pub fn start(config: ServerConfig, app: A) -> ServerCommunicator {
+    pub fn start(config: ServerConfig, app: A) -> CommandSender {
         // Initialize logger with default settings
         env_logger::init(); 
         let clients = ClientPool::new(config.max_clients);
@@ -112,7 +112,7 @@ impl<A: Application + 'static> Server<A> {
         });
 
         // return channel endpoints to send messages and also receive messages to / from the server
-        ServerCommunicator::new(
+        CommandSender::new(
             send_to_server,
             receive_from_server
         )

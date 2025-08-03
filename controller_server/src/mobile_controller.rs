@@ -192,8 +192,9 @@ fn run_command(command: &str) {
 
 
 mod tests {
+    
+    #![allow(unused_imports)]
     use crate::server::application::Application;
-
     use super::MobileController;
     use super::run_command;
 

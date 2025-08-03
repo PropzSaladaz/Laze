@@ -1,15 +1,8 @@
 use std::{
     error::Error, sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, thread, time::Duration
 };
-
-use super::Loggable;
-
-use crate::{
-    server::{
-        server_communicator::VariantOf, ClientTerminated, ServerStarted, ServerTerminated, ServerRequest, ServerResponse
-    },  
-};
-
+use crate::logger::Loggable;
+use super::commands::{ServerRequest, ServerResponse, ServerStarted, ServerTerminated, ClientTerminated, VariantOf};
 
 #[derive(Debug)]
 pub struct ProcessError {
@@ -71,7 +64,8 @@ impl<Req, Resp> CommandProcessor<Req, Resp> {
     }
 }
 
-
+/// Handle for the command listener thread.
+/// This handle can be used to wait for the thread to finish execution.
 pub struct CommandListenerHandler {
     thread_handle: thread::JoinHandle<()>,
 }
@@ -82,6 +76,53 @@ impl CommandListenerHandler {
     }
 }
 
+
+
+/// A command listener that processes server requests in a separate thread.
+/// 
+/// The `CommandListener` receives `ServerRequest` messages through a channel receiver
+/// and sends `ServerResponse` messages back through a channel sender. It uses a
+/// configurable command processor to handle the actual request processing logic.
+/// 
+/// # Usage
+/// 
+/// 1. Create a new `CommandListener` with sender and receiver channels
+/// 2. Set a command processor using `set_command_processor()`
+/// 3. Start listening by calling `listen()` which spawns a new thread
+/// 
+/// # Example
+/// 
+/// ```rust
+/// let (tx, rx) = mpsc::channel();
+/// let (response_tx, response_rx) = mpsc::channel();
+/// 
+/// let listener = CommandListener::new(response_tx, rx);
+/// listener.set_command_processor(|req| {
+///     // Process the request and return a response
+///     Ok(ServerResponse::ServerStarted(ServerStarted))
+/// });
+/// 
+/// let handler = listener.listen(Duration::from_secs(1));
+/// // ... send requests through tx channel
+/// handler.wait_for_exit();
+/// ```
+/// 
+/// # Supported Requests
+/// 
+/// - `InitServer`: Initializes the server and returns `ServerStarted` response
+/// - `TerminateServer`: Terminates the server and returns `ServerTerminated` response  
+/// - `TerminateClient(client_id)`: Terminates a specific client and returns `ClientTerminated` response
+/// 
+/// # Error Handling
+/// 
+/// If request processing fails, an `Error` response is sent back through the channel
+/// containing the error message. The listener continues processing subsequent requests.
+/// 
+/// # Thread Safety
+/// 
+/// The command processor is wrapped in an `Arc<CommandProcessor>` to allow safe sharing
+/// between threads. The listener waits for a processor to be set before beginning
+/// request processing.
 pub struct CommandListener {
     sender: Sender<ServerResponse>,
     receiver: Receiver<ServerRequest>,
@@ -98,10 +139,6 @@ impl CommandListener {
         F: Fn(ServerRequest) -> Result<ServerResponse, ProcessError> + Send + Sync + 'static,
     {
         self.command_processor.set_processor(processor);
-    }
-
-    pub fn get_command_processor(&self) -> Arc<CommandProcessor<ServerRequest, ServerResponse>> {
-        self.command_processor.clone()
     }
 
     /// Creates a new thread that listens for ServerController commands.
