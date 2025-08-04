@@ -25,7 +25,6 @@ fn main() {
 
     // emulates main thread communication with server
     loop {
-        println!("Sending msg to server...");
         server_comm.send_request(server::commands::ServerRequest::InitServer);
         match server_comm.receive_response() {
             Ok(server::commands::ServerResponse::ServerStarted(_)) => {
@@ -40,7 +39,7 @@ fn main() {
         server_comm.send_request(server::commands::ServerRequest::TerminateClient(2));
         match server_comm.receive_response() {
             Ok(server::commands::ServerResponse::ClientTerminated(t)) => {
-                println!("Client terminated successfully.{}", t.client_id);
+                println!("Client {} terminated successfully.", t.client_id);
             },
             _ => {
                 println!("Unexpected response during client termination.");
