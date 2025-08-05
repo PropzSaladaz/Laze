@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::Read, net::{SocketAddr, TcpStream}, sync::{atomic::AtomicBool, mpsc::{channel, Receiver, Sender}, Arc, Mutex}, thread};
+use std::{collections::HashMap, io::Read, net::{SocketAddr, TcpStream}, sync::{atomic::AtomicBool, mpsc::{channel, Receiver, Sender}, Arc, Mutex}, thread, time::Duration};
 
 use crate::logger::Loggable;
 
@@ -9,6 +9,10 @@ use super::{
 
 const CLIENT_POOL_RESERVED_ID: usize = 0;
 const DEFAULT_CLIENT_PORT: usize = 7878;
+
+const CLIENT_READ_TIMEOUT: Duration = Duration::from_secs(1);
+
+const ATOMIC_BOOL_ORDERING: std::sync::atomic::Ordering = std::sync::atomic::Ordering::SeqCst;
 
 /// Represents a termination command for a client thread running on
 /// the server upon the mobile client disconnects from the server's
@@ -73,7 +77,7 @@ impl ClientPool {
                     ClientPool::static_log_info(&format!("Received termination request for client {}", terminate.client_id));
 
                     if let Some(client) = clients.remove(&terminate.client_id) {
-                        client.exit_requested.store(true, std::sync::atomic::Ordering::SeqCst);
+                        client.exit_requested.store(true, ATOMIC_BOOL_ORDERING);
                         ClientPool::static_log_info(&format!("Client {} terminated successfully.", terminate.client_id));
                     } else {
                         ClientPool::static_log_warn(&format!("Client {} not found in pool.", terminate.client_id));
@@ -116,22 +120,27 @@ impl ClientPool {
         let clients = self.clients.lock().unwrap();
         if clients.contains_key(&client_id) {
             let client = clients.get(&client_id).unwrap();
-            client.exit_requested.store(true, std::sync::atomic::Ordering::SeqCst);
+            client.exit_requested.store(true, ATOMIC_BOOL_ORDERING);
             ClientPool::static_log_info(&format!("Client {} scheduled for termination.", client_id));
         } else {
             ClientPool::static_log_warn(&format!("Client {} not found in pool.", client_id));
         }
     }
 
+    /// Schedules all current clients for termination, and releases resources for them.
+    /// Schedules termination listener thread to terminate as well.
     pub fn shutdown(&self) {
         self.log_info("Shutting down client pool...");
         let mut clients = self.clients.lock().unwrap();
 
         clients.iter().for_each(|(_, client)| {
-            client.exit_requested.store(true, std::sync::atomic::Ordering::SeqCst);
+            client.exit_requested.store(true, ATOMIC_BOOL_ORDERING);
             self.log_info(&format!("Client {} scheduled to terminate.", client.id));
         });
-        clients.clear();        
+        clients.clear();
+
+        self.log_info("All clients scheduled for termination. Scheduling termination listener thread to terminate.");
+        self.client_termination_sender.send(Terminate { client_id: CLIENT_POOL_RESERVED_ID }).unwrap();    
     }
 }
 
@@ -175,21 +184,32 @@ impl Client {
         // Create thread
         thread::spawn(move || {
             log::info!("Client created {:?} @ {:?}:{:?}", id, address, port);
-            match socket.accept() {
+
+            let exit_reason = match socket.accept() {
                 Ok((stream, _)) => {
-                    client.handle_requests(stream, app);
+                    client.handle_requests(stream, app)
                 }
                 Err(e) => {
-                    log::error!("Could not parse stream in Client {id}: {}", e);
+                    ExitReason::Unexpected(format!("Could not parse stream in Client {id}: {}", e))
                 }
-            }
+            };
 
-            if client.exit_requested.load(std::sync::atomic::Ordering::SeqCst) {
-                Client::static_log_info(&format!("Client {} exiting gracefully.", id));
-            } else {
-                Client::static_log_warn(&format!("Client {} exited unexpectedly.", id));
-                // inform client pool to release resources
-                termination_sender.send(Terminate { client_id: id }).unwrap();
+            match exit_reason {
+                ExitReason::RequestedByServer => {
+                    // no need to ask server to release resources
+                    Self::static_log_info(&format!("Client {} requested to terminate by server.", id));
+                }
+                ExitReason::RequestedByClient => {
+                    // need to ask server to release resources
+                    termination_sender.send(Terminate { client_id: id }).unwrap();
+                    Self::static_log_info(&format!("Client {} requested to terminate by itself.", id));
+                }
+                ExitReason::Unexpected(reason) => {
+                    // need to ask server to release resources
+                    termination_sender.send(Terminate { client_id: id }).unwrap();
+                    Self::static_log_error(&format!("Client {} terminated unexpectedly: {}", id, reason));
+                }
+
             }
         });
 
@@ -199,7 +219,10 @@ impl Client {
     /// Handle incomming client inputs.
     ///
     /// Sends the received bytes up to the application to handle the input
-    fn handle_requests(&self, mut stream: TcpStream, app: Arc<Mutex<impl Application + 'static>>) {
+    fn handle_requests(&self, mut stream: TcpStream, app: Arc<Mutex<impl Application + 'static>>) -> ExitReason {
+        // client timesout if no data available & checks for termination signal
+        stream.set_read_timeout(Some(CLIENT_READ_TIMEOUT)).unwrap();
+
         // make the reads blocking - wait indefinetely for client input
         // stream.set_read_timeout(None).expect("Could not set read timeout."); 
         loop {
@@ -213,15 +236,28 @@ impl Client {
                     let bytes = &bytes[..bytes_size];
 
                     if let ConnectionStatus::Disconnected = app.lock().unwrap().dispatch_to_device(bytes) {
-                        log::info!("Client disconnected");
-                        break;
+                        return ExitReason::RequestedByClient;
+                    }
+                }
+                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock || e.kind() == std::io::ErrorKind::TimedOut => {
+                    // No data available, timed out
+
+                    // client was requested to terminate by the server
+                    if self.exit_requested.load(ATOMIC_BOOL_ORDERING) {
+                        return ExitReason::RequestedByServer;
                     }
                 }
                 // Error on connection (possibly abrupt disconnection by client)
                 Err(e) => {
-                    log::info!("Client {:?} listening at {:?} disconnected: {:?}", self.id, self.address, e);
+                    return ExitReason::Unexpected(format!("Client {:?} listening at {:?} disconnected: {:?}", self.id, self.address, e));
                 }
             }
         }
     }
+}
+
+enum ExitReason {
+    RequestedByServer,
+    RequestedByClient,
+    Unexpected(String),
 }

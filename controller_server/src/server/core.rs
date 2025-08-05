@@ -2,6 +2,8 @@ use std::{io::Write, net::{SocketAddr, TcpStream}, sync::{mpsc::channel, Arc, Mu
 
 use serde::{Deserialize, Serialize};
 
+use crate::logger::Loggable;
+
 use super::{
     application::Application,
     client_pool::ClientPool,
@@ -62,7 +64,7 @@ impl<A: Application + 'static> Server<A> {
     ///
     /// This call is non-blocking, and allows the server to wait for
     /// new client connection requests at port 7878.
-    /// It also creates a thread that listens for server commands at port 7878 - 1 = 7877
+    /// It also creates a thread that listens for server commands through channels.
     /// 
     /// Once a new connection to a new client is established, that client is assigned a new
     /// isolated socket with its own port. Each client then connects to the server through its own
@@ -92,7 +94,7 @@ impl<A: Application + 'static> Server<A> {
                 terminate_signal: false,
             }));
 
-            // set command listener callback before starting command listener thread
+            // set command listener callback for parsing server commands before starting command listener thread
             command_listener.set_command_processor({
                 let server = Arc::clone(&server);
                 move |req| {
@@ -100,11 +102,11 @@ impl<A: Application + 'static> Server<A> {
                 }
             });
 
-            // non blocking - starts
+            // non blocking
             let delay = Duration::from_millis(1000);
             let handler = command_listener.listen(delay);
             
-            // blocking
+            // blocking - only exits when the server is terminated
             Self::start_client_listener(server);
 
             // await for non-blocking thread
@@ -122,59 +124,86 @@ impl<A: Application + 'static> Server<A> {
     /// Main loop.
     /// Waits on a new client connection.
     fn start_client_listener(server: Arc<Mutex<Self>>) {
+        let mut server_is_scheduled_for_termination ;
+
         let starting_port = {
             let lock = server.lock().unwrap();
+            server_is_scheduled_for_termination = lock.terminate_signal;
             lock.config.starting_port
         };
         let socket = utils::create_socket(starting_port);
-        log::info!("Starting client listener: {}", socket.local_addr().unwrap());
+        // configure it such that .accept() returns immediately
+        // without blocking the thread. Allows to sleep for a while if no
+        // new connections are available.
+        socket.set_nonblocking(true).unwrap();
+
+        Self::static_log_info(&format!("Starting client listener: {}", socket.local_addr().unwrap()));
+        
         loop {
-            let connection = socket.accept();
-            Self::handle_new_client(&server, connection);
+            if server_is_scheduled_for_termination {
+                Self::static_log_info(&format!("Terminated client listener thread. Server is scheduled for termination."));
+                break;
+            }
+
+            match socket.accept() {
+                Ok(connection) => {
+                    Self::handle_new_client(&server, connection);
+                }
+                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    // No new connections available, sleep for a while
+                    thread::sleep(Duration::from_millis(100));
+                }
+                Err(e) => {
+                    Self::static_log_error(&format!("Error accepting connection: {}", e));
+                }
+            }
+
+            // pull the server lock to check if the server is scheduled for termination
+            server_is_scheduled_for_termination = {
+                let lock = server.lock().unwrap();
+                lock.terminate_signal
+            };
         }
     }
 
     // Upon receiving a new connection request, create a new client
     // waiting on a new port and send the new socket's port dedicated
     // to that connection to the client
-    fn handle_new_client(server: &Arc<Mutex<Self>>, connection: Result<(TcpStream, SocketAddr), std::io::Error>) {
+    fn handle_new_client(server: &Arc<Mutex<Self>>, connection: (TcpStream, SocketAddr)) {
         let label = "[ClientListener]:";
-        match connection {
-            Ok((mut stream, addr)) => {
-                log::info!("{label} Received client connection");
-                let mut lock = server.lock().unwrap();
+        let (mut stream, addr) = connection;
+        Self::static_log_info(&format!("{label} Received client connection"));
+        let mut lock = server.lock().unwrap();
 
-                if lock.listening_to_clients {
-                    log::debug!("{label} Received connection from non-local address: {:?}", addr);
-                    // try adding new client to pool
-                    let app = Arc::clone(&lock.app);
-                    let port = match lock.clients.add(addr, app) {
-                        Ok(connection_port) => {
-                            log::info!("{label} Opened socket for new client at {connection_port}");
-                            connection_port as i32
-                        },
-                        Err(reason) => {
-                            log::error!("{reason}");
-                            SERVER_REACHED_MAX_CONCURRENT_CLIENTS
-                        }
-                    };
-
-                    let data = serde_json::to_vec(&NewClientResponse { 
-                        port,
-                        server_os: std::env::consts::OS.to_owned(), // send the server OS to client
-                    }).unwrap();
-
-                    stream.write_all(&data).unwrap();
-
-                    log::debug!("{label} Sent new client response: {:?}", data);
+        if lock.listening_to_clients {
+            Self::static_log_debug(&format!("{label} Received connection from address: {:?}", addr));
+            // try adding new client to pool
+            let app = Arc::clone(&lock.app);
+            let port = match lock.clients.add(addr, app) {
+                Ok(connection_port) => {
+                    Self::static_log_info(&format!("{label} Opened socket for new client at {connection_port}"));
+                    connection_port as i32
+                },
+                Err(reason) => {
+                    Self::static_log_error(&format!("{reason}"));
+                    SERVER_REACHED_MAX_CONCURRENT_CLIENTS
                 }
-                else {
-                    log::warn!("{label} Received connection from non-local address: {:?}, but server is not listening to clients!", addr);
-                }
-            }
-            Err(e) => log::error!("{label} Could not accept connection! {}", e)
+            };
+
+            let data = serde_json::to_vec(&NewClientResponse { 
+                port,
+                server_os: std::env::consts::OS.to_owned(), // send the server OS to client
+            }).unwrap();
+
+            stream.write_all(&data).unwrap();
+
+            Self::static_log_debug(&format!("{label} Sent new client response: {:?}", data));
+        }
+        else {
+            Self::static_log_warn(&format!("{label} Received connection from address: {:?}, but server is not listening to clients!", addr));
         }
     }
+    
 
 
     /// Parses a command from the server.
@@ -190,6 +219,7 @@ impl<A: Application + 'static> Server<A> {
             }
             ServerRequest::TerminateServer => {
                 lock.terminate_signal = true;
+                lock.clients.shutdown();
                 Ok(ServerResponse::ServerTerminated(ServerTerminated {}))
             }
             ServerRequest::TerminateClient(client_id) => {
