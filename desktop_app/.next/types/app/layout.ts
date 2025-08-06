@@ -1,4 +1,4 @@
-// File: /home/seed/Documents/IToffSchool/Projects/mobile-virtual-device/desktop_app/app/layout.tsx
+// File: /home/engine/project/desktop_app/app/layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

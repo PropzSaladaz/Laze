@@ -7,6 +7,7 @@ pub enum ServerRequest {
     InitServer,
     TerminateServer,
     TerminateClient(usize),
+    GetClients,
 }
 
 // ------------------ Responses ------------------ //
@@ -16,6 +17,7 @@ pub enum ServerResponse {
     ServerStarted(ServerStarted),
     ServerTerminated(ServerTerminated),
     ClientTerminated(ClientTerminated),
+    ClientList(ClientList),
     Error(String),
 }
 
@@ -28,6 +30,18 @@ pub struct ServerTerminated;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ClientTerminated {
     pub client_id: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ClientList {
+    pub clients: Vec<ClientInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ClientInfo {
+    pub id: usize,
+    pub address: String,
+    pub port: usize,
 }
 
 // ------------------ VariantOf Trait ------------------ //
@@ -62,4 +76,5 @@ impl_variant_of!(ServerResponse => {
     ServerStarted,
     ServerTerminated,
     ClientTerminated,
+    ClientList,
 });

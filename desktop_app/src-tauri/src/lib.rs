@@ -30,6 +30,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::start_server,
             commands::stop_server,
+            commands::remove_client,
+            commands::get_clients,
             // Add more commands here
         ])
         .run(tauri::generate_context!())

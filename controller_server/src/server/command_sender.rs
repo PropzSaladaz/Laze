@@ -1,5 +1,5 @@
 use std::sync::mpsc::{Receiver, Sender};
-use super::commands::{ServerRequest, ServerResponse, VariantOf};
+use super::commands::{ServerRequest, ServerResponse};
 
 /// A communication interface for interacting with a server through message passing channels.
 /// 

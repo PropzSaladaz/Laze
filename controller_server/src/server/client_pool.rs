@@ -5,6 +5,7 @@ use crate::logger::Loggable;
 use super::{
     utils,
     application::{Application, ConnectionStatus},
+    commands::{ClientInfo, ClientList},
 };
 
 const CLIENT_POOL_RESERVED_ID: usize = 0;
@@ -126,6 +127,21 @@ impl ClientPool {
         } else {
             Err(format!("Client {} not found in pool.", client_id))
         }
+    }
+
+    /// Gets information about all currently connected clients.
+    pub fn get_clients(&self) -> ClientList {
+        let clients = self.clients.lock().unwrap();
+        let client_infos: Vec<ClientInfo> = clients
+            .iter()
+            .map(|(_, client)| ClientInfo {
+                id: client.id,
+                address: client.address.to_string(),
+                port: client.port,
+            })
+            .collect();
+
+        ClientList { clients: client_infos }
     }
 
     /// Schedules all current clients for termination, and releases resources for them.
