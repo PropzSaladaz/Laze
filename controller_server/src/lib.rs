@@ -11,7 +11,7 @@ pub use server::{
     application::Application,
     core::{ServerConfig, Server},
     command_sender::{CommandSender},
-    commands::{ServerRequest, ServerResponse}
+    commands::{ServerRequest, ServerResponse, ClientInfo}
 };
 
 pub use mobile_controller::MobileController;

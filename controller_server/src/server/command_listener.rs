@@ -4,7 +4,7 @@ use std::{
 use std::sync::mpsc::RecvTimeoutError;
 
 use crate::logger::Loggable;
-use super::commands::{ServerRequest, ServerResponse, ServerStarted, ServerTerminated, ClientTerminated, VariantOf};
+use super::commands::{ServerRequest, ServerResponse, ServerStarted, ServerTerminated, ClientTerminated, ClientList, VariantOf};
 
 #[derive(Debug)]
 pub struct ProcessError {
@@ -271,6 +271,26 @@ impl CommandListener {
                     }
                 }
 
+            }
+            ServerRequest::GetClients => {
+                self.log_info("Received GetClients request from ServerController. Processing...");
+
+                match self.command_processor.process(ServerRequest::GetClients) {
+                    Ok(resp) => {
+                        let client_list = ClientList::assert_variant_of(resp);
+                        let response = ServerResponse::ClientList(client_list);
+                        self.log_info("Received client list successfully.");
+                        self.sender.send(response).unwrap();
+                    },
+                    Err(e) => {
+                        let err_msg = format!("Failed to get clients: {}", e);
+                        self.log_error(&err_msg);
+
+                        // send error response back to the client
+                        let response = ServerResponse::Error(err_msg.to_string());
+                        self.sender.send(response).unwrap();
+                    }
+                }
             }
         }
     }

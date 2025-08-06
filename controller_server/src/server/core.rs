@@ -235,6 +235,10 @@ impl<A: Application + 'static> Server<A> {
                     }
                 }
             }
+            ServerRequest::GetClients => {
+                let clients = lock.clients.get_clients();
+                Ok(ServerResponse::ClientList(clients))
+            }
         }
     }
 }
