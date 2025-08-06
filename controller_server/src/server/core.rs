@@ -108,9 +108,13 @@ impl<A: Application + 'static> Server<A> {
             
             // blocking - only exits when the server is terminated
             Self::start_client_listener(server);
+            Self::static_log_info("Client listener thread has exited.");
 
             // await for non-blocking thread
+            handler.schedule_shutdown();
+            Self::static_log_info("Waiting on command listener thread to shutdown.");
             handler.wait_for_exit();
+            Self::static_log_info("Command listener thread has exited.");
         });
 
         // return channel endpoints to send messages and also receive messages to / from the server
@@ -223,8 +227,13 @@ impl<A: Application + 'static> Server<A> {
                 Ok(ServerResponse::ServerTerminated(ServerTerminated {}))
             }
             ServerRequest::TerminateClient(client_id) => {
-                lock.clients.terminate_client(client_id);
-                Ok(ServerResponse::ClientTerminated(ClientTerminated { client_id }))
+                match lock.clients.terminate_client(client_id) {
+                    Ok(_) => Ok(ServerResponse::ClientTerminated(ClientTerminated { client_id })),
+                    Err(err_msg) => {
+                        Self::static_log_error(&err_msg);
+                        Err(ProcessError { message: err_msg })
+                    }
+                }
             }
         }
     }

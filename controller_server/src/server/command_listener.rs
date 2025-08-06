@@ -1,6 +1,8 @@
 use std::{
-    error::Error, sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, thread, time::Duration
+    error::Error, sync::{atomic::AtomicBool, mpsc::{Receiver, Sender}, Arc, RwLock}, thread, time::Duration
 };
+use std::sync::mpsc::RecvTimeoutError;
+
 use crate::logger::Loggable;
 use super::commands::{ServerRequest, ServerResponse, ServerStarted, ServerTerminated, ClientTerminated, VariantOf};
 
@@ -68,11 +70,17 @@ impl<Req, Resp> CommandProcessor<Req, Resp> {
 /// This handle can be used to wait for the thread to finish execution.
 pub struct CommandListenerHandler {
     thread_handle: thread::JoinHandle<()>,
+    termination_signal: Arc<AtomicBool>,
 }
 
 impl CommandListenerHandler {
     pub fn wait_for_exit(self) {
         self.thread_handle.join().expect("Failed to join command listener thread");
+    }
+
+    // Sets the termination signal to true, which will cause the command listener thread to exit.
+    pub fn schedule_shutdown(&self) {
+        self.termination_signal.store(true, std::sync::atomic::Ordering::SeqCst);
     }
 }
 
@@ -104,6 +112,7 @@ impl CommandListenerHandler {
 /// 
 /// let handler = listener.listen(Duration::from_secs(1));
 /// // ... send requests through tx channel
+/// handler.schedule_shutdown();
 /// handler.wait_for_exit();
 /// ```
 /// 
@@ -126,15 +135,24 @@ impl CommandListenerHandler {
 pub struct CommandListener {
     sender: Sender<ServerResponse>,
     receiver: Receiver<ServerRequest>,
+
+    /// This is an Arc to allow some other thread to set the command processor callback.
+    /// when calling the `listen` method, the command listener thread will wait for the processor to be set.
+    /// The processor is used to process the requests received from the channel receiver.
     command_processor: Arc<CommandProcessor<ServerRequest, ServerResponse>>,
+
+    /// this is used to signal the command listener thread to exit
+    /// it is set via the CommandListenerHandler to true when the server is terminated
+    /// This variable is shared across threads
+    termination_signal: Arc<AtomicBool>,
 }
 
 impl CommandListener {
     pub fn new( sender: Sender<ServerResponse>, receiver: Receiver<ServerRequest>) -> Self {
-        CommandListener { sender, receiver, command_processor: Arc::new(CommandProcessor::new()) }
+        CommandListener { sender, receiver, command_processor: Arc::new(CommandProcessor::new()), termination_signal: Arc::new(AtomicBool::new(false)) }
     }
 
-   pub fn set_command_processor<F>(&self, processor: F)
+    pub fn set_command_processor<F>(&self, processor: F)
     where
         F: Fn(ServerRequest) -> Result<ServerResponse, ProcessError> + Send + Sync + 'static,
     {
@@ -150,83 +168,33 @@ impl CommandListener {
     /// This method is non-blocking.
     /// The struct is moved into the thread, so it cannot be used after calling this method.
     pub fn listen(self, delay: Duration) -> CommandListenerHandler {
+        let termination_signal = Arc::clone(&self.termination_signal);
 
+        // Start dedicated thread for command listener
         let thread_handle = thread::spawn( move || {
             // wait for the server listener thread at consfig.starting_port to start
             thread::sleep(delay);
             self.log_info("Waiting for command processor to be set...");
             self.command_processor.wait_for_processor();
 
-            self.log_info("Starting command listener thread...");
+            self.log_info("Command processor is set. Starting command listener thread...");
 
             loop {
-                match self.receiver.recv() {
-                    Ok(ServerRequest::InitServer) => {
-                        self.log_info("Received InitServer request from ServerController. Processing...");
-
-                        match self.command_processor.process(ServerRequest::InitServer) {
-                            Ok(resp) => {
-                                let started = ServerStarted::assert_variant_of(resp);
-                                let response = ServerResponse::ServerStarted(started);
-
-                                self.log_info(&format!("Received confirmation that server started"));
-                                self.log_info("Sending response back to ServerController");
-                                
-                                self.sender.send(response).unwrap();
-                            },
-                            Err(e) => {
-                                let err_msg = format!("Failed to initialize server: {}", e);
-                                self.log_error(&err_msg);
-
-                                // send error response back to the client
-                                let response = ServerResponse::Error(err_msg);
-                                self.sender.send(response).unwrap();
-                                continue;
-                            }
+                match self.receiver.recv_timeout(Duration::from_millis(1000)) {
+                    Ok(message) => {
+                        self.log_debug(&format!("Received message: {:?}", message));
+                        self.parse_message(&message);
+                    }
+                    Err(RecvTimeoutError::Timeout) => {
+                        if self.termination_signal.load(std::sync::atomic::Ordering::SeqCst) {
+                            self.log_info("Termination signal received. Exiting command listener thread.");
+                            break;
                         }
                     }
-                    Ok(ServerRequest::TerminateServer) => {
-                        self.log_info("Received TerminateServer request from ServerController. Processing...");
-
-                        match self.command_processor.process(ServerRequest::TerminateServer) {
-                            Ok(resp) => {
-                                let terminated = ServerTerminated::assert_variant_of(resp);
-                                let response = ServerResponse::ServerTerminated(terminated);
-                                self.log_info("Received confirmation that server terminated.");
-                                self.sender.send(response).unwrap();
-                            },
-                            Err(e) => {
-                                let err_msg = format!("Failed to terminate server: {}", e);
-                                self.log_error(&err_msg);
-
-                                // send error response back to the client
-                                let response = ServerResponse::Error(err_msg.to_string());
-                                self.sender.send(response).unwrap();
-                            }
-                        }   
+                    Err(e) => {
+                        self.log_error(&format!("Error receiving message: {}", e));
+                        break;
                     }
-                    Ok(ServerRequest::TerminateClient(client_id)) => {
-                        self.log_info(&format!("Received TerminateClient request for client {} from ServerController. Processing...", client_id));
-
-                        match self.command_processor.process(ServerRequest::TerminateClient(client_id)) {
-                            Ok(resp) => {
-                                let client_terminated = ClientTerminated::assert_variant_of(resp);
-                                let response = ServerResponse::ClientTerminated(client_terminated);
-                                self.log_info(&format!("Received confirmation that client {} terminated.", client_id));
-                                self.sender.send(response).unwrap();
-                            },
-                            Err(e) => {
-                                let err_msg = format!("Failed to terminate client {}: {}", client_id, e);
-                                self.log_error(&err_msg);
-
-                                // send error response back to the client
-                                let response = ServerResponse::Error(err_msg.to_string());
-                                self.sender.send(response).unwrap();
-                            }
-                        }
-
-                    }
-                    Err(e) => log::error!("Error receiving server request: {}", e),
                 }
             }
 
@@ -234,6 +202,76 @@ impl CommandListener {
 
         CommandListenerHandler {
             thread_handle: thread_handle,
+            termination_signal: termination_signal,
+        }
+    }
+
+    fn parse_message(&self, message: &ServerRequest) {
+        match message {
+            ServerRequest::InitServer => {
+                self.log_info("Received InitServer request from ServerController. Processing...");
+
+                match self.command_processor.process(ServerRequest::InitServer) {
+                    Ok(resp) => {
+                        let started = ServerStarted::assert_variant_of(resp);
+                        let response = ServerResponse::ServerStarted(started);
+
+                        self.log_info(&format!("Received confirmation that server started"));
+                        self.log_info("Sending response back to ServerController");
+                        
+                        self.sender.send(response).unwrap();
+                    },
+                    Err(e) => {
+                        let err_msg = format!("Failed to initialize server: {}", e);
+                        self.log_error(&err_msg);
+
+                        // send error response back to the client
+                        let response = ServerResponse::Error(err_msg);
+                        self.sender.send(response).unwrap();
+                    }
+                }
+            }
+            ServerRequest::TerminateServer => {
+                self.log_info("Received TerminateServer request from ServerController. Processing...");
+
+                match self.command_processor.process(ServerRequest::TerminateServer) {
+                    Ok(resp) => {
+                        let terminated = ServerTerminated::assert_variant_of(resp);
+                        let response = ServerResponse::ServerTerminated(terminated);
+                        self.log_info("Received confirmation that server terminated.");
+                        self.sender.send(response).unwrap();
+                    },
+                    Err(e) => {
+                        let err_msg = format!("Failed to terminate server: {}", e);
+                        self.log_error(&err_msg);
+
+                        // send error response back to the client
+                        let response = ServerResponse::Error(err_msg.to_string());
+                        self.sender.send(response).unwrap();
+                    }
+                }   
+            }
+            ServerRequest::TerminateClient(client_id) => {
+                self.log_info(&format!("Received TerminateClient request for client {} from ServerController. Processing...", client_id));
+
+                match self.command_processor.process(ServerRequest::TerminateClient(*client_id)) {
+                    Ok(resp) => {
+                        let client_terminated = ClientTerminated::assert_variant_of(resp);
+                        let response = ServerResponse::ClientTerminated(client_terminated);
+                        self.log_info(&format!("Received confirmation that client {} terminated.", client_id));
+                        self.sender.send(response).unwrap();
+                    },
+                    Err(e) => {
+                        let err_msg = format!("Failed to terminate client {}: {}", client_id, e);
+                        self.log_error(&err_msg);
+
+                        // send error response back to the client
+                        let response = ServerResponse::Error(err_msg.to_string());
+                        self.sender.send(response).unwrap();
+                    }
+                }
+
+            }
         }
     }
 }
