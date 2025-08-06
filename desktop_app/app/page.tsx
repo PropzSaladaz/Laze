@@ -1,29 +1,44 @@
 "use client";
 
-
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
+import { Server } from "node:tls";
 
 function App() {
 
-  const [serverIp, setServerIp] = useState("");
+  const [started, setStarted] = useState(false);
 
   // start server & get IP address
   async function startServer() {
-    let ip = await invoke<string>("start_server", {});
-    setServerIp(ip);
+    await invoke<string>("start_server", {});
+    setStarted(true);
+  }
+
+  // start server & get IP address
+  async function stopServer() {
+    await invoke<string>("stop_server", {});
+    setStarted(false);
+  }
+
+  async function removeClient(clientId: number) {
+    await invoke("remove_client", { clientId });
   }
 
   return (
     <main className="container">
       <h1>Welcome to Mobile Controller</h1>
-      {serverIp ?
-        <h1>Server running at {serverIp}</h1>
-        :
-        <button onClick={startServer}>Start Server</button>
-      }
+      {started ? (
+        <>
+          <h1>Server is running</h1>
+          <button onClick={stopServer}>Stop Server</button>
+        </>
+      ) : (
+        <>
+          <h1>Server is stopped</h1>
+          <button onClick={startServer}>Start Server</button>
+        </>
+      )}
     </main>
   );
 }
