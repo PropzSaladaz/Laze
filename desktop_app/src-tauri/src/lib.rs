@@ -9,6 +9,10 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            // load environemnt variables from .env file
+            // includes log level
+            dotenv::dotenv().ok();
+
             let controller: MobileController = MobileController::new(
                 1, 
                 1,
@@ -24,8 +28,9 @@ pub fn run() {
         })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            commands::start_server
-
+            commands::start_server,
+            commands::stop_server,
+            // Add more commands here
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
