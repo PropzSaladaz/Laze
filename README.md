@@ -6,7 +6,7 @@ It is composed of:
 - **controller_server** – a Rust application that listens for incoming connections and forwards
   the received bytes to a virtual input device.
 - **desktop_app** – A Tauri desktop app that spins up `controller_server` and shows some UI to the user.
-- **mobile_client** – a Flutter application that provides a mobile UI.
+- **mobile_client** – a Flutter application that provides a mobile UI and communicates with **controller_server**
 
 Each client initially connects to the server on port `7878`. The server then assigns
 an individual port and spawns a thread to handle that connection. Input bytes sent by
