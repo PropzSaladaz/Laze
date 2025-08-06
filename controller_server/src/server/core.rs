@@ -155,7 +155,7 @@ impl<A: Application + 'static> Server<A> {
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     // No new connections available, sleep for a while
-                    thread::sleep(Duration::from_millis(100));
+                    thread::sleep(Duration::from_millis(1000));
                 }
                 Err(e) => {
                     Self::static_log_error(&format!("Error accepting connection: {}", e));
