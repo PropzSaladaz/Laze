@@ -50,8 +50,8 @@ impl CommandSender {
     }
 
     /// Sends a request to the server.
-    pub fn send_request(&self, request: ServerRequest) {
-        self.sender_channel.send(request).unwrap();
+    pub fn send_request(&self, request: ServerRequest) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
+        self.sender_channel.send(request)
     }
 
     /// Receives a response from the server.

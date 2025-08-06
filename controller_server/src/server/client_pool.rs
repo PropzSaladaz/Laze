@@ -116,14 +116,15 @@ impl ClientPool {
     }
 
     /// Schedules client for termination.
-    pub fn terminate_client(&self, client_id: usize) {
+    pub fn terminate_client(&self, client_id: usize) -> Result<(), String> {
         let clients = self.clients.lock().unwrap();
         if clients.contains_key(&client_id) {
             let client = clients.get(&client_id).unwrap();
             client.exit_requested.store(true, ATOMIC_BOOL_ORDERING);
             ClientPool::static_log_info(&format!("Client {} scheduled for termination.", client_id));
+            Ok(())
         } else {
-            ClientPool::static_log_warn(&format!("Client {} not found in pool.", client_id));
+            Err(format!("Client {} not found in pool.", client_id))
         }
     }
 
