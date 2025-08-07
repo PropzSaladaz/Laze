@@ -2,6 +2,8 @@ use std::{io::Write, net::{SocketAddr, TcpStream}, sync::{mpsc::channel, Arc, Mu
 
 use serde::{Deserialize, Serialize};
 
+use tokio::sync::broadcast;
+
 use crate::logger::Loggable;
 
 use super::{
@@ -42,6 +44,56 @@ pub struct NewClientResponse {
     server_os: String,
 }
 
+#[derive(Debug, Clone)]
+pub enum ServerEvent {
+    ClientAdded(ClientInfo),
+    ClientRemoved(ClientInfo),
+}
+
+#[derive(Debug, Clone)]
+pub struct ClientInfo {
+    pub id: usize,
+    pub addr: String,
+}
+
+pub struct ServerHandler {
+    event_receiver: broadcast::Receiver<ServerEvent>,
+    command_sender: CommandSender,
+}
+
+impl ServerHandler {
+    pub fn new(event_receiver: broadcast::Receiver<ServerEvent>, command_sender: CommandSender) -> Self {
+        Self {
+            event_receiver,
+            command_sender,
+        }
+    }
+
+    fn send_request(&self, request: ServerRequest) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
+        self.command_sender.send_request(request)
+    }
+
+    pub fn start_server(&self) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
+        self.send_request(ServerRequest::InitServer)
+    }
+
+    pub fn terminate_server(&self) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
+        self.send_request(ServerRequest::TerminateServer)
+    }
+
+    pub fn terminate_client(&self, client_id: usize) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
+        self.send_request(ServerRequest::TerminateClient(client_id))
+    }
+
+    pub fn receive_response(&mut self) -> Result<ServerResponse, std::sync::mpsc::RecvError> {
+        self.command_sender.receive_response()
+    }
+
+    pub async fn next_event(&mut self) -> Option<ServerEvent> {
+        self.event_receiver.recv().await.ok()
+    }
+}
+
 
 pub struct Server<A: Application> {
     clients: ClientPool,
@@ -71,10 +123,12 @@ impl<A: Application + 'static> Server<A> {
     /// assigned socket.
     /// 
     /// The port 7878 is only used as a common ground to establish new connections with new clients.
-    pub fn start(config: ServerConfig, app: A) -> CommandSender {
+    pub fn start(config: ServerConfig, app: A) -> ServerHandler {
+        let (event_pub, event_consumer) = broadcast::channel(100);
+
         // Initialize logger with default settings
         env_logger::init(); 
-        let clients = ClientPool::new(config.max_clients);
+        let clients = ClientPool::new(config.max_clients, event_pub.clone());
 
         // Unidirectional channel from ServerController (client) -> Server
         let (send_to_server, receive_from_client) = channel::<ServerRequest>();
@@ -118,11 +172,11 @@ impl<A: Application + 'static> Server<A> {
         });
 
         // return channel endpoints to send messages and also receive messages to / from the server
-        CommandSender::new(
-            send_to_server,
-            receive_from_server
-        )
 
+        ServerHandler {
+            event_receiver: event_consumer,
+            command_sender: CommandSender::new(send_to_server, receive_from_server),
+        }
     }
 
     /// Main loop.

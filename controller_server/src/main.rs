@@ -21,54 +21,51 @@ fn main() {
             1500).unwrap();
 
     // server has started here
-    let mut server_comm = Server::start(config, app);
+    let mut handle = Server::start(config, app);
 
     // emulates main thread communication with server
-    loop {
-        server_comm.send_request(server::commands::ServerRequest::InitServer).unwrap();
-        match server_comm.receive_response() {
-            Ok(server::commands::ServerResponse::ServerStarted(_)) => {
-                println!("Server initialized successfully.");
-            },
-            Ok(server::commands::ServerResponse::Error(err)) => {
-                println!("Error initializing server: {}", err);
-            },
-            _ => {
-                println!("Unexpected response during initialization.");
-            }
+    handle.start_server().unwrap();
+    match handle.receive_response() {
+        Ok(server::commands::ServerResponse::ServerStarted(_)) => {
+            println!("Server initialized successfully.");
+        },
+        Ok(server::commands::ServerResponse::Error(err)) => {
+            println!("Error initializing server: {}", err);
+        },
+        _ => {
+            println!("Unexpected response during initialization.");
         }
-        sleep(Duration::from_secs(6));
-
-        server_comm.send_request(server::commands::ServerRequest::TerminateClient(2)).unwrap();
-        match server_comm.receive_response() {
-            Ok(server::commands::ServerResponse::ClientTerminated(t)) => {
-                println!("Client {} terminated successfully.", t.client_id);
-            },
-            Ok(server::commands::ServerResponse::Error(err)) => {
-                println!("Error terminating client: {}", err);
-            },
-            _ => {
-                println!("Unexpected response during client termination.");
-            }
-        }
-
-        sleep(Duration::from_secs(6));
-
-        server_comm.send_request(server::commands::ServerRequest::TerminateServer).unwrap();
-        match server_comm.receive_response() {
-            Ok(server::commands::ServerResponse::ServerTerminated(_)) => {
-                println!("Server terminated successfully.");
-            },
-            Ok(server::commands::ServerResponse::Error(err)) => {
-                println!("Error terminating server: {}", err);
-            },
-            _ => {
-                println!("Unexpected response during server termination.");
-            }
-        }
-        sleep(Duration::from_secs(6));
-    
     }
+    sleep(Duration::from_secs(6));
+
+    handle.terminate_client(2).unwrap();
+    match handle.receive_response() {
+        Ok(server::commands::ServerResponse::ClientTerminated(t)) => {
+            println!("Client {} terminated successfully.", t.client_id);
+        },
+        Ok(server::commands::ServerResponse::Error(err)) => {
+            println!("Error terminating client: {}", err);
+        },
+        _ => {
+            println!("Unexpected response during client termination.");
+        }
+    }
+
+    sleep(Duration::from_secs(6));
+
+    handle.terminate_server().unwrap();
+    match handle.receive_response() {
+        Ok(server::commands::ServerResponse::ServerTerminated(_)) => {
+            println!("Server terminated successfully.");
+        },
+        Ok(server::commands::ServerResponse::Error(err)) => {
+            println!("Error terminating server: {}", err);
+        },
+        _ => {
+            println!("Unexpected response during server termination.");
+        }
+    }
+    sleep(Duration::from_secs(2));    
 }
 
 
