@@ -1,10 +1,13 @@
 use std::{collections::HashMap, io::Read, net::{SocketAddr, TcpStream}, sync::{atomic::AtomicBool, mpsc::{channel, Receiver, Sender}, Arc, Mutex}, thread, time::Duration};
 
-use crate::logger::Loggable;
+use crate::{logger::Loggable, server::core::ClientInfo};
+
+use tokio::sync::broadcast;
 
 use super::{
     utils,
     application::{Application, ConnectionStatus},
+    core::{ServerEvent},
 };
 
 const CLIENT_POOL_RESERVED_ID: usize = 0;
@@ -39,11 +42,17 @@ pub struct ClientPool {
     /// This is used when the client itself chooses to terminate. Either by
     /// an error or by the client's client application.
     client_termination_sender: Sender<Terminate>,
+
+    /// A broadcast channel to publish server events.
+    /// This is used by any server's client (any app controlling the server)
+    /// to listen for events that happen on the server.
+    /// CientPool uses it to notify client addition and removal.
+    event_publisher: broadcast::Sender<ServerEvent>,
 }
 
 impl ClientPool {
 
-    pub fn new(max_clients: usize) -> ClientPool {
+    pub fn new(max_clients: usize, event_publisher: broadcast::Sender<ServerEvent>) -> ClientPool {
         let (sender, receiver) = channel();
         let pool = ClientPool {
             // IDs must start at 1, to differ from base port used to receive new client requests
@@ -51,6 +60,7 @@ impl ClientPool {
             max_concurrent_clients_allowed: max_clients,
             clients: Arc::new(Mutex::new(HashMap::new())),
             client_termination_sender: sender,
+            event_publisher,
         };
 
         pool.start_termination_listener(receiver);
@@ -65,6 +75,7 @@ impl ClientPool {
     /// 'CLIENT_POOL_RESERVED_ID' as the client_id.
     fn start_termination_listener(&self, receiver: Receiver<Terminate>) {
         let clients = Arc::clone(&self.clients);
+        let event_publisher = self.event_publisher.clone();
 
         thread::spawn(move || {
             while let Ok(terminate) = receiver.recv() {
@@ -77,6 +88,16 @@ impl ClientPool {
                     ClientPool::static_log_info(&format!("Received termination request for client {}", terminate.client_id));
 
                     if let Some(client) = clients.remove(&terminate.client_id) {
+
+                        let client_info = ClientInfo {
+                            id: client.id,
+                            addr: client.address.to_string(),
+                        };
+
+                        let _ = event_publisher.send(ServerEvent::ClientRemoved(client_info.clone())).map_err(|e| {
+                            ClientPool::static_log_warn(&format!("Failed to send client removal event for client {}: {}", client_info.id, e));
+                        });
+
                         client.exit_requested.store(true, ATOMIC_BOOL_ORDERING);
                         ClientPool::static_log_info(&format!("Client {} terminated successfully.", terminate.client_id));
                     } else {
