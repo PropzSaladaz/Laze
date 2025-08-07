@@ -94,6 +94,7 @@ impl ClientPool {
                             addr: client.address.to_string(),
                         };
 
+                        // publish event about client removal
                         let _ = event_publisher.send(ServerEvent::ClientRemoved(client_info.clone())).map_err(|e| {
                             ClientPool::static_log_warn(&format!("Failed to send client removal event for client {}: {}", client_info.id, e));
                         });
@@ -119,12 +120,22 @@ impl ClientPool {
             return Err("Maximum number of concurrent clients reached!".to_string());
         }
 
+        // launch new client
         let new_client = Client::launch_new_client(
             addr,
             self.client_id_counter,
             app,
             self.client_termination_sender.clone(),
         );
+
+        // publish event about new client
+        self.event_publisher.send(ServerEvent::ClientAdded(ClientInfo {
+            id: new_client.id,
+            addr: new_client.address.to_string(),
+        })).map_err(|e| {
+            ClientPool::static_log_warn(&format!("Failed to send client addition event: {}", e));
+            "Failed to send client addition event".to_string()
+        })?;
 
         // insert new client only if it doesn't exist yet
         let port = new_client.port;

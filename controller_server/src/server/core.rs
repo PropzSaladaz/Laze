@@ -50,23 +50,27 @@ pub enum ServerEvent {
     ClientRemoved(ClientInfo),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ClientInfo {
     pub id: usize,
     pub addr: String,
 }
 
 pub struct ServerHandler {
-    event_receiver: broadcast::Receiver<ServerEvent>,
+    event_pub: broadcast::Sender<ServerEvent>,
     command_sender: CommandSender,
 }
 
 impl ServerHandler {
-    pub fn new(event_receiver: broadcast::Receiver<ServerEvent>, command_sender: CommandSender) -> Self {
+    pub fn new(event_pub: broadcast::Sender<ServerEvent>, command_sender: CommandSender) -> Self {
         Self {
-            event_receiver,
+            event_pub,
             command_sender,
         }
+    }
+
+    pub fn subscribe_events(&self) -> broadcast::Receiver<ServerEvent> {
+        self.event_pub.subscribe()
     }
 
     fn send_request(&self, request: ServerRequest) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
@@ -87,10 +91,6 @@ impl ServerHandler {
 
     pub fn receive_response(&mut self) -> Result<ServerResponse, std::sync::mpsc::RecvError> {
         self.command_sender.receive_response()
-    }
-
-    pub async fn next_event(&mut self) -> Option<ServerEvent> {
-        self.event_receiver.recv().await.ok()
     }
 }
 
@@ -124,7 +124,7 @@ impl<A: Application + 'static> Server<A> {
     /// 
     /// The port 7878 is only used as a common ground to establish new connections with new clients.
     pub fn start(config: ServerConfig, app: A) -> ServerHandler {
-        let (event_pub, event_consumer) = broadcast::channel(100);
+        let (event_pub, _) = broadcast::channel(100);
 
         // Initialize logger with default settings
         env_logger::init(); 
@@ -174,7 +174,7 @@ impl<A: Application + 'static> Server<A> {
         // return channel endpoints to send messages and also receive messages to / from the server
 
         ServerHandler {
-            event_receiver: event_consumer,
+            event_pub,
             command_sender: CommandSender::new(send_to_server, receive_from_server),
         }
     }
