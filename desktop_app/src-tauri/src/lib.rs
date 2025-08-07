@@ -21,8 +21,8 @@ pub fn run() {
 
             let config = ServerConfig::new(7878, 10);
 
-            let server_comm = Server::start(config, controller);
-            let shared_comm = Arc::new(Mutex::new(server_comm));
+            let handle = Server::start(config, controller);
+            let shared_comm = Arc::new(Mutex::new(handle));
             app.manage(shared_comm);
             Ok(())
         })
