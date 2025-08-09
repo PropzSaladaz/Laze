@@ -4,9 +4,7 @@ use copypasta::ClipboardContext;
 use enigo::{Axis, Coordinate, Direction, Enigo, Keyboard, Mouse, Settings};
 
 use crate::{
-    actions::{Action, TerminalCommand}, 
-    keybinds::KeyBindings, 
-    server::application::{ConnectionStatus, Application},
+    actions::{Action, TerminalCommand}, keybinds::KeyBindings, logger::Loggable, server::application::{Application, ConnectionStatus}
 };
 
 pub struct MobileController {
@@ -99,7 +97,7 @@ impl MobileController {
                     self.press_key_combo(&key_combo);
                 }
                 else {
-                    println!("Key: {:?} is not mapped for current OS", key);
+                    self.log_warn(&format!("Key: {:?} is not mapped for current OS", key));
                 }
             },
 
@@ -108,7 +106,7 @@ impl MobileController {
                     self.mouse_button(button);
                 }
                 else {
-                    println!("Key: {:?} is not mapped for current OS", button);
+                    self.log_warn(&format!("Key: {:?} is not mapped for current OS", button));
                 }
             }
 
@@ -136,7 +134,7 @@ impl Application for MobileController {
         // check if there aren't any other commands within the bytes of the current packet
         while input.len() > 0 {
             let action = Action::decode(&mut input);
-            println!("Action received: {:?}", action);
+            self.log_debug(&format!("Action received: {:?}", action));
             match self.handle_input(action) {
                 ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
                 _ => (),

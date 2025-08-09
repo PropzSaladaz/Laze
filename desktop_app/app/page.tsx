@@ -4,6 +4,7 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { Server } from "node:tls";
+import Link from "next/link";
 
 function App() {
 
@@ -26,19 +27,14 @@ function App() {
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to Mobile Controller</h1>
-      {started ? (
-        <>
-          <h1>Server is running</h1>
-          <button onClick={stopServer}>Stop Server</button>
-        </>
-      ) : (
-        <>
-          <h1>Server is stopped</h1>
-          <button onClick={startServer}>Start Server</button>
-        </>
-      )}
+    <main className="container">   
+      <h1>Server is currently offline <br/> Press "Start Server" to begin accepting connections.</h1>
+      
+      <Link href="/dashboard">
+        <button onClick={startServer}>Start Server</button> 
+      </Link>
+      
+      
     </main>
   );
 }

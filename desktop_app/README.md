@@ -1,86 +1,57 @@
-# 📦 Desktop App (Tauri)
+# Desktop App (Tauri)
 
-This is the **desktop frontend** of the Mobile Virtual Device project, built using [Tauri](https://tauri.app/).  
-It wraps a lightweight native application around a web-based interface to provide seamless local interaction with the mobile device emulation backend.
-
-
-# 🎯 Purpose
-
-This Tauri application serves as the **desktop control interface** for the mobile virtual device system. It allows users to:
-
-- Start and stop the emulated mobile device server
-- Visualize and control connected clients
-- Monitor communication logs in real time
-- Send actions/commands to the backend controller
-
-It acts as a user-friendly control panel for development, debugging, and testing of the server-side logic.
+Desktop control panel for the Mobile Virtual Device system. Starts/stops the Rust server and shows connected clients.
 
 
-# 🧰 Prerequisites
+## Overview
 
-Before running this application, ensure the following are installed:
+- Provides a UI to manage the backend server
+- Monitors logs and connection status
+- Cross‑platform where Tauri supports, but server features target Linux/X11
 
-- [Rust](https://www.rust-lang.org/tools/install)
-- [Node.js](https://nodejs.org/) (LTS recommended)
-- [Tauri CLI](https://tauri.app/v1/guides/getting-started/setup)
 
-### Install Tauri CLI
+## Prerequisites
+
+- Rust toolchain (for Tauri backend)
+- Node.js (LTS) and npm
+- Tauri CLI
+
+Install CLI:
 
 ```bash
 cargo install tauri-cli
 ```
 
+Platform notes:
 
-# 🚀 How to Run
+- Linux: ensure system dependencies required by Tauri are installed (see https://tauri.app)
+- macOS/Windows: app UI runs, but the Rust controller server features may be Linux‑specific
 
-### 1. Install dependencies
+
+## Run (development)
 
 ```bash
+cd desktop_app
 npm install
-# or
-yarn install
-```
-
-### 2. Run in development mode
-
-**Important**: Do **not** use VSCode’s integrated terminal.  
-It may lead to issues related to dynamic libraries (see common errors below).  
-Instead, use your system terminal (e.g., GNOME Terminal, Konsole, xterm):
-
-```bash
 npm run tauri dev
-# or
-yarn tauri dev
 ```
 
-By default, the log level from **controller_server** is set to `info` level. You may change this in the `.env` file.
+If you see GLIBC/terminal issues on Linux, use a native terminal (not VS Code integrated terminal).
 
-### 3. Build the production binary
+
+## Build (production)
 
 ```bash
 npm run tauri build
-# or
-yarn tauri build
 ```
 
+Artifacts are under `src-tauri/target/` per platform.
 
 
-# ⚠️ Common Errors
+## Environment
 
-### ❌ `undefined symbol: __libc_pthread_init, version GLIBC_PRIVATE`
+- Server port defaults to 7878 (see `src-tauri/src/lib.rs`); adjust in code if needed
+- The desktop app sets RUST_LOG for the server. You can override with `.env` or shell env.
 
-**Cause**: This often occurs when using the **VSCode integrated terminal** on Linux.
-
-**Solution**: Use your native terminal application instead (e.g., `gnome-terminal`, `xterm`, etc.).
-
-
-
-# 🗂️ Directory Structure
-
-    desktop_app/
-    ├── src-tauri/         # Tauri Rust backend
-    ├── src/               # Frontend source code (e.g., Vue, React)
-    ├── package.json
-    └── tauri.conf.json
 
 
