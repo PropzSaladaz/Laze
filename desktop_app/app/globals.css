@@ -1,0 +1,8 @@
+/* Tell Tailwind where your JS config is (v4) if not default name/path */
+@config "../tailwind.config.cjs";
+
+/* Tailwind v4 */
+@import "tailwindcss";
+
+/* optional: your own base styles */
+html, body { height: 100%; }
