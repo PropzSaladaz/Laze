@@ -11,9 +11,9 @@ export function ensureDir(p) {
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 }
 
+// Turns { primary:{light,dark}, overlay:"rgba(...)" } into
+// [{name, light, dark}, ...]
 export function flattenColorTokens(colorObj) {
-  // Turns { primary:{light,dark}, overlay:"rgba(...)" } into
-  // [{name, light, dark}, ...]
   const out = [];
   for (const [k, v] of Object.entries(colorObj)) {
     // case where color is same independently of theme
