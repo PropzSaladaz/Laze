@@ -7,6 +7,11 @@ mobile_client/build/
 mobile_client/.dart_tool/
 mobile_client/.packages
 
+desktop_app/.next/
+desktop_app/out/
+desktop_app/dist/
+desktop_app/build/
+
 target/
 
 # Common
