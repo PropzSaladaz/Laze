@@ -15,7 +15,7 @@ export const tokens = {
   space: ${JSON.stringify(space, null, 2)},
   radius: ${JSON.stringify(radius, null, 2)},
   color: {
-${flat.map(t => `    ${t.name}: { light: ${JSON.stringify(t.light)}, dark: ${JSON.stringify(t.dark)} },`).join('\n')}
+${flat.map(t => `'${t.name}': { light: ${JSON.stringify(t.light)}, dark: ${JSON.stringify(t.dark)} },`).join('\n')}
   }
 } as const;
 
@@ -64,20 +64,7 @@ ${darkCss.join('\n')}
 `;
 
   // write
-  const target = path.join(outDir, 'src', 'theme');
-  ensureDir(target);
-  fs.writeFileSync(path.join(target, 'tokens.ts'), ts, 'utf8');
-  fs.writeFileSync(path.join(target, 'css-vars.css'), css, 'utf8');
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const input = process.argv[2];
-  const out = process.argv[3] || 'web';
-  if (!input) {
-    console.error('Usage: node tools/next/gen_next.mjs <tokens.json> [outDir]');
-    process.exit(1);
-  }
-  const tokens = readTokens(input);
-  generateNext(tokens, out, input);
-  console.log(`✅ Next.js theme written to ${out}`);
+  ensureDir(outDir);
+  fs.writeFileSync(path.join(outDir, 'tokens.ts'), ts, 'utf8');
+  fs.writeFileSync(path.join(outDir, 'css-vars.css'), css, 'utf8');
 }
