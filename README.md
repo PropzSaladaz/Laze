@@ -5,18 +5,40 @@ It is composed of:
 
 - **controller_server** – a Rust application that listens for incoming connections and forwards
   the received bytes to a virtual input device.
-- **desktop_app** – A Tauri desktop app that spins up `controller_server` and shows some UI to the user.
-- **mobile_client** – a Flutter application that provides a mobile UI and communicates with **controller_server**
+- **desktop_app** – A Tauri desktop app that spins up `controller_server` and shows some UI to the user - current users connected, as well as connection time.
+- **mobile_client** – A Flutter application that provides a mobile UI and communicates with **controller_server**
 
 Each client initially connects to the server on port `7878`. The server then assigns
 an individual port and spawns a thread to handle that connection. Input bytes sent by
 the client are dispatched to the device application running on the server.
 
-## Build and run
+---
 
-### Server
+# Build and run
+
+## Dependencies
+
 ```bash
 sudo apt install build-essential libxdo-dev
+```
+
+## Build
+
+Before running the project, you must generate all theme data shared across all projects:
+
+```bash
+node tools/theming/index.mjs design/tokens/tokens.json
+```
+
+## Run
+
+To quickly spin up the app, you must run 2 components:
+
+### 1. Desktop App
+
+This will spin up the underlying server as well as the UI:
+
+```bash
 cd controller_ server
 cargo run
 ```
@@ -26,7 +48,7 @@ Run with logging:
 RUST_LOG=info cargo run
 ```
 
-### Mobile client
+### 2. Mobile client
 ```bash
 cd mobile_client
 flutter pub get
@@ -35,7 +57,5 @@ dart run build_runner build
 flutter run
 ```
 
-## Architecture
-<p align="left">
-  <img src="Architecture.svg" style="width: 70%; min-width: 800px;">
-</p>
+For further information, please refer to the [project documentation](./docs/README.md)
+
