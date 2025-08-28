@@ -2,6 +2,11 @@
 server/target/
 server/*.lock
 
+# Flutter build artifacts
+mobile_client/build/
+mobile_client/.dart_tool/
+mobile_client/.packages
+
 target/
 
 # Common
