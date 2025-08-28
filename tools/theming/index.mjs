@@ -14,6 +14,6 @@ if (!input) {
 
 const tokens = readTokens(input);
 generateNext(tokens, targetNext, input);
-generateFlutter(tokens, targetFlutter, input);
+// generateFlutter(tokens, targetFlutter, input);
 
 console.log('✅ All artifacts generated.');
