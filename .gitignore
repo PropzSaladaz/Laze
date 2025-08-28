@@ -2,13 +2,43 @@
 server/target/
 server/*.lock
 
-# Flutter build artifacts
-mobile_client/build/
-mobile_client/.dart_tool/
-mobile_client/.packages
-
 target/
 
 # Common
 *.log
 *.tmp
+
+
+# Cargo / Rust
+target/
+Cargo.lock
+
+# Node / Next.js (desktop_app)
+desktop_app/node_modules/
+desktop_app/.next/
+desktop_app/.env
+desktop_app/package-lock.json
+
+# Flutter / Android (mobile_client)
+mobile_client/.dart_tool/
+mobile_client/build/
+mobile_client/ios/Pods/
+mobile_client/android/.gradle/
+mobile_client/android/app/build/
+mobile_client/android/app/.cxx/
+mobile_client/.packages
+
+# Flutter generated files
+mobile_client/lib/presentation/core/themes/generated_theme.dart
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor junk
+.vscode/
+.idea/
+*.swp
+
+# Tool outputs
+tools/theming/gen_*.mjs
