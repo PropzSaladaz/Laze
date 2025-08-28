@@ -151,18 +151,6 @@ ${Object.entries(radius).map(([k,v]) => `        radius${camelCap(k)}: ${Number(
 }
 `;
 
-  ensureDir(path.join());
-  fs.writeFileSync(path.join(path, 'generated_theme.dart'), dart, 'utf8');
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const input = process.argv[2];
-  const out = process.argv[3] || 'flutter';
-  if (!input) {
-    console.error('Usage: node tools/flutter/gen_flutter.mjs <tokens.json> [outDir]');
-    process.exit(1);
-  }
-  const tokens = readTokens(input);
-  generateFlutter(tokens, out, input);
-  console.log(`✅ Flutter theme written to ${out}/generated_theme.dart`);
+  ensureDir(outDir);
+  fs.writeFileSync(path.join(outDir, 'generated_theme.dart'), dart, 'utf8');
 }

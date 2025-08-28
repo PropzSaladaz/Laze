@@ -1,4 +1,17 @@
-.logo.vite:hover {
+@import './src/theme/css-vars.css';
+@import 'tailwindcss';
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* .logo.vite:hover {
   filter: drop-shadow(0 0 2em #747bff);
 }
 
@@ -113,4 +126,4 @@ button {
   button:active {
     background-color: #0f0f0f69;
   }
-}
+} */
