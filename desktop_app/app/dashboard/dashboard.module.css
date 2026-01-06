@@ -1,0 +1,123 @@
+.dashboard {
+    padding: 24px 32px;
+    min-height: 100vh;
+    background: var(--color-white1);
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--color-grey3);
+}
+
+.statusDot {
+    width: 10px;
+    height: 10px;
+    background: var(--color-status-green);
+    border-radius: 50%;
+}
+
+.statusText {
+    color: var(--color-status-green);
+    font-weight: 500;
+}
+
+.stopButton {
+    background: var(--color-white2);
+    border: 1px solid var(--color-white3);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--color-grey4);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.stopButton:hover {
+    background: var(--color-white4);
+    border-color: var(--color-grey1);
+}
+
+/* Table Container */
+.tableContainer {
+    background: var(--color-white);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    margin-bottom: 16px;
+    border: 1px solid var(--color-white3);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.table thead {
+    background: var(--color-white2);
+}
+
+.table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-weight: 500;
+    color: var(--color-grey3);
+    border-bottom: 1px solid var(--color-white3);
+}
+
+.table td {
+    padding: 12px 16px;
+    color: var(--color-grey4);
+    border-bottom: 1px solid var(--color-white3);
+}
+
+.table tbody tr {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.table tbody tr:hover {
+    background: var(--color-white2);
+}
+
+.table tbody tr.selected {
+    background: #E3F2FD;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Remove Button */
+.removeButton {
+    width: 100%;
+    background: var(--color-grey4);
+    color: var(--color-white);
+    border: none;
+    border-radius: 6px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.removeButton:hover:not(:disabled) {
+    background: var(--color-black2);
+}
+
+.removeButton:disabled {
+    background: var(--color-grey2);
+    cursor: not-allowed;
+}

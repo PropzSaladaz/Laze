@@ -21,25 +21,7 @@ void setupLogging() {
 void main() async {
   setupLogging();
 
-  // This is likely a mistake, as Provider will not automatically update dependents
-  // when ShortcutsProvider is updated. Instead, consider changing Provider for more specific
-  // implementation that handles the update mechanism, such as:
-
-  // - ListenableProvider
-  // - ChangeNotifierProvider
-  // - ValueListenableProvider
-  // - StreamProvider
-
-  // Alternatively, if you are making your own provider, consider using InheritedProvider.
-
-  // If you think that this is not an error, you can disable this check by setting
-  // Provider.debugCheckInvalidValueType to `null` in your main file:
-  Provider.debugCheckInvalidValueType = null;
-
-  // responsible for connecting the Flutter framework with the underlying platform.
-  // The WidgetsBinding is essential for managing the rendering pipeline, input events, and more.
-  // Some Flutter operations, like accessing platform channels, plugins, or certain services,
-  //require the binding to be initialized. Hive needs this setup to be made
+  // Hive needs WidgetsBinding to be initialized for platform channel access
   WidgetsFlutterBinding.ensureInitialized();
 
   await Hive.initFlutter("shortcuts_data");

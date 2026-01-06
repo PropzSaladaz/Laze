@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import "./App.css";
+import "../App.css";
 import Link from "next/link";
 import { listen } from "@tauri-apps/api/event";
 
@@ -45,15 +45,15 @@ function incrementTimer(timer: Timer) {
     return { hours, minutes, seconds };
 }
 
-function ClientTable({ onRemove } : Props) {
+function ClientTable({ onRemove }: Props) {
 
     const [clientsConnected, setClientsConnected] = useState<Client[]>([]);
 
-    useEffect( () => {
+    useEffect(() => {
 
         // Start timer for each client
-        const interval = setInterval( () => {
-            setClientsConnected((prevClients) => 
+        const interval = setInterval(() => {
+            setClientsConnected((prevClients) =>
                 prevClients.map(client => ({
                     ...client,
                     timeConnected: incrementTimer(client.timeConnected)
@@ -62,7 +62,7 @@ function ClientTable({ onRemove } : Props) {
         }, 1000); // each 1 second
 
         // Subscribe to add clients event
-        const clientAdded = listen<ClientInfo>("client_added", (event) => {
+        const clientAdded = listen<ClientInfo>("client-added", (event) => {
             const newClient: Client = {
                 ...event.payload,
                 timeConnected: {
@@ -75,7 +75,7 @@ function ClientTable({ onRemove } : Props) {
         });
 
         // Subscribe to update clients event
-        const clientRemoved = listen<ClientInfo>("client_removed", (event) => {
+        const clientRemoved = listen<ClientInfo>("client-removed", (event) => {
             setClientsConnected((prev) => prev.filter(client => client.id !== event.payload.id));
         });
 
@@ -84,36 +84,36 @@ function ClientTable({ onRemove } : Props) {
             clientRemoved.then(unlistenFn => unlistenFn());
             clearInterval(interval);
         }
-    });
+    }, []);
 
-  return (
-    <table>
+    return (
+        <table>
 
-        <thead>
-            <tr>
-                <th>Client ID</th>
-                <th>Address</th>
-                <th>Time Connected</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
+            <thead>
+                <tr>
+                    <th>Client ID</th>
+                    <th>Address</th>
+                    <th>Time Connected</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
 
-        <tbody>
-            {clientsConnected.map(client => (
-            <tr key={client.id}>
-                <td>{client.id}</td>
-                <td>{client.addr}</td>
-                <td>{renderTime(client.timeConnected)}</td>
-                <td>
-                    <Link href="/">
-                        <button onClick={() => onRemove(client.id)}>Remove</button>
-                    </Link>
-                </td>
-            </tr>
-            ))}
-        </tbody>
-    </table>
-  );
+            <tbody>
+                {clientsConnected.map(client => (
+                    <tr key={client.id}>
+                        <td>{client.id}</td>
+                        <td>{client.addr}</td>
+                        <td>{renderTime(client.timeConnected)}</td>
+                        <td>
+                            <Link href="/">
+                                <button onClick={() => onRemove(client.id)}>Remove</button>
+                            </Link>
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    );
 }
 
 export default ClientTable;
