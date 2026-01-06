@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ServerRequest {
     InitServer,
+    StopServer,
     TerminateServer,
     TerminateClient(usize),
 }
@@ -14,6 +15,7 @@ pub enum ServerRequest {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ServerResponse {
     ServerStarted(ServerStarted),
+    ServerStopped(ServerStopped),
     ServerTerminated(ServerTerminated),
     ClientTerminated(ClientTerminated),
     Error(String),
@@ -21,6 +23,9 @@ pub enum ServerResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerStarted {}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ServerStopped {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerTerminated;
@@ -34,7 +39,7 @@ pub struct ClientTerminated {
 
 pub trait VariantOf<T> {
     fn assert_variant_of(other: T) -> Self
-    where 
+    where
         Self: Sized;
 }
 
@@ -60,6 +65,7 @@ macro_rules! impl_variant_of {
 
 impl_variant_of!(ServerResponse => {
     ServerStarted,
+    ServerStopped,
     ServerTerminated,
     ClientTerminated,
 });
