@@ -1,4 +1,10 @@
-use std::{io::Write, net::{SocketAddr, TcpStream}, sync::{mpsc::channel, Arc, Mutex}, thread, time::Duration};
+use std::{
+    io::Write,
+    net::{SocketAddr, TcpStream},
+    sync::{mpsc::channel, Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -11,8 +17,11 @@ use super::{
     client_pool::ClientPool,
     command_listener::{CommandListener, ProcessError},
     command_sender::CommandSender,
-    commands::{ServerRequest, ServerResponse, ServerStarted, ServerTerminated, ClientTerminated},
-    utils
+    commands::{
+        ClientTerminated, ServerRequest, ServerResponse, ServerStarted, ServerStopped,
+        ServerTerminated,
+    },
+    utils,
 };
 
 const SERVER_REACHED_MAX_CONCURRENT_CLIENTS: i32 = -1;
@@ -30,7 +39,8 @@ pub struct ServerConfig {
 impl ServerConfig {
     pub fn new(starting_port: usize, max_clients: usize) -> Self {
         Self {
-            starting_port, max_clients
+            starting_port,
+            max_clients,
         }
     }
 }
@@ -73,7 +83,10 @@ impl ServerHandler {
         self.event_pub.subscribe()
     }
 
-    fn send_request(&self, request: ServerRequest) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
+    fn send_request(
+        &self,
+        request: ServerRequest,
+    ) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
         self.command_sender.send_request(request)
     }
 
@@ -81,11 +94,18 @@ impl ServerHandler {
         self.send_request(ServerRequest::InitServer)
     }
 
+    pub fn stop_server(&self) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
+        self.send_request(ServerRequest::StopServer)
+    }
+
     pub fn terminate_server(&self) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
         self.send_request(ServerRequest::TerminateServer)
     }
 
-    pub fn terminate_client(&self, client_id: usize) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
+    pub fn terminate_client(
+        &self,
+        client_id: usize,
+    ) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
         self.send_request(ServerRequest::TerminateClient(client_id))
     }
 
@@ -94,11 +114,12 @@ impl ServerHandler {
     }
 }
 
-
+/// The server that will handle all client's requests.
+/// Holds a pool of clients and an application that will handle all client's requests.
 pub struct Server<A: Application> {
     clients: ClientPool,
     config: ServerConfig,
-    
+
     /// The application that will handle all client's requests.
     app: Arc<Mutex<A>>,
 
@@ -111,23 +132,22 @@ pub struct Server<A: Application> {
 }
 
 impl<A: Application + 'static> Server<A> {
-
     /// Runs the server.
     ///
     /// This call is non-blocking, and allows the server to wait for
     /// new client connection requests at port 7878.
     /// It also creates a thread that listens for server commands through channels.
-    /// 
+    ///
     /// Once a new connection to a new client is established, that client is assigned a new
     /// isolated socket with its own port. Each client then connects to the server through its own
     /// assigned socket.
-    /// 
+    ///
     /// The port 7878 is only used as a common ground to establish new connections with new clients.
     pub fn start(config: ServerConfig, app: A) -> ServerHandler {
         let (event_pub, _) = broadcast::channel(100);
 
         // Initialize logger with default settings
-        env_logger::init(); 
+        env_logger::init();
         let clients = ClientPool::new(config.max_clients, event_pub.clone());
 
         // Unidirectional channel from ServerController (client) -> Server
@@ -139,9 +159,8 @@ impl<A: Application + 'static> Server<A> {
         let command_listener = CommandListener::new(send_to_client, receive_from_client);
 
         thread::spawn(move || {
-
             let server = Arc::new(Mutex::new(Server {
-                clients, 
+                clients,
                 config,
                 app: Arc::new(Mutex::new(app)),
                 listening_to_clients: false,
@@ -151,15 +170,13 @@ impl<A: Application + 'static> Server<A> {
             // set command listener callback for parsing server commands before starting command listener thread
             command_listener.set_command_processor({
                 let server = Arc::clone(&server);
-                move |req| {
-                    Self::command_parser(server.clone(), req)
-                }
+                move |req| Self::command_parser(server.clone(), req)
             });
 
             // non blocking
             let delay = Duration::from_millis(1000);
             let handler = command_listener.listen(delay);
-            
+
             // blocking - only exits when the server is terminated
             Self::start_client_listener(server);
             Self::static_log_info("Client listener thread has exited.");
@@ -182,7 +199,7 @@ impl<A: Application + 'static> Server<A> {
     /// Main loop.
     /// Waits on a new client connection.
     fn start_client_listener(server: Arc<Mutex<Self>>) {
-        let mut server_is_scheduled_for_termination ;
+        let mut server_is_scheduled_for_termination;
 
         let starting_port = {
             let lock = server.lock().unwrap();
@@ -195,11 +212,16 @@ impl<A: Application + 'static> Server<A> {
         // new connections are available.
         socket.set_nonblocking(true).unwrap();
 
-        Self::static_log_info(&format!("Starting client listener: {}", socket.local_addr().unwrap()));
-        
+        Self::static_log_info(&format!(
+            "Starting client listener: {}",
+            socket.local_addr().unwrap()
+        ));
+
         loop {
             if server_is_scheduled_for_termination {
-                Self::static_log_info(&format!("Terminated client listener thread. Server is scheduled for termination."));
+                Self::static_log_info(&format!(
+                    "Terminated client listener thread. Server is scheduled for termination."
+                ));
                 break;
             }
 
@@ -234,46 +256,58 @@ impl<A: Application + 'static> Server<A> {
         let mut lock = server.lock().unwrap();
 
         if lock.listening_to_clients {
-            Self::static_log_debug(&format!("{label} Received connection from address: {:?}", addr));
+            Self::static_log_debug(&format!(
+                "{label} Received connection from address: {:?}",
+                addr
+            ));
             // try adding new client to pool
             let app = Arc::clone(&lock.app);
             let port = match lock.clients.add(addr, app) {
                 Ok(connection_port) => {
-                    Self::static_log_info(&format!("{label} Opened socket for new client at {connection_port}"));
+                    Self::static_log_info(&format!(
+                        "{label} Opened socket for new client at {connection_port}"
+                    ));
                     connection_port as i32
-                },
+                }
                 Err(reason) => {
                     Self::static_log_error(&format!("{reason}"));
                     SERVER_REACHED_MAX_CONCURRENT_CLIENTS
                 }
             };
 
-            let data = serde_json::to_vec(&NewClientResponse { 
+            let data = serde_json::to_vec(&NewClientResponse {
                 port,
                 server_os: std::env::consts::OS.to_owned(), // send the server OS to client
-            }).unwrap();
+            })
+            .unwrap();
 
             stream.write_all(&data).unwrap();
 
             Self::static_log_debug(&format!("{label} Sent new client response: {:?}", data));
-        }
-        else {
+        } else {
             Self::static_log_warn(&format!("{label} Received connection from address: {:?}, but server is not listening to clients!", addr));
         }
     }
-    
-
 
     /// Parses a command from the server.
     /// Should be passed as callback function to the `command_listener` struct when constructing the server.
-    fn command_parser(server: Arc<Mutex<Self>>, req: ServerRequest) -> Result<ServerResponse, ProcessError> {
+    fn command_parser(
+        server: Arc<Mutex<Self>>,
+        req: ServerRequest,
+    ) -> Result<ServerResponse, ProcessError> {
         let mut lock = server.lock().unwrap();
 
         match req {
             ServerRequest::InitServer => {
                 // send response to the server
                 lock.listening_to_clients = true;
-                Ok(ServerResponse::ServerStarted(ServerStarted { }))
+                Ok(ServerResponse::ServerStarted(ServerStarted {}))
+            }
+            ServerRequest::StopServer => {
+                // Stop accepting clients but keep threads alive for restart
+                lock.listening_to_clients = false;
+                lock.clients.clear();
+                Ok(ServerResponse::ServerStopped(ServerStopped {}))
             }
             ServerRequest::TerminateServer => {
                 lock.terminate_signal = true;
@@ -282,7 +316,9 @@ impl<A: Application + 'static> Server<A> {
             }
             ServerRequest::TerminateClient(client_id) => {
                 match lock.clients.terminate_client(client_id) {
-                    Ok(_) => Ok(ServerResponse::ClientTerminated(ClientTerminated { client_id })),
+                    Ok(_) => Ok(ServerResponse::ClientTerminated(ClientTerminated {
+                        client_id,
+                    })),
                     Err(err_msg) => {
                         Self::static_log_error(&err_msg);
                         Err(ProcessError { message: err_msg })
