@@ -16,8 +16,12 @@ class RepositoryService {
     return RepositoryService._(shortcutsRepository: shortcutsRepoLocal);
   }
 
-  // TODO
-  static void initializeRemote() async {}
+  // TODO(remote): Implement remote repository initialization for cloud sync
+  // This would configure a remote backend (e.g., Firebase, custom API) for
+  // cross-device shortcut synchronization.
+  static void initializeRemote() async {
+    throw UnimplementedError('Remote repository not yet implemented');
+  }
 
   // Used to get all the providers
   List<SingleChildWidget> get providers {

@@ -47,7 +47,7 @@ class HomeViewModel extends ChangeNotifier {
       return result;
     }
 
-    _shortcuts.removeWhere((stc) => stc.name == shortcut.name);
+    _shortcuts.removeWhere((stc) => stc.id == shortcut.id);
     notifyListeners();
     return result;
   }
