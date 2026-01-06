@@ -1,42 +1,27 @@
 "use client";
 
-import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
-import { Server } from "node:tls";
 import Link from "next/link";
+import styles from "./home.module.css";
 
-function App() {
-
-  const [started, setStarted] = useState(false);
-
-  // start server & get IP address
+export default function Home() {
   async function startServer() {
     await invoke<string>("start_server", {});
-    setStarted(true);
-  }
-
-  // start server & get IP address
-  async function stopServer() {
-    await invoke<string>("stop_server", {});
-    setStarted(false);
-  }
-
-  async function removeClient(clientId: number) {
-    await invoke("remove_client", { clientId });
   }
 
   return (
-    <main className="container">   
-      <h1>Server is currently offline <br/> Press "Start Server" to begin accepting connections.</h1>
-      
+    <main className={styles.container}>
+      <h1 className={styles.title}>
+        Server is currently offline.
+      </h1>
+      <p className={styles.subtitle}>
+        Press "Start Server" to begin accepting connections.
+      </p>
       <Link href="/dashboard">
-        <button onClick={startServer}>Start Server</button> 
+        <button onClick={startServer} className={styles.startButton}>
+          Start Server
+        </button>
       </Link>
-      
-      
     </main>
   );
 }
-
-export default App;

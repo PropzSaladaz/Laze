@@ -180,14 +180,31 @@ impl ClientPool {
         Ok(port)
     }
 
-    /// Schedules client for termination.
+    /// Schedules client for termination and removes from pool.
+    /// Emits ClientRemoved event so UI can update.
     pub fn terminate_client(&self, client_id: usize) -> Result<(), String> {
-        let clients = self.clients.lock().unwrap();
-        if clients.contains_key(&client_id) {
-            let client = clients.get(&client_id).unwrap();
+        let mut clients = self.clients.lock().unwrap();
+        if let Some(client) = clients.remove(&client_id) {
+            // Signal client thread to exit
             client.exit_requested.store(true, ATOMIC_BOOL_ORDERING);
+
+            // Emit event so UI updates
+            let client_info = ClientInfo {
+                id: client.id,
+                addr: client.address.to_string(),
+            };
+            let _ = self
+                .event_publisher
+                .send(ServerEvent::ClientRemoved(client_info.clone()))
+                .map_err(|e| {
+                    ClientPool::static_log_warn(&format!(
+                        "Failed to send client removal event for client {}: {}",
+                        client_info.id, e
+                    ));
+                });
+
             ClientPool::static_log_info(&format!(
-                "Client {} scheduled for termination.",
+                "Client {} terminated and removed from pool.",
                 client_id
             ));
             Ok(())

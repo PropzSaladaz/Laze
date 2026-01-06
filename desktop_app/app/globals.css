@@ -4,5 +4,46 @@
 /* Tailwind v4 */
 @import "tailwindcss";
 
-/* optional: your own base styles */
-html, body { height: 100%; }
+/* 
+ * Color scheme aligned with Flutter app (colors.dart)
+ * white1: #F8F8F8 - background
+ * white2: #F3F3F3 - secondary
+ * white3: #EFEFEF - border
+ * grey1: #DDDDDD - text
+ * grey2: #D1D1D1 - hint text
+ * grey3: #A1A1A1 - secondary text
+ * grey4: #717171 - primary text
+ */
+
+:root {
+    --color-white: #FFFFFF;
+    --color-white1: #F8F8F8;
+    --color-white2: #F3F3F3;
+    --color-white3: #EFEFEF;
+    --color-white4: #E7E7E7;
+    --color-grey1: #DDDDDD;
+    --color-grey2: #D1D1D1;
+    --color-grey3: #A1A1A1;
+    --color-grey4: #717171;
+    --color-black: #000000;
+    --color-black2: #333333;
+    --color-status-green: #4CAF50;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: var(--color-white1);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
