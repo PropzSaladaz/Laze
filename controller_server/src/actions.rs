@@ -50,12 +50,14 @@ define_actions!(
     Text(char) = 1,
     Scroll(i8) = 2,
     MouseMove(DeltaCoordinates) = 3,
-    MouseButton(Button) = 4,
+    MouseClick(Button) = 4,
     SensitivityDown = 5,
     SensitivityUp = 6,
     Disconnect = 7,
     Shutdown = 8,
     TerminalCommand(TerminalCommand) = 9,
+    MouseDown(Button) = 10,
+    MouseUp(Button) = 11,
 );
 
 /// Action struct is defined by the define_macros! macro
@@ -79,8 +81,8 @@ impl Action {
             Some(ActionType::MouseMove) => {
                 Self::MouseMove(DeserializableAction::from_bytes(encoded))
             }
-            Some(ActionType::MouseButton) => {
-                Self::MouseButton(DeserializableAction::from_bytes(encoded))
+            Some(ActionType::MouseClick) => {
+                Self::MouseClick(DeserializableAction::from_bytes(encoded))
             }
             Some(ActionType::SensitivityDown) => Self::SensitivityDown,
             Some(ActionType::SensitivityUp) => Self::SensitivityUp,
@@ -89,6 +91,10 @@ impl Action {
             Some(ActionType::TerminalCommand) => {
                 Self::TerminalCommand(DeserializableAction::from_bytes(encoded))
             }
+            Some(ActionType::MouseDown) => {
+                Self::MouseDown(DeserializableAction::from_bytes(encoded))
+            }
+            Some(ActionType::MouseUp) => Self::MouseUp(DeserializableAction::from_bytes(encoded)),
             None => unreachable!("Action type not recognized!"),
         }
     }
@@ -284,7 +290,7 @@ mod tests {
         let mut mouse_btn: &[u8] = &[4u8, 0u8];
         assert!(matches!(
             Action::decode(&mut mouse_btn),
-            Action::MouseButton(Button::Left)
+            Action::MouseClick(Button::Left)
         ));
     }
 

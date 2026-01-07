@@ -92,6 +92,16 @@ class Input {
     return Uint8List.fromList([4, 0]);
   }
 
+  // ------ MouseDown: [10, button] -------
+  static Uint8List mouseDown() {
+    return Uint8List.fromList([10, 0]);
+  }
+
+  // ------ MouseUp: [11, button] -------
+  static Uint8List mouseUp() {
+    return Uint8List.fromList([11, 0]);
+  }
+
   // ------ SenseDown: [5] -------
   static Uint8List sensitivityDown() {
     return Uint8List.fromList([5]);

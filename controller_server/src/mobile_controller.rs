@@ -1,10 +1,13 @@
-use std::error::Error;
-use std::process::Command;
 use copypasta::ClipboardContext;
 use enigo::{Axis, Coordinate, Direction, Enigo, Keyboard, Mouse, Settings};
+use std::error::Error;
+use std::process::Command;
 
 use crate::{
-    actions::{Action, TerminalCommand}, keybinds::KeyBindings, logger::Loggable, server::application::{Application, ConnectionStatus}
+    actions::{Action, TerminalCommand},
+    keybinds::KeyBindings,
+    logger::Loggable,
+    server::application::{Application, ConnectionStatus},
 };
 
 pub struct MobileController {
@@ -16,18 +19,18 @@ pub struct MobileController {
     move_y_sense: u8,
     wheel_sense: u8,
     move_delay: u32,
- }
+}
 
- // now device can be shared across threads
+// now device can be shared across threads
 unsafe impl Send for MobileController {}
 unsafe impl Sync for MobileController {}
 
 impl MobileController {
     pub fn new(
-        move_x_sense: u8, 
-        move_y_sense: u8, 
+        move_x_sense: u8,
+        move_y_sense: u8,
         wheel_sense: u8,
-        move_delay: u32
+        move_delay: u32,
     ) -> Result<Self, Box<dyn Error>> {
         Ok(MobileController {
             enigo: Enigo::new(&Settings::default())?,
@@ -42,15 +45,19 @@ impl MobileController {
     }
 
     pub fn mouse_move_relative(&mut self, move_x: i8, move_y: i8) {
-        self.enigo.move_mouse(
-            self.move_x_sense as i32 * move_x as i32, 
-            self.move_y_sense as i32 * move_y as i32, 
-            Coordinate::Rel
-        ).unwrap();
+        self.enigo
+            .move_mouse(
+                self.move_x_sense as i32 * move_x as i32,
+                self.move_y_sense as i32 * move_y as i32,
+                Coordinate::Rel,
+            )
+            .unwrap();
     }
 
     pub fn scroll(&mut self, wheel_delta: i8) {
-        self.enigo.scroll(wheel_delta as i32, Axis::Vertical).unwrap();
+        self.enigo
+            .scroll(wheel_delta as i32, Axis::Vertical)
+            .unwrap();
     }
 
     pub fn press_key(&mut self, key: enigo::Key) {
@@ -70,6 +77,14 @@ impl MobileController {
         self.enigo.button(button, Direction::Click).unwrap();
     }
 
+    fn mouse_button_down(&mut self, button: enigo::Button) {
+        self.enigo.button(button, Direction::Press).unwrap();
+    }
+
+    fn mouse_button_up(&mut self, button: enigo::Button) {
+        self.enigo.button(button, Direction::Release).unwrap();
+    }
+
     fn type_string(&mut self, text: &str) {
         self.enigo.text(text).unwrap();
     }
@@ -77,8 +92,10 @@ impl MobileController {
     pub fn add_sensitivity(&mut self, sensitivity_delta: i8) {
         let curr_sense = self.move_x_sense as i8; // cast for the sum as the result may be < 0
         let mut new_sense = curr_sense + sensitivity_delta;
-        
-        if new_sense < 1 { new_sense = 1; } // must always be at least at 1
+
+        if new_sense < 1 {
+            new_sense = 1;
+        } // must always be at least at 1
 
         let new_sense = new_sense as u8;
 
@@ -87,26 +104,35 @@ impl MobileController {
     }
 
     fn handle_input(&mut self, action: Action) -> ConnectionStatus {
-
         match action {
-            Action::SensitivityUp       => self.add_sensitivity(1),
-            Action::SensitivityDown     => self.add_sensitivity(-1),
+            Action::SensitivityUp => self.add_sensitivity(1),
+            Action::SensitivityDown => self.add_sensitivity(-1),
 
             Action::KeyPress(key) => {
                 if let Some(key_combo) = self.key_bindings.translate_to_os_key(&key) {
                     self.press_key_combo(&key_combo);
-                }
-                else {
+                } else {
                     self.log_warn(&format!("Key: {:?} is not mapped for current OS", key));
                 }
-            },
+            }
 
-            Action::MouseButton(button) => {
+            Action::MouseClick(button) => {
                 if let Some(button) = self.key_bindings.translate_to_os_button(&button) {
                     self.mouse_button(button);
-                }
-                else {
+                } else {
                     self.log_warn(&format!("Key: {:?} is not mapped for current OS", button));
+                }
+            }
+
+            Action::MouseDown(button) => {
+                if let Some(button) = self.key_bindings.translate_to_os_button(&button) {
+                    self.mouse_button_down(button);
+                }
+            }
+
+            Action::MouseUp(button) => {
+                if let Some(button) = self.key_bindings.translate_to_os_button(&button) {
+                    self.mouse_button_up(button);
                 }
             }
 
@@ -114,13 +140,15 @@ impl MobileController {
 
             Action::Scroll(delta) => self.scroll(delta),
 
-            Action::MouseMove(coordinates ) => self.mouse_move_relative(coordinates.x, coordinates.y),
+            Action::MouseMove(coordinates) => {
+                self.mouse_move_relative(coordinates.x, coordinates.y)
+            }
 
             Action::Disconnect => return ConnectionStatus::Disconnected,
 
             Action::Shutdown => shutdown_computer(),
 
-            Action::TerminalCommand(TerminalCommand { command}) => run_command(&command),
+            Action::TerminalCommand(TerminalCommand { command }) => run_command(&command),
         };
 
         ConnectionStatus::Connected
@@ -139,35 +167,34 @@ impl Application for MobileController {
                 ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
                 _ => (),
             };
-        };
+        }
         ConnectionStatus::Connected
     }
 }
-
 
 // Machine Shutdown OS dependent
 #[cfg(target_os = "windows")]
 fn shutdown_computer() {
     Command::new("shutdown")
-    .args(&["/s", "/f", "/t", "0"])
-    .spawn()
-    .expect("Failed to execute shutdown command");
+        .args(&["/s", "/f", "/t", "0"])
+        .spawn()
+        .expect("Failed to execute shutdown command");
 }
 
 #[cfg(target_os = "linux")]
 fn shutdown_computer() {
     Command::new("shutdown")
-    .arg("now")
-    .spawn()
-    .expect("Failed to execute shutdown command");
+        .arg("now")
+        .spawn()
+        .expect("Failed to execute shutdown command");
 }
 
 #[cfg(target_os = "macos")]
 fn shutdown_computer() {
     Command::new("shutdown")
-    .args(&["-h", "now"])
-    .spawn()
-    .expect("Failed to execute shutdown command");
+        .args(&["-h", "now"])
+        .spawn()
+        .expect("Failed to execute shutdown command");
 }
 
 // OS-dependent terminal command issuer
@@ -188,17 +215,16 @@ fn run_command(command: &str) {
         .expect("Failed to execute command on Windows");
 }
 
-
 mod tests {
-    
+
     #![allow(unused_imports)]
-    use crate::server::application::Application;
-    use super::MobileController;
     use super::run_command;
+    use super::MobileController;
+    use crate::server::application::Application;
 
     #[test]
     fn parse_several_commands_at_once() {
-        //                  | key backspace  | scroll | mouse move            | 
+        //                  | key backspace  | scroll | mouse move            |
         let commands: &[u8] = &[0u8, 0u8, 2u8, 2u8, 3u8, 2u8, (-8i8) as u8];
         let mut app = MobileController::new(8, 8, 8, 10).unwrap();
         app.dispatch_to_device(commands);
