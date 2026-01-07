@@ -7,6 +7,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:mobile_client/data/dto/new_client_response.dart';
+import 'package:mobile_client/data/dto/server_event.dart';
 import 'package:mobile_client/data/repositories/server/server_cache_repository.dart';
 import 'package:mobile_client/services/connection_status.dart';
 import 'package:mobile_client/services/udp_discovery.dart';
@@ -14,6 +15,7 @@ import 'package:mobile_client/services/udp_discovery.dart';
 typedef CallbackSetStatus = void Function(String connectionStatus);
 typedef CallbackGetStatus = String Function();
 typedef CallbackOnError = void Function(String errorMessage);
+typedef CallbackOnServerEvent = void Function(ServerEvent event);
 
 class ServerConnector {
   // specifies server's operative system
@@ -44,6 +46,8 @@ class ServerConnector {
   static late CallbackGetStatus getConnectionStatus;
 
   static late CallbackOnError onError;
+  
+  static late CallbackOnServerEvent onServerEvent;
 
   static final Logger _log = Logger("ServerConnector");
 
@@ -57,10 +61,12 @@ class ServerConnector {
     CallbackSetStatus setConnectionStatus,
     CallbackGetStatus getConnectionStatus,
     CallbackOnError onError,
+    CallbackOnServerEvent onServerEvent,
   ) {
     ServerConnector.setConnectionStatus = setConnectionStatus;
     ServerConnector.getConnectionStatus = getConnectionStatus;
     ServerConnector.onError = onError;
+    ServerConnector.onServerEvent = onServerEvent;
   }
 
   static void disconnect() {
@@ -216,6 +222,9 @@ class ServerConnector {
 
       server = dedicatedSocket;
       _serverOS = newClientResp.server_os;
+
+      // Start listening for server events
+      _startServerEventListener();
 
       // Cache this successful connection
       await _serverCache.cacheServer(ip, port);
@@ -391,6 +400,10 @@ class ServerConnector {
         _serverOS = resp.server_os;
         // !IMPORTANT! this is set to force all data to be sent in a different tcp packet
         server.setOption(SocketOption.tcpNoDelay, true);
+        
+        // Start listening for server events
+        _startServerEventListener();
+        
         activeHandlers--;
       
       }, onDone: () async {
@@ -413,6 +426,37 @@ class ServerConnector {
 
   Future<void> _handleNewClientResponse() async {
 
+  }
+
+  /// Starts listening for server events on the established connection
+  /// This listens for single-byte event codes sent by the server
+  static void _startServerEventListener() {
+    server.listen(
+      (Uint8List data) {
+        // Check if this is a server event (single byte with high value)
+        if (data.length == 1) {
+          final eventByte = data[0];
+          final event = ServerEvent.fromByte(eventByte);
+          
+          if (event != null) {
+            _log.info("Received server event: ${event.name}");
+            onServerEvent(event);
+          }
+        }
+        // Regular data packets would be handled here if needed
+        // Currently the client only sends data to server, not receives
+      },
+      onError: (error) {
+        _log.severe("Error in server event listener: $error");
+        onError("Connection error: $error");
+      },
+      onDone: () {
+        _log.info("Server connection closed");
+        // Connection was closed by server
+        setConnectionStatus(NOT_CONNECTED);
+      },
+      cancelOnError: false,
+    );
   }
 
   static int _ipToInt(String address) {
