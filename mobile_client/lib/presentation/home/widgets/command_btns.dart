@@ -91,8 +91,8 @@ class _CommandBtnsState extends State<CommandBtns> {
           _fourButtonRow([
             _ButtonData(Icons.fullscreen, Input.fullScreen()),
             _ButtonData(Icons.close, Input.closeTab()),
-            _ButtonData(Icons.arrow_left, Input.nextTab()),
-            _ButtonData(Icons.arrow_right, Input.previousTab()),
+            _ButtonData(Icons.arrow_left, Input.previousTab()),
+            _ButtonData(Icons.arrow_right, Input.nextTab()),
           ]),
         ],
       ),
