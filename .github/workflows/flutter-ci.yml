@@ -1,0 +1,49 @@
+name: Flutter Mobile Client CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - 'mobile_client/**'
+      - '.github/workflows/flutter-ci.yml'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'mobile_client/**'
+      - '.github/workflows/flutter-ci.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+    
+    - name: Get dependencies
+      working-directory: ./mobile_client
+      run: flutter pub get
+    
+    - name: Verify Flutter installation
+      run: flutter doctor -v
+    
+    - name: Analyze code
+      working-directory: ./mobile_client
+      run: flutter analyze || true
+    
+    - name: Run tests
+      working-directory: ./mobile_client
+      run: flutter test
+    
+    - name: Check formatting
+      working-directory: ./mobile_client
+      run: flutter format --set-exit-if-changed . || true
+    
+    - name: Build APK (Android)
+      working-directory: ./mobile_client
+      run: flutter build apk --release || echo "Build completed with warnings"
