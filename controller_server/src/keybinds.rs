@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::actions;
+use std::collections::HashMap;
 
 type KeyCombo = Vec<enigo::Key>;
 
@@ -10,7 +10,6 @@ pub struct KeyBindings {
 }
 
 impl KeyBindings {
-
     pub fn new() -> Self {
         KeyBindings {
             key_bindings: KeyBindings::get_key_mapping(),
@@ -33,17 +32,28 @@ impl KeyBindings {
     fn get_key_mapping() -> HashMap<actions::Key, KeyCombo> {
         return HashMap::from([
             // keyboard
-            (actions::Key::Backspace,   vec![enigo::Key::Backspace]),
-            (actions::Key::VolumeMute,  vec![enigo::Key::VolumeMute]),
-            (actions::Key::VolumeDown,  vec![enigo::Key::VolumeDown]),
-            (actions::Key::VolumeUp,    vec![enigo::Key::VolumeUp]),
-            (actions::Key::Pause,       vec![enigo::Key::MediaStop]),
-            (actions::Key::Play,        vec![enigo::Key::MediaPlayPause]),
-            (actions::Key::Enter,       vec![enigo::Key::Return]),
-            (actions::Key::Fullscreen,  vec![enigo::Key::F11]),
-            (actions::Key::CloseTab,    vec![enigo::Key::Control, enigo::Key::Unicode('w')]),
-            (actions::Key::NextTab,     vec![enigo::Key::Control, enigo::Key::Shift, enigo::Key::Tab]),
-            (actions::Key::PreviousTab, vec![enigo::Key::Control, enigo::Key::Tab]),
+            (actions::Key::Backspace, vec![enigo::Key::Backspace]),
+            (actions::Key::VolumeMute, vec![enigo::Key::VolumeMute]),
+            (actions::Key::VolumeDown, vec![enigo::Key::VolumeDown]),
+            (actions::Key::VolumeUp, vec![enigo::Key::VolumeUp]),
+            (actions::Key::Pause, vec![enigo::Key::MediaStop]),
+            (actions::Key::Play, vec![enigo::Key::MediaPlayPause]),
+            (actions::Key::Enter, vec![enigo::Key::Return]),
+            (actions::Key::Fullscreen, vec![enigo::Key::F11]),
+            (
+                actions::Key::CloseTab,
+                vec![enigo::Key::Control, enigo::Key::Unicode('w')],
+            ),
+            // Fixed: NextTab = Ctrl+Tab, PreviousTab = Ctrl+Shift+Tab
+            (
+                actions::Key::NextTab,
+                vec![enigo::Key::Control, enigo::Key::Tab],
+            ),
+            (
+                actions::Key::PreviousTab,
+                vec![enigo::Key::Control, enigo::Key::Shift, enigo::Key::Tab],
+            ),
+            // BrightnessDown not supported by enigo - maps to no-op (empty vec handled specially)
         ]);
     }
 

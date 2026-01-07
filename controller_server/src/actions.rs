@@ -1,14 +1,13 @@
 use core::str;
 
-use serde::{Serialize, Deserialize};
 use num_enum::TryFromPrimitive;
-
+use serde::{Deserialize, Serialize};
 
 /// This macro generates 2 separate enums:
-/// 
+///
 /// `ActionType` - Used to convert u8 into an ActionType
 /// `Action` - will hold the actual data
-/// 
+///
 /// This is needed when parsing the actions from bytes into in-memory structures.
 /// The process goes from bytes (u8) -> ActionType -> Action
 macro_rules! define_actions {
@@ -67,26 +66,31 @@ impl Action {
         *encoded = &encoded[1..];
         match action_type {
             Some(ActionType::KeyPress) => Self::KeyPress(DeserializableAction::from_bytes(encoded)),
-            Some(ActionType::Text)     => {
+            Some(ActionType::Text) => {
                 let char = encoded[0] as char;
                 *encoded = &encoded[1..];
                 Self::Text(char)
-            },
-            Some(ActionType::Scroll)   => {
+            }
+            Some(ActionType::Scroll) => {
                 let scroll_val = encoded[0] as i8;
                 *encoded = &encoded[1..];
                 Self::Scroll(scroll_val)
-            },
-            Some(ActionType::MouseMove)       => Self::MouseMove(DeserializableAction::from_bytes(encoded)),
-            Some(ActionType::MouseButton)     => Self::MouseButton(DeserializableAction::from_bytes(encoded)),
+            }
+            Some(ActionType::MouseMove) => {
+                Self::MouseMove(DeserializableAction::from_bytes(encoded))
+            }
+            Some(ActionType::MouseButton) => {
+                Self::MouseButton(DeserializableAction::from_bytes(encoded))
+            }
             Some(ActionType::SensitivityDown) => Self::SensitivityDown,
-            Some(ActionType::SensitivityUp)   => Self::SensitivityUp,
-            Some(ActionType::Disconnect)      => Self::Disconnect,
-            Some(ActionType::Shutdown)        => Self::Shutdown,
-            Some(ActionType::TerminalCommand) => Self::TerminalCommand(DeserializableAction::from_bytes(encoded)),
+            Some(ActionType::SensitivityUp) => Self::SensitivityUp,
+            Some(ActionType::Disconnect) => Self::Disconnect,
+            Some(ActionType::Shutdown) => Self::Shutdown,
+            Some(ActionType::TerminalCommand) => {
+                Self::TerminalCommand(DeserializableAction::from_bytes(encoded))
+            }
             None => unreachable!("Action type not recognized!"),
         }
-
     }
 }
 
@@ -106,8 +110,10 @@ pub struct TerminalCommand {
 impl DeserializableAction for TerminalCommand {
     fn from_bytes(bytes: &mut &[u8]) -> Self {
         let command_size: usize = bytes[0] as usize;
-        let command = match str::from_utf8(&bytes[1_usize..command_size+1]) {
-            Ok(command) => TerminalCommand { command: command.to_owned() },
+        let command = match str::from_utf8(&bytes[1_usize..command_size + 1]) {
+            Ok(command) => TerminalCommand {
+                command: command.to_owned(),
+            },
             Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
         };
         // after consuming the bytes, move forward
@@ -115,7 +121,6 @@ impl DeserializableAction for TerminalCommand {
         command
     }
 }
-
 
 /// Represents keys from keyboard
 #[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
@@ -131,6 +136,8 @@ pub enum Key {
     CloseTab = 8,
     NextTab = 9,
     PreviousTab = 10,
+    BrightnessDown = 11,
+    // Add new keys here with incrementing values
 }
 
 impl DeserializableAction for Key {
@@ -150,12 +157,16 @@ impl DeserializableAction for Key {
             8 => Key::CloseTab,
             9 => Key::NextTab,
             10 => Key::PreviousTab,
-            _ => unreachable!("Key type not supported!")
+            11 => Key::BrightnessDown,
+            _ => {
+                log::warn!("Unknown key code: {}, ignoring", btn);
+                Key::Backspace // Fallback to no-op key
+            }
         }
     }
 }
 
-/// Represent the mouse movement delta -> how much the mouse moved in each 
+/// Represent the mouse movement delta -> how much the mouse moved in each
 /// axis comparing to last frame
 #[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
 pub struct DeltaCoordinates {
@@ -165,9 +176,9 @@ pub struct DeltaCoordinates {
 
 impl DeserializableAction for DeltaCoordinates {
     fn from_bytes(bytes: &mut &[u8]) -> Self {
-        let coords = DeltaCoordinates { 
-            x: bytes[0] as i8, 
-            y: bytes[1] as i8 
+        let coords = DeltaCoordinates {
+            x: bytes[0] as i8,
+            y: bytes[1] as i8,
         };
         // after consuming the bytes, move forward
         *bytes = &bytes[2..];
@@ -176,13 +187,11 @@ impl DeserializableAction for DeltaCoordinates {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
 #[repr(u8)]
 pub enum Button {
     Left = 0,
 }
-
 
 impl DeserializableAction for Button {
     fn from_bytes(bytes: &mut &[u8]) -> Self {
@@ -191,12 +200,10 @@ impl DeserializableAction for Button {
         *bytes = &bytes[1..];
         match btn {
             0 => Button::Left,
-            _ => unreachable!("Unsupported button type")
+            _ => unreachable!("Unsupported button type"),
         }
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -212,12 +219,30 @@ mod tests {
         let mut key_pause: &[u8] = &[0u8, 4u8];
         let mut key_enter: &[u8] = &[0u8, 5u8];
 
-        assert!(matches!(Action::decode(&mut key_backspace),    Action::KeyPress(Key::Backspace)));
-        assert!(matches!(Action::decode(&mut key_vol_mute),     Action::KeyPress(Key::VolumeMute)));
-        assert!(matches!(Action::decode(&mut key_vol_down),     Action::KeyPress(Key::VolumeDown)));
-        assert!(matches!(Action::decode(&mut key_vol_up),       Action::KeyPress(Key::VolumeUp)));
-        assert!(matches!(Action::decode(&mut key_pause),        Action::KeyPress(Key::Pause)));
-        assert!(matches!(Action::decode(&mut key_enter),  Action::KeyPress(Key::Enter)));
+        assert!(matches!(
+            Action::decode(&mut key_backspace),
+            Action::KeyPress(Key::Backspace)
+        ));
+        assert!(matches!(
+            Action::decode(&mut key_vol_mute),
+            Action::KeyPress(Key::VolumeMute)
+        ));
+        assert!(matches!(
+            Action::decode(&mut key_vol_down),
+            Action::KeyPress(Key::VolumeDown)
+        ));
+        assert!(matches!(
+            Action::decode(&mut key_vol_up),
+            Action::KeyPress(Key::VolumeUp)
+        ));
+        assert!(matches!(
+            Action::decode(&mut key_pause),
+            Action::KeyPress(Key::Pause)
+        ));
+        assert!(matches!(
+            Action::decode(&mut key_enter),
+            Action::KeyPress(Key::Enter)
+        ));
     }
 
     #[test]
@@ -225,33 +250,42 @@ mod tests {
         let mut text_a_lower: &[u8] = &[1u8, 'a' as u8];
         let mut text_v_upper: &[u8] = &[1u8, 'V' as u8];
 
-        assert!(matches!(Action::decode(&mut text_a_lower),    Action::Text('a')));
-        assert!(matches!(Action::decode(&mut text_v_upper),    Action::Text('V')));
-
+        assert!(matches!(
+            Action::decode(&mut text_a_lower),
+            Action::Text('a')
+        ));
+        assert!(matches!(
+            Action::decode(&mut text_v_upper),
+            Action::Text('V')
+        ));
     }
-
 
     #[test]
     fn decode_scroll() {
         let mut scroll1: &[u8] = &[2u8, 2u8];
         let mut scroll2: &[u8] = &[2u8, (-5i8) as u8];
 
-        assert!(matches!(Action::decode(&mut scroll1),    Action::Scroll(2)));
-        assert!(matches!(Action::decode(&mut scroll2),    Action::Scroll(-5)));
-
+        assert!(matches!(Action::decode(&mut scroll1), Action::Scroll(2)));
+        assert!(matches!(Action::decode(&mut scroll2), Action::Scroll(-5)));
     }
 
     #[test]
     fn mouse_move() {
         let mut mouse_move: &[u8] = &[3u8, 2u8, (-8i8) as u8];
 
-        assert!(matches!(Action::decode(&mut mouse_move),    Action::MouseMove(DeltaCoordinates { x: 2, y: -8 })));
+        assert!(matches!(
+            Action::decode(&mut mouse_move),
+            Action::MouseMove(DeltaCoordinates { x: 2, y: -8 })
+        ));
     }
 
     #[test]
     fn mouse_button() {
         let mut mouse_btn: &[u8] = &[4u8, 0u8];
-        assert!(matches!(Action::decode(&mut mouse_btn),    Action::MouseButton(Button::Left)));
+        assert!(matches!(
+            Action::decode(&mut mouse_btn),
+            Action::MouseButton(Button::Left)
+        ));
     }
 
     #[test]
@@ -259,14 +293,23 @@ mod tests {
         let mut sense_down: &[u8] = &[5u8];
         let mut sense_up: &[u8] = &[6u8];
 
-        assert!(matches!(Action::decode(&mut sense_down),    Action::SensitivityDown));
-        assert!(matches!(Action::decode(&mut sense_up),    Action::SensitivityUp));
+        assert!(matches!(
+            Action::decode(&mut sense_down),
+            Action::SensitivityDown
+        ));
+        assert!(matches!(
+            Action::decode(&mut sense_up),
+            Action::SensitivityUp
+        ));
     }
 
     #[test]
     fn disconnect() {
         let mut disconnect: &[u8] = &[7u8];
-        assert!(matches!(Action::decode(&mut disconnect),    Action::Disconnect));
+        assert!(matches!(
+            Action::decode(&mut disconnect),
+            Action::Disconnect
+        ));
     }
 
     #[test]
@@ -277,14 +320,13 @@ mod tests {
         firefox_command.append(&mut utf8_bytes.to_owned());
         let mut bytes = &mut firefox_command.as_slice();
 
-    // First, match the Action enum to ensure it's a TerminalCommand
-    if let Action::TerminalCommand(TerminalCommand { command }) = Action::decode(&mut bytes) {
-        // Then check if the command matches "firefox"
-        assert_eq!(command, "firefox");
-        assert_eq!(bytes.len(), 0);
-    } else {
-        panic!("Expected TerminalCommand but got something else.");
-    }
-
+        // First, match the Action enum to ensure it's a TerminalCommand
+        if let Action::TerminalCommand(TerminalCommand { command }) = Action::decode(&mut bytes) {
+            // Then check if the command matches "firefox"
+            assert_eq!(command, "firefox");
+            assert_eq!(bytes.len(), 0);
+        } else {
+            panic!("Expected TerminalCommand but got something else.");
+        }
     }
 }
