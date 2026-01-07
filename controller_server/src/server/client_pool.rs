@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::Read,
+    io::{Read, Write},
     net::{SocketAddr, TcpStream},
     sync::{
         atomic::AtomicBool,
@@ -27,6 +27,10 @@ const DEFAULT_CLIENT_PORT: usize = 7878;
 const CLIENT_READ_TIMEOUT: Duration = Duration::from_secs(1);
 
 const ATOMIC_BOOL_ORDERING: std::sync::atomic::Ordering = std::sync::atomic::Ordering::SeqCst;
+
+/// Event codes sent from server to mobile client
+const EVENT_CLIENT_TERMINATED: u8 = 254;
+const EVENT_SERVER_SHUTDOWN: u8 = 255;
 
 /// Represents a termination command for a client thread running on
 /// the server upon the mobile client disconnects from the server's
@@ -235,6 +239,8 @@ impl ClientPool {
         let mut clients = self.clients.lock().unwrap();
 
         clients.iter().for_each(|(_, client)| {
+            // Send server shutdown event to client
+            client.send_event(EVENT_SERVER_SHUTDOWN);
             client.exit_requested.store(true, ATOMIC_BOOL_ORDERING);
             self.log_info(&format!("Client {} scheduled to terminate.", client.id));
         });
@@ -258,6 +264,9 @@ struct Client {
     /// The client thread checks this variable periodically to see if it should exit.
     /// This is used to gracefully shut down the client thread.
     exit_requested: AtomicBool,
+
+    /// The TCP stream used to send events to the mobile client
+    stream: Arc<Mutex<Option<TcpStream>>>,
 }
 
 impl Client {
@@ -280,6 +289,7 @@ impl Client {
             id,
             port,
             exit_requested: AtomicBool::new(false),
+            stream: Arc::new(Mutex::new(None)),
         });
 
         let cloned_client = Arc::clone(&client);
@@ -334,10 +344,23 @@ impl Client {
     /// Sends the received bytes up to the application to handle the input
     fn handle_requests(
         &self,
-        mut stream: TcpStream,
+        stream: TcpStream,
         app: Arc<Mutex<impl Application + 'static>>,
     ) -> ExitReason {
+        // Store the stream clone for sending events
+        let stream_clone = match stream.try_clone() {
+            Ok(s) => s,
+            Err(e) => {
+                return ExitReason::Unexpected(format!(
+                    "Failed to clone stream for client {}: {}",
+                    self.id, e
+                ));
+            }
+        };
+        *self.stream.lock().unwrap() = Some(stream_clone);
+
         // client timesout if no data available & checks for termination signal
+        let mut stream = stream;
         stream.set_read_timeout(Some(CLIENT_READ_TIMEOUT)).unwrap();
 
         // make the reads blocking - wait indefinetely for client input
@@ -368,6 +391,8 @@ impl Client {
 
                     // client was requested to terminate by the server
                     if self.exit_requested.load(ATOMIC_BOOL_ORDERING) {
+                        // Send termination event to client
+                        self.send_event(EVENT_CLIENT_TERMINATED);
                         return ExitReason::RequestedByServer;
                     }
                 }
@@ -378,6 +403,24 @@ impl Client {
                         self.id, self.address, e
                     ));
                 }
+            }
+        }
+    }
+
+    /// Send an event byte to the mobile client
+    fn send_event(&self, event_code: u8) {
+        if let Some(stream) = self.stream.lock().unwrap().as_mut() {
+            if let Err(e) = stream.write_all(&[event_code]) {
+                Self::static_log_warn(&format!(
+                    "Failed to send event {} to client {}: {}",
+                    event_code, self.id, e
+                ));
+            }
+            if let Err(e) = stream.flush() {
+                Self::static_log_warn(&format!(
+                    "Failed to flush event {} to client {}: {}",
+                    event_code, self.id, e
+                ));
             }
         }
     }
