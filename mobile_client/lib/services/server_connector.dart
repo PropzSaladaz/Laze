@@ -7,7 +7,9 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:mobile_client/data/dto/new_client_response.dart';
+import 'package:mobile_client/data/repositories/server/server_cache_repository.dart';
 import 'package:mobile_client/services/connection_status.dart';
+import 'package:mobile_client/services/udp_discovery.dart';
 
 typedef CallbackSetStatus = void Function(String connectionStatus);
 typedef CallbackGetStatus = String Function();
@@ -30,6 +32,10 @@ class ServerConnector {
 
   static late Socket server;
   static Map<String, Future<TwoStepConnection>> connections = {};
+
+  // Server cache for fast reconnection
+  static final ServerCacheRepository _serverCache = ServerCacheRepository();
+  static bool _cacheInitialized = false;
 
   // Used to inform application of current connection status
   static late CallbackSetStatus setConnectionStatus;
@@ -72,8 +78,16 @@ class ServerConnector {
     return connectivityResult.contains(ConnectivityResult.wifi);
   }
 
+  /// Initialize server cache
+  static Future<void> _initCache() async {
+    if (!_cacheInitialized) {
+      await _serverCache.init();
+      _cacheInitialized = true;
+    }
+  }
+
   /// Searches for a server listening for requests in local network
-  /// 
+  /// Uses fast discovery: cached IP -> UDP broadcast -> IP sweep
   static Future<bool> findServer() async {
     connections.clear();
 
@@ -88,6 +102,135 @@ class ServerConnector {
 
     setConnectionStatus(SEARCHING);
 
+    // Initialize cache
+    await _initCache();
+
+    // Step 1: Try cached IPs first (instant if valid)
+    _log.info("Step 1: Trying cached server IPs...");
+    if (await _tryConnectToCachedServers()) {
+      return true;
+    }
+
+    // Check if user cancelled
+    if (getConnectionStatus() != SEARCHING) {
+      setConnectionStatus(NOT_CONNECTED);
+      return false;
+    }
+
+    // Step 2: Try UDP broadcast discovery (~100ms)
+    _log.info("Step 2: Trying UDP broadcast discovery...");
+    if (await _tryUdpDiscovery()) {
+      return true;
+    }
+
+    // Check if user cancelled
+    if (getConnectionStatus() != SEARCHING) {
+      setConnectionStatus(NOT_CONNECTED);
+      return false;
+    }
+
+    // Step 3: Fallback to IP sweep (slow, but guaranteed to work)
+    _log.info("Step 3: Falling back to IP sweep...");
+    return await _ipSweepDiscovery();
+  }
+
+  /// Try to connect to cached server IPs
+  static Future<bool> _tryConnectToCachedServers() async {
+    final cachedServers = _serverCache.getCachedServers();
+    if (cachedServers.isEmpty) {
+      _log.info("No cached servers found");
+      return false;
+    }
+
+    _log.info("Found ${cachedServers.length} cached server(s)");
+
+    for (final cached in cachedServers) {
+      _log.info("Trying cached server: ${cached.ip}:${cached.port}");
+      
+      final result = await _tryDirectConnection(cached.ip, cached.port);
+      if (result) {
+        _log.info("Connected to cached server: ${cached.ip}");
+        setConnectionStatus(CONNECTED);
+        return true;
+      }
+    }
+
+    _log.info("No cached servers responded");
+    return false;
+  }
+
+  /// Try UDP broadcast discovery
+  static Future<bool> _tryUdpDiscovery() async {
+    final result = await UdpDiscovery.discoverServer();
+    
+    if (result == null) {
+      _log.info("UDP discovery: no server found");
+      return false;
+    }
+
+    _log.info("UDP discovery found server at ${result.ip}:${result.port}");
+    
+    final connected = await _tryDirectConnection(result.ip, result.port);
+    if (connected) {
+      setConnectionStatus(CONNECTED);
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Try to connect directly to a known IP/port
+  static Future<bool> _tryDirectConnection(String ip, int port) async {
+    try {
+      // Connect to base port first
+      final socket = await Socket.connect(ip, port,
+          timeout: const Duration(milliseconds: 500));
+      socket.setOption(SocketOption.tcpNoDelay, true);
+
+      _log.info("Connected to $ip:$port, waiting for dedicated port...");
+
+      // Wait for server response with dedicated port
+      final response = await socket.timeout(
+        const Duration(seconds: 2),
+        onTimeout: (sink) {
+          _log.warning("Timeout waiting for dedicated port from $ip");
+          sink.close();
+        },
+      ).first;
+
+      final json = jsonDecode(utf8.decode(response));
+      final newClientResp = NewClientResponse.fromJson(json);
+
+      if (newClientResp.port == -1) {
+        _log.warning("Server rejected connection: max clients");
+        socket.destroy();
+        return false;
+      }
+
+      _log.info("Received dedicated port: ${newClientResp.port}");
+
+      // Connect to dedicated port
+      final dedicatedSocket = await Socket.connect(ip, newClientResp.port,
+          timeout: const Duration(seconds: 2));
+      dedicatedSocket.setOption(SocketOption.tcpNoDelay, true);
+
+      server = dedicatedSocket;
+      _serverOS = newClientResp.server_os;
+
+      // Cache this successful connection
+      await _serverCache.cacheServer(ip, port);
+
+      socket.destroy();
+      _log.info("Successfully connected to $ip:${newClientResp.port}");
+      return true;
+    } catch (e) {
+      _log.warning("Direct connection to $ip:$port failed: $e");
+      return false;
+    }
+  }
+
+  /// Fallback: IP sweep discovery (slow)
+  static Future<bool> _ipSweepDiscovery() async {
     int n_LANs = 255;
     for (int lan = 0; lan < n_LANs; lan++) {
       int baseIp = _ipToInt("192.168.$lan.0");
@@ -183,6 +326,8 @@ class ServerConnector {
 
                 case ConnectionEstablished():
                   _log.info("Successfully connected to server dedicated port ");
+                  // Cache this connection for future
+                  await _serverCache.cacheServer(conn, serverPort);
                   return status;
 
                 default:
