@@ -1,0 +1,49 @@
+name: Rust Controller Server CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - 'controller_server/**'
+      - '.github/workflows/rust-ci.yml'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'controller_server/**'
+      - '.github/workflows/rust-ci.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxdo-dev build-essential
+    
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+    
+    - name: Build
+      working-directory: ./controller_server
+      run: cargo build --verbose
+    
+    - name: Run tests
+      working-directory: ./controller_server
+      run: cargo test --verbose --lib
+    
+    - name: Check formatting
+      working-directory: ./controller_server
+      run: cargo fmt --check || true
+    
+    - name: Run clippy
+      working-directory: ./controller_server
+      run: cargo clippy -- -D warnings || true

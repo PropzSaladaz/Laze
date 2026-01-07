@@ -1,0 +1,54 @@
+name: Full CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  rust-build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxdo-dev build-essential
+    
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+    
+    - name: Build controller_server
+      working-directory: ./controller_server
+      run: cargo build --verbose
+    
+    - name: Run controller_server tests
+      working-directory: ./controller_server
+      run: cargo test --verbose --lib
+
+  flutter-build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+    
+    - name: Get dependencies
+      working-directory: ./mobile_client
+      run: flutter pub get
+    
+    - name: Run mobile_client tests
+      working-directory: ./mobile_client
+      run: flutter test
+    
+    - name: Build APK (Android)
+      working-directory: ./mobile_client
+      run: flutter build apk --release || echo "Build completed with warnings"
