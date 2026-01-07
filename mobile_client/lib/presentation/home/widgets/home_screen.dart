@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_client/data/dto/server_event.dart';
 import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
 import 'package:mobile_client/data/services/input.dart';
 import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
@@ -33,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _setConnectionState, 
       _getConnectionState,
       _onError,
+      _onServerEvent,
     );
   }
 
@@ -160,6 +162,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onError(String error) {
     setState(() {
       errorMessage = error;
+    });
+  }
+
+  void _onServerEvent(ServerEvent event) {
+    // Handle server events by disconnecting and showing appropriate message
+    setState(() {
+      connectionStatus = ServerConnector.NOT_CONNECTED;
+      errorMessage = event.description;
     });
   }
 
