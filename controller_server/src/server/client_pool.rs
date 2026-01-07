@@ -410,13 +410,18 @@ impl Client {
     /// Send an event byte to the mobile client
     fn send_event(&self, event_code: u8) {
         if let Some(stream) = self.stream.lock().unwrap().as_mut() {
-            let _ = stream.write_all(&[event_code]).map_err(|e| {
+            if let Err(e) = stream.write_all(&[event_code]) {
                 Self::static_log_warn(&format!(
                     "Failed to send event {} to client {}: {}",
                     event_code, self.id, e
                 ));
-            });
-            let _ = stream.flush();
+            }
+            if let Err(e) = stream.flush() {
+                Self::static_log_warn(&format!(
+                    "Failed to flush event {} to client {}: {}",
+                    event_code, self.id, e
+                ));
+            }
         }
     }
 }

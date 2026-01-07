@@ -1,6 +1,7 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:logging/logging.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -34,6 +35,9 @@ class ServerConnector {
 
   static late Socket server;
   static Map<String, Future<TwoStepConnection>> connections = {};
+
+  // Subscription for server event listener
+  static StreamSubscription<Uint8List>? _serverEventSubscription;
 
   // Server cache for fast reconnection
   static final ServerCacheRepository _serverCache = ServerCacheRepository();
@@ -71,6 +75,9 @@ class ServerConnector {
 
   static void disconnect() {
     setConnectionStatus(NOT_CONNECTED);
+    // Cancel the event listener subscription
+    _serverEventSubscription?.cancel();
+    _serverEventSubscription = null;
     server.close();
     server.destroy();
   }
@@ -431,7 +438,10 @@ class ServerConnector {
   /// Starts listening for server events on the established connection
   /// This listens for single-byte event codes sent by the server
   static void _startServerEventListener() {
-    server.listen(
+    // Cancel any existing subscription to avoid multiple listeners
+    _serverEventSubscription?.cancel();
+    
+    _serverEventSubscription = server.listen(
       (Uint8List data) {
         // Check if this is a server event (single byte with high value)
         if (data.length == 1) {
