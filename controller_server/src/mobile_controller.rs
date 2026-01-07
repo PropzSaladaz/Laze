@@ -185,7 +185,7 @@ fn run_command(command: &str) {
         .arg("-c")
         .arg(command)
         .spawn()
-        .expect("Failed to execute command on Windows");
+        .expect("Failed to execute command");
 }
 
 
