@@ -57,6 +57,3 @@ desktop_app/.env.local
 desktop_app/.env.development.local
 desktop_app/.env.test.local
 desktop_app/.env.production.local
-
-# --- Tools ---
-tools/theming/gen_*.mjs
