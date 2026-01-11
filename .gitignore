@@ -12,9 +12,7 @@ Thumbs.db
 # --- Rust (Server & General) ---
 **/target/
 **/*.rs.bk
-Cargo.lock
-# Keep Cargo.lock for binary apps, ignore for libraries. 
-# If you want to ignore it, uncomment the line above.
+# Cargo.lock is tracked for reproducible builds (this is a binary app)
 
 # --- Flutter (Mobile Client) ---
 mobile_client/build/
