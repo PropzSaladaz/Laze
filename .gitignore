@@ -29,6 +29,7 @@ mobile_client/pubspec.lock
 # Android specifics
 mobile_client/android/local.properties
 mobile_client/android/.gradle/
+mobile_client/android/build/
 mobile_client/android/app/build/
 mobile_client/android/app/.cxx/
 mobile_client/android/*.jks
