@@ -1,49 +1,62 @@
-# Rust build artifacts
-server/target/
-server/*.lock
-
-# Flutter build artifacts
-mobile_client/build/
-mobile_client/.dart_tool/
-mobile_client/.packages
-
-target/
-
-# Common
-*.log
-*.tmp
-
-
-# Cargo / Rust
-target/
-Cargo.lock
-
-# Node / Next.js (desktop_app)
-desktop_app/node_modules/
-desktop_app/.next/
-desktop_app/.env
-desktop_app/package-lock.json
-
-# Flutter / Android (mobile_client)
-mobile_client/.dart_tool/
-mobile_client/build/
-mobile_client/ios/Pods/
-mobile_client/android/.gradle/
-mobile_client/android/app/build/
-mobile_client/android/app/.cxx/
-mobile_client/.packages
-
-# Flutter generated files
-mobile_client/lib/presentation/core/themes/generated_theme.dart
-
-# OS junk
+# --- Global ---
 .DS_Store
 Thumbs.db
-
-# Editor junk
+*.log
+*.tmp
 .vscode/
 .idea/
 *.swp
+.env
+.env*.local
 
-# Tool outputs
+# --- Rust (Server & General) ---
+/target/
+server/target/
+**/*.rs.bk
+Cargo.lock
+# Keep Cargo.lock for binary apps, ignore for libraries. 
+# If you want to ignore it, uncomment the line above.
+
+# --- Flutter (Mobile Client) ---
+mobile_client/build/
+mobile_client/.dart_tool/
+mobile_client/.packages
+mobile_client/.flutter-plugins
+mobile_client/.flutter-plugins-dependencies
+mobile_client/.metadata
+mobile_client/.pub-cache/
+mobile_client/pubspec.lock
+
+# Android specifics
+mobile_client/android/local.properties
+mobile_client/android/.gradle/
+mobile_client/android/app/build/
+mobile_client/android/app/.cxx/
+mobile_client/android/*.jks
+mobile_client/android/key.properties
+
+# iOS specifics
+mobile_client/ios/Flutter/Generated.xcconfig
+mobile_client/ios/Flutter/flutter_export_environment.sh
+mobile_client/ios/Pods/
+mobile_client/ios/.symlinks/
+mobile_client/ios/Podfile.lock
+
+# Generated Flutter files
+mobile_client/lib/presentation/core/themes/generated_theme.dart
+
+# --- Next.js / Node (Desktop App) ---
+desktop_app/node_modules/
+desktop_app/.next/
+desktop_app/out/
+desktop_app/build/
+desktop_app/dist/
+desktop_app/package-lock.json
+desktop_app/.env
+desktop_app/.env.local
+desktop_app/.env.development.local
+desktop_app/.env.test.local
+desktop_app/.env.production.local
+
+# --- Tools ---
 tools/theming/gen_*.mjs
