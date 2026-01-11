@@ -61,11 +61,11 @@ class Input {
   }
 
   static Uint8List previousTab() {
-    return Uint8List.fromList([0, 9]);
+    return Uint8List.fromList([0, 10]);
   }
 
   static Uint8List nextTab() {
-    return Uint8List.fromList([0, 10]);
+    return Uint8List.fromList([0, 9]);
   }
 
   static Uint8List brightnessDown() {
