@@ -3,3 +3,4 @@ members = [
     "desktop_app/src-tauri", 
     "controller_server"
     ]
+resolver = "2"
