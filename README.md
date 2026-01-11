@@ -59,3 +59,34 @@ flutter run
 
 For further information, please refer to the [project documentation](./docs/README.md)
 
+---
+
+# Testing
+
+This project includes comprehensive test suites for both the Rust server and Flutter client.
+
+## Running Tests
+
+### Controller Server (Rust)
+```bash
+cd controller_server
+cargo test
+```
+
+### Mobile Client (Flutter)
+```bash
+cd mobile_client
+flutter test
+```
+
+For detailed testing information, see [TESTING.md](./TESTING.md)
+
+## Continuous Integration
+
+The project uses GitHub Actions to automatically run tests on every push and pull request:
+- **Rust CI**: Builds and tests the controller_server
+- **Flutter CI**: Builds and tests the mobile_client
+- **Full CI**: Runs both test suites
+
+All workflows ensure code quality and prevent regressions.
+

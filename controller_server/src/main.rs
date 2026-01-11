@@ -1,24 +1,24 @@
-use std::time::Duration;
+//! Demo/test binary for running the controller server standalone.
+//! The primary consumer is the Tauri desktop_app which uses the library.
+#![allow(dead_code)]
+
 use std::thread::sleep;
+use std::time::Duration;
 
 use mobile_controller::MobileController;
 use server::core::{Server, ServerConfig};
 
+mod actions;
+mod keybinds;
 mod logger;
 mod mobile_controller;
 mod server;
-mod actions;
-mod keybinds;
 
 const PORT: usize = 7878;
 
 fn main() {
     let config = ServerConfig::new(PORT, 10);
-    let app = MobileController::new(
-            1, 
-            1,
-            1,
-            1500).unwrap();
+    let app = MobileController::new(1, 1).unwrap();
 
     // server has started here
     let mut handle = Server::start(config, app);
@@ -28,10 +28,10 @@ fn main() {
     match handle.receive_response() {
         Ok(server::commands::ServerResponse::ServerStarted(_)) => {
             println!("Server initialized successfully.");
-        },
+        }
         Ok(server::commands::ServerResponse::Error(err)) => {
             println!("Error initializing server: {}", err);
-        },
+        }
         _ => {
             println!("Unexpected response during initialization.");
         }
@@ -42,10 +42,10 @@ fn main() {
     match handle.receive_response() {
         Ok(server::commands::ServerResponse::ClientTerminated(t)) => {
             println!("Client {} terminated successfully.", t.client_id);
-        },
+        }
         Ok(server::commands::ServerResponse::Error(err)) => {
             println!("Error terminating client: {}", err);
-        },
+        }
         _ => {
             println!("Unexpected response during client termination.");
         }
@@ -57,15 +57,13 @@ fn main() {
     match handle.receive_response() {
         Ok(server::commands::ServerResponse::ServerTerminated(_)) => {
             println!("Server terminated successfully.");
-        },
+        }
         Ok(server::commands::ServerResponse::Error(err)) => {
             println!("Error terminating server: {}", err);
-        },
+        }
         _ => {
             println!("Unexpected response during server termination.");
         }
     }
-    sleep(Duration::from_secs(2));    
+    sleep(Duration::from_secs(2));
 }
-
-
