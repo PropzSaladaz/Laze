@@ -1,0 +1,55 @@
+name: Rust Controller Server CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - 'controller_server/**'
+      - '.github/workflows/rust-ci.yml'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'controller_server/**'
+      - '.github/workflows/rust-ci.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxdo-dev build-essential
+    
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        components: rustfmt, clippy
+        # Built-in caching via Swatinem/rust-cache
+    
+    - name: Build
+      working-directory: ./controller_server
+      run: cargo build --verbose
+    
+    # Note: --lib runs only library unit tests, excluding integration tests
+    # Tests marked #[ignore] require X11 display server and won't run in headless CI
+    - name: Run tests
+      working-directory: ./controller_server
+      run: cargo test --verbose --lib
+    
+    - name: Check formatting
+      working-directory: ./controller_server
+      continue-on-error: true
+      run: cargo fmt --check
+    
+    - name: Run clippy
+      working-directory: ./controller_server
+      continue-on-error: true
+      run: cargo clippy -- -D warnings

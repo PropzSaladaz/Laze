@@ -1,5 +1,3 @@
-use std::os::linux::raw::stat;
-
 pub trait Loggable {
     fn log_info(&self, message: &str) {
         log::info!("{}", Self::static_build_message(message));
@@ -16,11 +14,6 @@ pub trait Loggable {
     fn log_warn(&self, message: &str) {
         log::warn!("{}", Self::static_build_message(message));
     }
-
-    fn log_trace(&self, message: &str) {
-        log::trace!("{}", Self::static_build_message(message));
-    }
-
 
     fn static_label() -> String;
 
@@ -40,20 +33,15 @@ pub trait Loggable {
         log::warn!("{}", Self::static_build_message(message));
     }
 
-    fn static_log_trace(message: &str) {
-        log::trace!("{}", Self::static_build_message(message));
-    }
-
     fn static_build_message(message: &str) -> String {
         format!("{} {}", Self::static_label(), message)
     }
 }
 
 impl<T> Loggable for T {
-
     fn static_label() -> String {
         let full = std::any::type_name::<T>();
         // return only the last part - struct name
-        format!("[{:<18}]: ", full.split("::").last().unwrap_or(full)) 
+        format!("[{:<18}]: ", full.split("::").last().unwrap_or(full))
     }
 }

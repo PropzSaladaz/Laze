@@ -1,0 +1,54 @@
+name: Flutter Mobile Client CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - 'mobile_client/**'
+      - '.github/workflows/flutter-ci.yml'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'mobile_client/**'
+      - '.github/workflows/flutter-ci.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.29.x'
+        channel: 'stable'
+        cache: true
+    
+    - name: Get dependencies
+      working-directory: ./mobile_client
+      run: flutter pub get
+    
+    - name: Verify Flutter installation
+      run: flutter doctor -v
+    
+    - name: Analyze code
+      working-directory: ./mobile_client
+      continue-on-error: true
+      run: flutter analyze
+    
+    - name: Run tests
+      working-directory: ./mobile_client
+      run: flutter test
+    
+    # Using 'dart format' as 'flutter format' is deprecated since Flutter 3.7
+    - name: Check formatting
+      working-directory: ./mobile_client
+      continue-on-error: true
+      run: dart format --set-exit-if-changed .
+    
+    - name: Build APK (Android)
+      working-directory: ./mobile_client
+      continue-on-error: true
+      run: flutter build apk --release

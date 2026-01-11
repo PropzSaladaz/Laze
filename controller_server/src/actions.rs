@@ -223,7 +223,8 @@ mod tests {
         let mut key_vol_down: &[u8] = &[0u8, 2u8];
         let mut key_vol_up: &[u8] = &[0u8, 3u8];
         let mut key_pause: &[u8] = &[0u8, 4u8];
-        let mut key_enter: &[u8] = &[0u8, 5u8];
+        let mut key_play: &[u8] = &[0u8, 5u8];
+        let mut key_enter: &[u8] = &[0u8, 6u8];
 
         assert!(matches!(
             Action::decode(&mut key_backspace),
@@ -244,6 +245,10 @@ mod tests {
         assert!(matches!(
             Action::decode(&mut key_pause),
             Action::KeyPress(Key::Pause)
+        ));
+        assert!(matches!(
+            Action::decode(&mut key_play),
+            Action::KeyPress(Key::Play)
         ));
         assert!(matches!(
             Action::decode(&mut key_enter),

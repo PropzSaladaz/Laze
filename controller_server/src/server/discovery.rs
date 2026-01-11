@@ -2,6 +2,7 @@
 //!
 //! Listens for UDP broadcast discovery requests from mobile clients
 //! and responds with the server's IP address.
+#![allow(dead_code)]
 
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
