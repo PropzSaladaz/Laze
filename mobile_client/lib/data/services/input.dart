@@ -61,11 +61,11 @@ class Input {
   }
 
   static Uint8List previousTab() {
-    return Uint8List.fromList([0, 9]);
+    return Uint8List.fromList([0, 10]);
   }
 
   static Uint8List nextTab() {
-    return Uint8List.fromList([0, 10]);
+    return Uint8List.fromList([0, 9]);
   }
 
   static Uint8List brightnessDown() {
@@ -90,6 +90,16 @@ class Input {
   // ------ MouseBtn: [4, button] -------
   static Uint8List leftClick() {
     return Uint8List.fromList([4, 0]);
+  }
+
+  // ------ MouseDown: [10, button] -------
+  static Uint8List mouseDown() {
+    return Uint8List.fromList([10, 0]);
+  }
+
+  // ------ MouseUp: [11, button] -------
+  static Uint8List mouseUp() {
+    return Uint8List.fromList([11, 0]);
   }
 
   // ------ SenseDown: [5] -------

@@ -7,8 +7,7 @@ export function generateNext(tokens, outDir, srcName = 'tokens.json') {
   const { color = {}, space = {}, radius = {} } = tokens;
   const flat = flattenColorTokens(color); // [{name, light, dark}, ...]
 
-<<<<<<< HEAD
-  // tokens.ts
+  // ---------- tokens.ts ----------
   const ts = `${banner(srcName)}
 export type ThemeMode = 'light' | 'dark';
 
@@ -34,20 +33,17 @@ export function applyTheme(mode: ThemeMode, root: HTMLElement = document.documen
 }
 `;
 
-  // css-vars.css
-=======
   // ---------- css-vars.css ----------
->>>>>>> ce0240a7e269d875eb2f395fcb39776673a8f1c2
   const lightCss = [], darkCss = [];
   for (const t of flat) {
     lightCss.push(`  --color-${t.name}: ${anyColorToCss(t.light)};`);
     darkCss.push(`  --color-${t.name}: ${anyColorToCss(t.dark)};`);
   }
-  for (const [k,v] of Object.entries(space)) {
+  for (const [k, v] of Object.entries(space)) {
     lightCss.push(`  --space-${k}: ${v}px;`);
     darkCss.push(`  --space-${k}: ${v}px;`);
   }
-  for (const [k,v] of Object.entries(radius)) {
+  for (const [k, v] of Object.entries(radius)) {
     lightCss.push(`  --radius-${k}: ${v}px;`);
     darkCss.push(`  --radius-${k}: ${v}px;`);
   }
@@ -67,13 +63,6 @@ ${darkCss.join('\n')}
 }
 `;
 
-<<<<<<< HEAD
-  // write
-  ensureDir(outDir);
-  fs.writeFileSync(path.join(outDir, 'tokens.ts'), ts, 'utf8');
-  fs.writeFileSync(path.join(outDir, 'css-vars.css'), css, 'utf8');
-}
-=======
   // ---------- tailwind.preset.cjs ----------
   // Map keys so Tailwind exposes classes like bg-surface-1, text-text, border-divider, p-md, rounded-lg, etc.
   const colorsMap = Object.fromEntries(
@@ -141,8 +130,9 @@ ${aliasLines.join('\n')}
   // ---------- write outputs ----------
   const target = path.join(outDir, 'theme');
   ensureDir(target);
+  fs.writeFileSync(path.join(target, 'tokens.ts'), ts, 'utf8');
   fs.writeFileSync(path.join(target, 'css-vars.css'), css, 'utf8');
   fs.writeFileSync(path.join(target, 'tailwind.preset.cjs'), tailwindPreset, 'utf8');
   fs.writeFileSync(path.join(target, 'tailwind.aliases.css'), aliasesCss, 'utf8');
 }
->>>>>>> ce0240a7e269d875eb2f395fcb39776673a8f1c2
+
