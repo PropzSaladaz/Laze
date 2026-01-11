@@ -21,6 +21,7 @@ use super::{
         ClientTerminated, ServerRequest, ServerResponse, ServerStarted, ServerStopped,
         ServerTerminated,
     },
+    discovery::{start_discovery_listener, DiscoveryHandle},
     utils,
 };
 
@@ -69,13 +70,19 @@ pub struct ClientInfo {
 pub struct ServerHandler {
     event_pub: broadcast::Sender<ServerEvent>,
     command_sender: CommandSender,
+    discovery_handle: Option<DiscoveryHandle>,
 }
 
 impl ServerHandler {
-    pub fn new(event_pub: broadcast::Sender<ServerEvent>, command_sender: CommandSender) -> Self {
+    pub fn new(
+        event_pub: broadcast::Sender<ServerEvent>,
+        command_sender: CommandSender,
+        discovery_handle: Option<DiscoveryHandle>,
+    ) -> Self {
         Self {
             event_pub,
             command_sender,
+            discovery_handle,
         }
     }
 
@@ -114,6 +121,16 @@ impl ServerHandler {
     }
 }
 
+/// Automatic cleanup when ServerHandler is dropped
+impl Drop for ServerHandler {
+    fn drop(&mut self) {
+        // Automatically shutdown discovery when the handler is dropped
+        if let Some(handle) = self.discovery_handle.take() {
+            handle.shutdown();
+        }
+    }
+}
+
 /// The server that will handle all client's requests.
 /// Holds a pool of clients and an application that will handle all client's requests.
 pub struct Server<A: Application> {
@@ -145,6 +162,9 @@ impl<A: Application + 'static> Server<A> {
     /// The port 7878 is only used as a common ground to establish new connections with new clients.
     pub fn start(config: ServerConfig, app: A) -> ServerHandler {
         let (event_pub, _) = broadcast::channel(100);
+
+        // Extract port before config is moved
+        let starting_port = config.starting_port;
 
         // Initialize logger with default settings
         env_logger::init();
@@ -188,11 +208,29 @@ impl<A: Application + 'static> Server<A> {
             Self::static_log_info("Command listener thread has exited.");
         });
 
-        // return channel endpoints to send messages and also receive messages to / from the server
+        // Start UDP discovery listener so clients can find the server
+        let discovery_handle = match start_discovery_listener(starting_port as u16) {
+            Ok(handle) => {
+                Self::static_log_info(&format!(
+                    "UDP discovery listener started on port 7877 (advertising TCP port {})",
+                    starting_port
+                ));
+                Some(handle)
+            }
+            Err(e) => {
+                Self::static_log_warn(&format!(
+                    "Failed to start UDP discovery listener: {}. Clients will need to connect manually.",
+                    e
+                ));
+                None
+            }
+        };
 
+        // return channel endpoints to send messages and also receive messages to / from the server
         ServerHandler {
             event_pub,
             command_sender: CommandSender::new(send_to_server, receive_from_server),
+            discovery_handle,
         }
     }
 
@@ -326,5 +364,77 @@ impl<A: Application + 'static> Server<A> {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc::channel;
+
+    #[test]
+    fn test_server_config_creation() {
+        let config = ServerConfig::new(8000, 10);
+        // We can access private fields in the same module
+        assert_eq!(config.starting_port, 8000);
+        assert_eq!(config.max_clients, 10);
+    }
+
+    #[test]
+    fn test_client_info_serialization() {
+        let client_info = ClientInfo {
+            id: 1,
+            addr: "127.0.0.1:8080".to_string(),
+        };
+
+        let serialized = serde_json::to_string(&client_info).unwrap();
+        assert!(serialized.contains("127.0.0.1:8080"));
+        assert!(serialized.contains("\"id\":1"));
+    }
+
+    #[test]
+    fn test_server_event_client_added() {
+        let client_info = ClientInfo {
+            id: 1,
+            addr: "192.168.1.100:8080".to_string(),
+        };
+        let event = ServerEvent::ClientAdded(client_info.clone());
+
+        match event {
+            ServerEvent::ClientAdded(info) => {
+                assert_eq!(info.id, 1);
+                assert_eq!(info.addr, "192.168.1.100:8080");
+            }
+            _ => panic!("Expected ClientAdded event"),
+        }
+    }
+
+    #[test]
+    fn test_server_event_client_removed() {
+        let client_info = ClientInfo {
+            id: 42,
+            addr: "10.0.0.1:9999".to_string(),
+        };
+        let event = ServerEvent::ClientRemoved(client_info);
+
+        match event {
+            ServerEvent::ClientRemoved(info) => {
+                assert_eq!(info.id, 42);
+            }
+            _ => panic!("Expected ClientRemoved event"),
+        }
+    }
+
+    #[test]
+    fn test_server_handler_new_and_subscribe() {
+        let (event_pub, _) = broadcast::channel(10);
+        let (req_sender, _req_receiver) = channel();
+        let (_resp_sender, resp_receiver) = channel();
+
+        let command_sender = CommandSender::new(req_sender, resp_receiver);
+        let handler = ServerHandler::new(event_pub, command_sender, None);
+
+        // Test subscribe_events returns a valid receiver
+        let _receiver = handler.subscribe_events();
     }
 }

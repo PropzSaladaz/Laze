@@ -10,7 +10,6 @@ pub use server::{
     application::Application,
     commands::{ServerRequest, ServerResponse},
     core::{ClientInfo, Server, ServerConfig, ServerEvent, ServerHandler},
-    discovery::{start_discovery_listener, DiscoveryHandle, DISCOVERY_PORT},
 };
 
 pub use mobile_controller::MobileController;
