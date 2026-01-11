@@ -84,7 +84,7 @@ class _CommandBtnsState extends State<CommandBtns> {
           ),
           _fourButtonRow([
             _ButtonData(Icons.volume_off, Input.mute()),
-            _ButtonData(Icons.brightness_high_sharp, Input.brightnessDown()),
+            _ButtonData(Icons.power_settings_new, Input.shutdown()),
             _ButtonData(Icons.pause, Input.pause()),
             _ButtonData(Icons.play_arrow, Input.play()),
           ]),

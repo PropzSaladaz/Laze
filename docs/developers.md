@@ -6,7 +6,6 @@ For contributors and maintainers. This guide orients you in the repo, shows how 
 
 ```
 mobile-virtual-device/
-├─ Architecture.svg
 ├─ README.md                 # Root overview
 ├─ controller_server/        # Rust server: networking + virtual input
 │  └─ README.md
@@ -45,7 +44,7 @@ Option B — Run components manually:
 
 ## Architecture & flows
 
-![](../Architecture.svg)
+![](diagrams/Architecture.svg)
 
 - [Use cases and sequence diagrams](./use-cases.md)
 

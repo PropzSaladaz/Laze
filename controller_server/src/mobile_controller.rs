@@ -65,6 +65,14 @@ impl MobileController {
         self.enigo.button(button, Direction::Click).unwrap();
     }
 
+    fn mouse_button_down(&mut self, button: enigo::Button) {
+        self.enigo.button(button, Direction::Press).unwrap();
+    }
+
+    fn mouse_button_up(&mut self, button: enigo::Button) {
+        self.enigo.button(button, Direction::Release).unwrap();
+    }
+
     fn type_string(&mut self, text: &str) {
         self.enigo.text(text).unwrap();
     }
@@ -96,11 +104,23 @@ impl MobileController {
                 }
             }
 
-            Action::MouseButton(button) => {
+            Action::MouseClick(button) => {
                 if let Some(button) = self.key_bindings.translate_to_os_button(&button) {
                     self.mouse_button(button);
                 } else {
                     self.log_warn(&format!("Key: {:?} is not mapped for current OS", button));
+                }
+            }
+
+            Action::MouseDown(button) => {
+                if let Some(button) = self.key_bindings.translate_to_os_button(&button) {
+                    self.mouse_button_down(button);
+                }
+            }
+
+            Action::MouseUp(button) => {
+                if let Some(button) = self.key_bindings.translate_to_os_button(&button) {
+                    self.mouse_button_up(button);
                 }
             }
 

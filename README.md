@@ -39,7 +39,7 @@ To quickly spin up the app, you must run 2 components:
 This will spin up the underlying server as well as the UI:
 
 ```bash
-cd controller_ server
+cd controller_server
 cargo run
 ```
 
