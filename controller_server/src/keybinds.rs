@@ -44,7 +44,7 @@ impl KeyBindings {
                 actions::Key::CloseTab,
                 vec![enigo::Key::Control, enigo::Key::Unicode('w')],
             ),
-            // Fixed: NextTab = Ctrl+Tab, PreviousTab = Ctrl+Shift+Tab
+            // NextTab = Ctrl+Tab (standard: move forward/right), PreviousTab = Ctrl+Shift+Tab (standard: move backward/left)
             (
                 actions::Key::NextTab,
                 vec![enigo::Key::Control, enigo::Key::Tab],
