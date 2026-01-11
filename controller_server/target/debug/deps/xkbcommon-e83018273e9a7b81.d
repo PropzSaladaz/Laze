@@ -1,9 +1,0 @@
-/home/seed/Documents/IToffSchool/Projects/mobile-virtual-device/server/target/debug/deps/libxkbcommon-e83018273e9a7b81.rmeta: /home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/lib.rs /home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/mod.rs /home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/compose.rs /home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/ffi.rs /home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/keysyms.rs
-
-/home/seed/Documents/IToffSchool/Projects/mobile-virtual-device/server/target/debug/deps/xkbcommon-e83018273e9a7b81.d: /home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/lib.rs /home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/mod.rs /home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/compose.rs /home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/ffi.rs /home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/keysyms.rs
-
-/home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/lib.rs:
-/home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/mod.rs:
-/home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/compose.rs:
-/home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/ffi.rs:
-/home/seed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-0.8.0/src/xkb/keysyms.rs:

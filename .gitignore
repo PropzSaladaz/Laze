@@ -10,8 +10,7 @@ Thumbs.db
 .env*.local
 
 # --- Rust (Server & General) ---
-/target/
-server/target/
+**/target/
 **/*.rs.bk
 Cargo.lock
 # Keep Cargo.lock for binary apps, ignore for libraries. 
