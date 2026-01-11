@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+# This workflow runs BOTH test suites on every push/PR.
+# Use rust-ci.yml and flutter-ci.yml for path-filtered runs on individual components.
+
 jobs:
   rust-build-and-test:
     runs-on: ubuntu-latest
@@ -21,11 +24,14 @@ jobs:
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: stable
+        # Built-in caching via Swatinem/rust-cache
     
     - name: Build controller_server
       working-directory: ./controller_server
       run: cargo build --verbose
     
+    # Note: --lib runs only library unit tests, excluding integration tests
+    # Some tests marked #[ignore] require X11 and won't run in CI
     - name: Run controller_server tests
       working-directory: ./controller_server
       run: cargo test --verbose --lib
@@ -38,8 +44,9 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.16.0'
+        flutter-version: '3.16.x'
         channel: 'stable'
+        cache: true
     
     - name: Get dependencies
       working-directory: ./mobile_client
@@ -51,4 +58,5 @@ jobs:
     
     - name: Build APK (Android)
       working-directory: ./mobile_client
-      run: flutter build apk --release || echo "Build completed with warnings"
+      continue-on-error: true
+      run: flutter build apk --release
