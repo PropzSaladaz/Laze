@@ -22,44 +22,31 @@ the client are dispatched to the device application running on the server.
 sudo apt install build-essential libxdo-dev
 ```
 
-## Build
+## Quick Start
 
-Before running the project, you must generate all theme data shared across all projects:
+1. **Desktop App**:
+   ```bash
+   cd desktop_app
+   npm install
+   npm run tauri dev
+   ```
+
+2. **Mobile Client**:
+   ```bash
+   cd mobile_client
+   flutter pub get
+   flutter run
+   ```
+
+For detailed documentation, see the [Documentation Hub](./docs/README.md).
+
+## Theming
+
+To regenerate theme tokens:
 
 ```bash
-node tools/theming/index.mjs design/tokens/tokens.json
+node tools/theming/index.mjs design-tokens/tokens/tokens.json
 ```
-
-## Run
-
-To quickly spin up the app, you must run 2 components:
-
-### 1. Desktop App
-
-This will spin up the underlying server as well as the UI:
-
-```bash
-cd controller_server
-cargo run
-```
-
-Run with logging:
-```bash
-RUST_LOG=info cargo run
-```
-
-### 2. Mobile client
-```bash
-cd mobile_client
-flutter pub get
-# generate json_serializable classes
-dart run build_runner build
-flutter run
-```
-
-For further information, please refer to the [project documentation](./docs/README.md)
-
----
 
 # Testing
 
@@ -79,7 +66,7 @@ cd mobile_client
 flutter test
 ```
 
-For detailed testing information, see [TESTING.md](./TESTING.md)
+For detailed testing information, see [Testing Guide](./docs/testing.md)
 
 ## Continuous Integration
 
