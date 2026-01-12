@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_client/data/dto/server_event.dart';
 import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
+import 'package:mobile_client/data/repositories/device/device_settings_repository.dart';
 import 'package:mobile_client/data/services/input.dart';
 import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
 import 'package:mobile_client/services/server_connector.dart';
@@ -30,11 +31,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    final deviceSettings = Provider.of<DeviceSettingsRepository>(context, listen: false);
     ServerConnector.init(
       _setConnectionState, 
       _getConnectionState,
       _onError,
       _onServerEvent,
+      deviceSettings: deviceSettings,
     );
   }
 

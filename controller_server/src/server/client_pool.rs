@@ -110,6 +110,7 @@ impl ClientPool {
                         let client_info = ClientInfo {
                             id: client.id,
                             addr: client.address.to_string(),
+                            device_name: client.device_name.lock().unwrap().clone(),
                         };
 
                         // publish event about client removal
@@ -166,6 +167,7 @@ impl ClientPool {
             .send(ServerEvent::ClientAdded(ClientInfo {
                 id: new_client.id,
                 addr: new_client.address.to_string(),
+                device_name: new_client.device_name.lock().unwrap().clone(),
             }))
             .map_err(|e| {
                 ClientPool::static_log_warn(&format!(
@@ -196,6 +198,7 @@ impl ClientPool {
             let client_info = ClientInfo {
                 id: client.id,
                 addr: client.address.to_string(),
+                device_name: client.device_name.lock().unwrap().clone(),
             };
             let _ = self
                 .event_publisher
@@ -259,6 +262,7 @@ struct Client {
     address: SocketAddr,
     id: usize,
     port: usize,
+    device_name: Arc<Mutex<Option<String>>>,
 
     /// Client pool sets this to true when it wants to terminate the client.
     /// The client thread checks this variable periodically to see if it should exit.
@@ -288,6 +292,7 @@ impl Client {
             address,
             id,
             port,
+            device_name: Arc::new(Mutex::new(None)),
             exit_requested: AtomicBool::new(false),
             stream: Arc::new(Mutex::new(None)),
         });
@@ -363,6 +368,10 @@ impl Client {
         let mut stream = stream;
         stream.set_read_timeout(Some(CLIENT_READ_TIMEOUT)).unwrap();
 
+        // Read the first message which should contain device info (device name)
+        // This is optional - if the client doesn't send it, we just continue
+        let mut first_message = true;
+
         // make the reads blocking - wait indefinetely for client input
         // stream.set_read_timeout(None).expect("Could not set read timeout.");
         loop {
@@ -376,6 +385,26 @@ impl Client {
                     };
 
                     let bytes = &bytes[..bytes_size];
+
+                    // Try to parse first message as device info
+                    if first_message {
+                        first_message = false;
+                        
+                        // Try to parse as JSON device info
+                        if let Ok(json_str) = std::str::from_utf8(bytes) {
+                            if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(json_str) {
+                                if let Some(device_name) = json_value.get("device_name").and_then(|v| v.as_str()) {
+                                    *self.device_name.lock().unwrap() = Some(device_name.to_string());
+                                    Self::static_log_info(&format!(
+                                        "Client {} identified as: {}",
+                                        self.id, device_name
+                                    ));
+                                    continue; // Skip processing this as input
+                                }
+                            }
+                        }
+                        // If not device info JSON, process as normal input below
+                    }
 
                     if let ConnectionStatus::Disconnected =
                         app.lock().unwrap().dispatch_to_device(bytes)

@@ -18,6 +18,7 @@ interface Timer {
 interface ClientInfo {
     id: number,
     addr: string,
+    device_name?: string,
 }
 
 interface Client extends ClientInfo {
@@ -92,6 +93,7 @@ function ClientTable({ onRemove }: Props) {
             <thead>
                 <tr>
                     <th>Client ID</th>
+                    <th>Device Name</th>
                     <th>Address</th>
                     <th>Time Connected</th>
                     <th>Actions</th>
@@ -102,6 +104,7 @@ function ClientTable({ onRemove }: Props) {
                 {clientsConnected.map(client => (
                     <tr key={client.id}>
                         <td>{client.id}</td>
+                        <td>{client.device_name || 'Unknown Device'}</td>
                         <td>{client.addr}</td>
                         <td>{renderTime(client.timeConnected)}</td>
                         <td>

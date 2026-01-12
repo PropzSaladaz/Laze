@@ -8,8 +8,10 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:mobile_client/data/dto/new_client_response.dart';
+import 'package:mobile_client/data/dto/client_info_request.dart';
 import 'package:mobile_client/data/dto/server_event.dart';
 import 'package:mobile_client/data/repositories/server/server_cache_repository.dart';
+import 'package:mobile_client/data/repositories/device/device_settings_repository.dart';
 import 'package:mobile_client/services/connection_status.dart';
 import 'package:mobile_client/services/udp_discovery.dart';
 
@@ -43,6 +45,9 @@ class ServerConnector {
   static final ServerCacheRepository _serverCache = ServerCacheRepository();
   static bool _cacheInitialized = false;
 
+  // Device settings for sending device name
+  static DeviceSettingsRepository? _deviceSettings;
+
   // Used to inform application of current connection status
   static late CallbackSetStatus setConnectionStatus;
   // connection status may change while we search for the server.
@@ -66,11 +71,13 @@ class ServerConnector {
     CallbackGetStatus getConnectionStatus,
     CallbackOnError onError,
     CallbackOnServerEvent onServerEvent,
+    {DeviceSettingsRepository? deviceSettings}
   ) {
     ServerConnector.setConnectionStatus = setConnectionStatus;
     ServerConnector.getConnectionStatus = getConnectionStatus;
     ServerConnector.onError = onError;
     ServerConnector.onServerEvent = onServerEvent;
+    _deviceSettings = deviceSettings;
   }
 
   static void disconnect() {
@@ -84,6 +91,22 @@ class ServerConnector {
 
   static void sendInput(Uint8List bytes) {
     server.add(bytes);
+  }
+
+  /// Send device information to the server
+  static Future<void> _sendDeviceInfo() async {
+    if (_deviceSettings != null) {
+      try {
+        final deviceName = await _deviceSettings!.getDeviceName();
+        final clientInfo = ClientInfoRequest(device_name: deviceName);
+        final json = jsonEncode(clientInfo.toJson());
+        final bytes = utf8.encode(json);
+        server.add(bytes);
+        _log.info("Sent device info to server: $deviceName");
+      } catch (e) {
+        _log.warning("Failed to send device info: $e");
+      }
+    }
   }
 
   static Future<bool> _isWifiEnabled() async {
@@ -229,6 +252,9 @@ class ServerConnector {
 
       server = dedicatedSocket;
       _serverOS = newClientResp.server_os;
+
+      // Send device info as first message
+      await _sendDeviceInfo();
 
       // Start listening for server events
       _startServerEventListener();
@@ -407,6 +433,9 @@ class ServerConnector {
         _serverOS = resp.server_os;
         // !IMPORTANT! this is set to force all data to be sent in a different tcp packet
         server.setOption(SocketOption.tcpNoDelay, true);
+        
+        // Send device info as first message
+        await _sendDeviceInfo();
         
         // Start listening for server events
         _startServerEventListener();

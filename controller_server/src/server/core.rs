@@ -65,6 +65,7 @@ pub enum ServerEvent {
 pub struct ClientInfo {
     pub id: usize,
     pub addr: String,
+    pub device_name: Option<String>,
 }
 
 pub struct ServerHandler {
