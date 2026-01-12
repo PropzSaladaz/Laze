@@ -403,7 +403,7 @@ impl Client {
                                 }
                             }
                         }
-                        // If not device info JSON, process as normal input below
+                        // If not device info JSON, fall through and process as normal input
                     }
 
                     if let ConnectionStatus::Disconnected =

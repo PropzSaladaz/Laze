@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io';
 
 /// Repository for managing device settings including device name
 class DeviceSettingsRepository {
@@ -11,6 +12,7 @@ class DeviceSettingsRepository {
   
   late Box<String> _box;
   bool _initialized = false;
+  final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
 
   /// Initialize the repository
   Future<void> init() async {
@@ -51,15 +53,13 @@ class DeviceSettingsRepository {
   /// Generate a default device name based on device brand and model
   Future<String> _generateDefaultDeviceName() async {
     try {
-      final deviceInfo = DeviceInfoPlugin();
-      
-      if (await _isAndroid()) {
-        final androidInfo = await deviceInfo.androidInfo;
+      if (Platform.isAndroid) {
+        final androidInfo = await _deviceInfo.androidInfo;
         final brand = androidInfo.brand ?? 'Unknown';
         final model = androidInfo.model ?? 'Device';
         return '${_capitalize(brand)} $model';
-      } else if (await _isIOS()) {
-        final iosInfo = await deviceInfo.iosInfo;
+      } else if (Platform.isIOS) {
+        final iosInfo = await _deviceInfo.iosInfo;
         final name = iosInfo.name ?? 'iOS Device';
         return name;
       } else {
@@ -69,28 +69,6 @@ class DeviceSettingsRepository {
     } catch (e) {
       _log.warning('Failed to get device info: $e');
       return 'Mobile Device';
-    }
-  }
-
-  /// Check if running on Android
-  Future<bool> _isAndroid() async {
-    try {
-      final deviceInfo = DeviceInfoPlugin();
-      await deviceInfo.androidInfo;
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// Check if running on iOS
-  Future<bool> _isIOS() async {
-    try {
-      final deviceInfo = DeviceInfoPlugin();
-      await deviceInfo.iosInfo;
-      return true;
-    } catch (e) {
-      return false;
     }
   }
 
