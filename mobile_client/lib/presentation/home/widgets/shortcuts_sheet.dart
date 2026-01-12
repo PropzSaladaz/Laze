@@ -26,6 +26,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
   late DraggableScrollableController _controller;
   final double _closeThreshold = 0.2;
   final double _defaultOpenSize = 0.4;
+  static const double _addButtonBottomPadding = 100.0; // Space for positioned "Add" button
 
   // animation times
   final _openAnimationTime = const Duration(milliseconds: 500);
@@ -113,7 +114,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                             padding: const EdgeInsets.only(
                               left: 20.0,
                               right: 20.0,
-                              bottom: 100.0,
+                              bottom: _addButtonBottomPadding,
                             ),
                             child: GridView(
                               controller: scrollController,
