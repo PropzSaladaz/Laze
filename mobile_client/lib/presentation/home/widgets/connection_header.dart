@@ -41,30 +41,43 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          () {
-            // CONNECTED -> button used to disconnect
-            if (widget.connectionStatus == ServerConnector.CONNECTED) {
-              return StyledButton(
+          Row(
+            children: [
+              // Settings button
+              StyledButton(
                 onPressed: () {
-                  showDialog(
-                      context: context,
-                      builder: (BuildContext context) => _disconnectPopup(context));
+                  Navigator.pushNamed(context, '/settings');
                 },
-                icon: Icons.power_settings_new,
-              );
-            } else if (widget.connectionStatus == ServerConnector.SEARCHING) {
-              return StyledButton(
-                onPressed: widget.cancelSearch,
-                icon: Icons.cancel,
-              );
-            } else {
-              // NOT CONNECTED -> button used to connect
-              return StyledButton(
-                onPressed: widget.connect,
-                icon: Icons.screen_search_desktop_outlined,
-              );
-            }
-          }()
+                icon: Icons.settings,
+              ),
+              const SizedBox(width: 10),
+              // Connection button
+              () {
+                // CONNECTED -> button used to disconnect
+                if (widget.connectionStatus == ServerConnector.CONNECTED) {
+                  return StyledButton(
+                    onPressed: () {
+                      showDialog(
+                          context: context,
+                          builder: (BuildContext context) => _disconnectPopup(context));
+                    },
+                    icon: Icons.power_settings_new,
+                  );
+                } else if (widget.connectionStatus == ServerConnector.SEARCHING) {
+                  return StyledButton(
+                    onPressed: widget.cancelSearch,
+                    icon: Icons.cancel,
+                  );
+                } else {
+                  // NOT CONNECTED -> button used to connect
+                  return StyledButton(
+                    onPressed: widget.connect,
+                    icon: Icons.screen_search_desktop_outlined,
+                  );
+                }
+              }()
+            ],
+          )
         ],
       ),
     );

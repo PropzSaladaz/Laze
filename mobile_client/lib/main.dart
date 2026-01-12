@@ -6,6 +6,7 @@ import 'package:mobile_client/config/dependencies.dart';
 import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
 import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
 import 'package:mobile_client/presentation/home/widgets/home_screen.dart';
+import 'package:mobile_client/presentation/settings/settings_screen.dart';
 import 'package:mobile_client/presentation/core/themes/theme.dart';
 import 'package:provider/provider.dart';
 
@@ -52,7 +53,10 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen()
+      home: const HomeScreen(),
+      routes: {
+        '/settings': (context) => const SettingsScreen(),
+      },
     );
   }
 }
