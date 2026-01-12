@@ -96,26 +96,25 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                       ),
                       color: Theme.of(context).colorScheme.surface,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        left: 20.0,
-                        right: 20.0,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          const SizedBox(
-                            height: 60,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Text(
-                                "Shortcuts",
-                                style: TextStyle(fontSize: 25.0),
-                              ),
+                    child: Column(
+                      children: [
+                        const SizedBox(
+                          height: 60,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Text(
+                              "Shortcuts",
+                              style: TextStyle(fontSize: 25.0),
                             ),
                           ),
-                          Expanded(
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              left: 20.0,
+                              right: 20.0,
+                              bottom: 100.0,
+                            ),
                             child: GridView(
                               controller: scrollController,
                               gridDelegate:
@@ -135,8 +134,8 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                               }).toList(),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   );
                 }),
