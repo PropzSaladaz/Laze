@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:mobile_client/config/dependencies.dart';
@@ -23,6 +24,13 @@ void main() async {
 
   // Hive needs WidgetsBinding to be initialized for platform channel access
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Enable edge-to-edge mode - app renders behind system navigation bar
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+  ));
 
   await Hive.initFlutter("shortcuts_data");
   // register Hive adapters
