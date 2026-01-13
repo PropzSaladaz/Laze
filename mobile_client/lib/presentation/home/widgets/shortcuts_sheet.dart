@@ -26,14 +26,15 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
   late DraggableScrollableController _controller;
   final double _closeThreshold = 0.2;
   final double _defaultOpenSize = 0.4;
-  static const double _addButtonBottomPadding = 100.0; // Space for positioned "Add" button
 
   // animation times
   final _openAnimationTime = const Duration(milliseconds: 500);
 
   bool _sheetIsFullyOpen = false;
-  bool _isClosingAnimation =
-      false; // specifies if we are playing the closing animation
+  bool _isClosingAnimation = false;
+
+  // Track sheet size for button visibility
+  double _currentSheetSize = 0.0;
 
   @override
   void initState() {
@@ -72,50 +73,63 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
 
   Widget _buildShortcutsSheet(BuildContext context, HomeViewModel viewModel) {
     final customColors = Theme.of(context).extension<CustomColors>();
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    
     return SizedBox(
       height: MediaQuery.of(context).size.height,
-      child: Stack(
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.linear,
-            child: DraggableScrollableSheet(
-                controller: _controller,
-                initialChildSize: 0.0,
-                minChildSize: 0,
-                maxChildSize: 0.6,
-                builder: (context, scrollController) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(30.0),
-                        topRight: Radius.circular(30.0),
+      child: NotificationListener<DraggableScrollableNotification>(
+        onNotification: (notification) {
+          setState(() {
+            _currentSheetSize = notification.extent;
+          });
+          return false;
+        },
+        child: DraggableScrollableSheet(
+          controller: _controller,
+          initialChildSize: 0.0,
+          minChildSize: 0,
+          maxChildSize: 0.6,
+          builder: (context, scrollController) {
+            return ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(30.0),
+                topRight: Radius.circular(30.0),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(30.0),
+                    topRight: Radius.circular(30.0),
+                  ),
+                  border: Border.all(
+                    width: 3.0,
+                    color: customColors!.border,
+                  ),
+                  color: Theme.of(context).colorScheme.surface,
+                ),
+                child: Stack(
+                  children: [
+                    // Main content
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: 20.0,
+                        right: 20.0,
                       ),
-                      border: Border.all(
-                        width: 3.0,
-                        color: customColors!.border,
-                      ),
-                      color: Theme.of(context).colorScheme.surface,
-                    ),
-                    child: Column(
-                      children: [
-                        const SizedBox(
-                          height: 60,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              "Shortcuts",
-                              style: TextStyle(fontSize: 25.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(
+                            height: 60,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Text(
+                                "Shortcuts",
+                                style: TextStyle(fontSize: 25.0),
+                              ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                              left: 20.0,
-                              right: 20.0,
-                              bottom: _addButtonBottomPadding,
-                            ),
+                          Expanded(
                             child: GridView(
                               controller: scrollController,
                               gridDelegate:
@@ -135,45 +149,43 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                               }).toList(),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  );
-                }),
-          ),
-
-          // ADD BUTTON
-          Positioned(
-              left: 0,
-              right: 0,
-              bottom: 30.0,
-              child: FractionallySizedBox(
-                widthFactor: 0.8,
-                alignment: Alignment.center,
-                child: Center(
-                  child: WideStyledButton(
-                    icon: Icons.add,
-                    onPressed: () {
-                      _openShortcutsEditPage(
-                        context: context
-                      );
-                    },
-                    iconColor: Theme.of(context).colorScheme.onSecondary,
-                    backgroundColor: Theme.of(context).colorScheme.secondary,
-                  ),
+                    // ADD BUTTON - inside sheet, shown only when sheet is open enough
+                    if (_currentSheetSize > 0.1)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 20.0 + bottomPadding,
+                        child: FractionallySizedBox(
+                          widthFactor: 0.8,
+                          alignment: Alignment.center,
+                          child: Center(
+                            child: WideStyledButton(
+                              icon: Icons.add,
+                              onPressed: () {
+                                _openShortcutsEditPage(context: context);
+                              },
+                              iconColor:
+                                  Theme.of(context).colorScheme.onSecondary,
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.secondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-              ))
-        ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  // animate when slide down
   void _onScroll() {
-    // Check constraints to start the animation
-    // 1. Sheet is open
-    // 2. Sheet size is less than the closing threshold
-    // 3. Closing animation isn't on yet
     if (_sheetIsFullyOpen &&
         _controller.size <= _closeThreshold &&
         !_isClosingAnimation) {
@@ -189,10 +201,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     }
   }
 
-// animate when opening sheet
   void _onOpen() {
-    // This check is needed since the DraggableScrollableController is only attached
-    // after the DraggableScrollableSheet is built into the widget tree.
     if (_controller.isAttached) {
       _controller
           .animateTo(_defaultOpenSize,
@@ -201,7 +210,6 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
         _sheetIsFullyOpen = true;
       });
     } else {
-      // try again next frame
       WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
     }
   }
@@ -230,29 +238,23 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     );
 
     if (result == 'edit') {
-      _openShortcutsEditPage( 
-        context: context, 
-        shortcut: shortcut
-      );
+      _openShortcutsEditPage(context: context, shortcut: shortcut);
     } else if (result == 'delete') {
       await viewModel.deleteShortcut.execute(shortcut);
     }
   }
 
-  void _openShortcutsEditPage({required BuildContext context, Shortcut? shortcut}) {
+  void _openShortcutsEditPage(
+      {required BuildContext context, Shortcut? shortcut}) {
     final model = context.read<HomeViewModel>();
 
     Navigator.push(
         context,
         MaterialPageRoute(
             builder: (_) => ChangeNotifierProvider(
-              create: (_) => AddCustomShortcutViewModel(
-                homeViewModel: model, 
-                shortcut: shortcut
-              ),
-              child: const AddCustomShortcut() ,
-            )
-        )
-    );
+                  create: (_) => AddCustomShortcutViewModel(
+                      homeViewModel: model, shortcut: shortcut),
+                  child: const AddCustomShortcut(),
+                )));
   }
 }
