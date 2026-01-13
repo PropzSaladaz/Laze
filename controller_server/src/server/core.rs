@@ -59,6 +59,7 @@ pub struct NewClientResponse {
 pub enum ServerEvent {
     ClientAdded(ClientInfo),
     ClientRemoved(ClientInfo),
+    ClientUpdated(ClientInfo),
 }
 
 #[derive(Debug, Clone, Serialize)]
