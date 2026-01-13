@@ -110,7 +110,7 @@ impl ClientPool {
                         let client_info = ClientInfo {
                             id: client.id,
                             addr: client.address.to_string(),
-                            device_name: client.device_name.lock().unwrap().clone(),
+                            device_name: client.device_name.lock().ok().and_then(|g| g.clone()),
                         };
 
                         // publish event about client removal
@@ -168,7 +168,7 @@ impl ClientPool {
             .send(ServerEvent::ClientAdded(ClientInfo {
                 id: new_client.id,
                 addr: new_client.address.to_string(),
-                device_name: new_client.device_name.lock().unwrap().clone(),
+                device_name: new_client.device_name.lock().ok().and_then(|g| g.clone()),
             }))
             .map_err(|e| {
                 ClientPool::static_log_warn(&format!(
@@ -199,7 +199,7 @@ impl ClientPool {
             let client_info = ClientInfo {
                 id: client.id,
                 addr: client.address.to_string(),
-                device_name: client.device_name.lock().unwrap().clone(),
+                device_name: client.device_name.lock().ok().and_then(|g| g.clone()),
             };
             let _ = self
                 .event_publisher
@@ -372,7 +372,12 @@ impl Client {
 
         // client timesout if no data available & checks for termination signal
         let mut stream = stream;
-        stream.set_read_timeout(Some(CLIENT_READ_TIMEOUT)).unwrap();
+        if let Err(e) = stream.set_read_timeout(Some(CLIENT_READ_TIMEOUT)) {
+            Self::static_log_warn(&format!(
+                "Failed to set read timeout for client {}: {}",
+                self.id, e
+            ));
+        }
 
         // Read the first message which should contain device info (device name)
         // This is optional - if the client doesn't send it, we just continue
@@ -404,8 +409,14 @@ impl Client {
                                 if let Some(device_name) =
                                     json_value.get("device_name").and_then(|v| v.as_str())
                                 {
-                                    *self.device_name.lock().unwrap() =
-                                        Some(device_name.to_string());
+                                    if let Ok(mut name_guard) = self.device_name.lock() {
+                                        *name_guard = Some(device_name.to_string());
+                                    } else {
+                                        Self::static_log_warn(&format!(
+                                            "Failed to lock device_name for client {}",
+                                            self.id
+                                        ));
+                                    }
                                     Self::static_log_info(&format!(
                                         "Client {} identified as: {}",
                                         self.id, device_name

@@ -98,7 +98,7 @@ class ServerConnector {
     if (_deviceSettings != null) {
       try {
         final deviceName = await _deviceSettings!.getDeviceName();
-        final clientInfo = ClientInfoRequest(device_name: deviceName);
+        final clientInfo = ClientInfoRequest(deviceName: deviceName);
         final json = jsonEncode(clientInfo.toJson());
         final bytes = utf8.encode(json);
         server.add(bytes);

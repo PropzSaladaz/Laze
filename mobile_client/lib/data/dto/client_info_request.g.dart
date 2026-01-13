@@ -8,10 +8,10 @@ part of 'client_info_request.dart';
 
 ClientInfoRequest _$ClientInfoRequestFromJson(Map<String, dynamic> json) =>
     ClientInfoRequest(
-      device_name: json['device_name'] as String,
+      deviceName: json['device_name'] as String,
     );
 
 Map<String, dynamic> _$ClientInfoRequestToJson(ClientInfoRequest instance) =>
     <String, dynamic>{
-      'device_name': instance.device_name,
+      'device_name': instance.deviceName,
     };

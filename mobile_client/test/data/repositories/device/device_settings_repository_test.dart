@@ -1,15 +1,17 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mobile_client/data/repositories/device/device_settings_repository.dart';
 
 void main() {
   group('DeviceSettingsRepository', () {
     late DeviceSettingsRepository repository;
+    late Directory tempDir;
 
     setUp(() async {
-      // Initialize Hive for testing
-      await Hive.initFlutter();
+      // Use a temporary directory for testing (avoids path_provider dependency)
+      tempDir = await Directory.systemTemp.createTemp('hive_test_');
+      Hive.init(tempDir.path);
       repository = DeviceSettingsRepository();
       await repository.init();
     });
@@ -18,6 +20,10 @@ void main() {
       // Clean up after each test
       await repository.clear();
       await Hive.close();
+      // Delete temp directory
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
     });
 
     test('should store and retrieve device name', () async {
@@ -32,6 +38,8 @@ void main() {
     test('should generate default device name if not set', () async {
       final deviceName = await repository.getDeviceName();
       
+      // In test environment, device_info_plus returns empty strings
+      // so we expect the fallback "Mobile Device"
       expect(deviceName, isNotEmpty);
       expect(deviceName.length, greaterThan(0));
     });
