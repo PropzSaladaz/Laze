@@ -160,6 +160,7 @@ impl ClientPool {
             self.client_id_counter,
             app,
             self.client_termination_sender.clone(),
+            self.event_publisher.clone(),
         );
 
         // publish event about new client
@@ -271,6 +272,9 @@ struct Client {
 
     /// The TCP stream used to send events to the mobile client
     stream: Arc<Mutex<Option<TcpStream>>>,
+
+    /// Event publisher for notifying about client updates
+    event_publisher: broadcast::Sender<ServerEvent>,
 }
 
 impl Client {
@@ -284,6 +288,7 @@ impl Client {
         id: usize,
         app: Arc<Mutex<A>>,
         termination_sender: Sender<Terminate>,
+        event_publisher: broadcast::Sender<ServerEvent>,
     ) -> Arc<Client> {
         let port = DEFAULT_CLIENT_PORT + id;
         let socket = utils::create_socket(port);
@@ -295,6 +300,7 @@ impl Client {
             device_name: Arc::new(Mutex::new(None)),
             exit_requested: AtomicBool::new(false),
             stream: Arc::new(Mutex::new(None)),
+            event_publisher,
         });
 
         let cloned_client = Arc::clone(&client);
@@ -389,16 +395,31 @@ impl Client {
                     // Try to parse first message as device info
                     if first_message {
                         first_message = false;
-                        
+
                         // Try to parse as JSON device info
                         if let Ok(json_str) = std::str::from_utf8(bytes) {
-                            if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(json_str) {
-                                if let Some(device_name) = json_value.get("device_name").and_then(|v| v.as_str()) {
-                                    *self.device_name.lock().unwrap() = Some(device_name.to_string());
+                            if let Ok(json_value) =
+                                serde_json::from_str::<serde_json::Value>(json_str)
+                            {
+                                if let Some(device_name) =
+                                    json_value.get("device_name").and_then(|v| v.as_str())
+                                {
+                                    *self.device_name.lock().unwrap() =
+                                        Some(device_name.to_string());
                                     Self::static_log_info(&format!(
                                         "Client {} identified as: {}",
                                         self.id, device_name
                                     ));
+
+                                    // Emit ClientUpdated event so UI can update
+                                    let _ = self.event_publisher.send(ServerEvent::ClientUpdated(
+                                        ClientInfo {
+                                            id: self.id,
+                                            addr: self.address.to_string(),
+                                            device_name: Some(device_name.to_string()),
+                                        },
+                                    ));
+
                                     continue; // Skip processing this as input
                                 }
                             }

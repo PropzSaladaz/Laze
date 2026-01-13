@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_client/data/repositories/device/device_settings_repository.dart';
 import 'package:mobile_client/presentation/core/ui/controller_page.dart';
+import 'package:mobile_client/presentation/core/ui/styled_button.dart';
 import 'package:mobile_client/presentation/core/ui/styled_input.dart';
 import 'package:mobile_client/presentation/core/ui/wide_styled_button.dart';
+import 'package:mobile_client/presentation/core/themes/colors.dart';
 import 'package:provider/provider.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -91,29 +93,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final customColors = Theme.of(context).extension<CustomColors>();
 
     return ControllerPage(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Header - styled like ConnectionHeader
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: colorScheme.onPrimary,
-                  size: 30,
-                ),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
               Text(
-                'Settings',
+                'SETTINGS',
                 style: TextStyle(
                   color: colorScheme.onPrimary,
                   fontSize: 35,
                   fontWeight: FontWeight.w500,
                 ),
+              ),
+              StyledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: Icons.close,
               ),
             ],
           ),
@@ -128,36 +129,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   )
                 : SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Device Name',
-                          style: TextStyle(
-                            color: colorScheme.onPrimary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
+                        // Section Card
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: customColors!.shadowColorDark.withOpacity(0.2),
+                                spreadRadius: 2,
+                                blurRadius: 7,
+                                offset: const Offset(5, 2),
+                              ),
+                              BoxShadow(
+                                color: customColors.shadowColorBright.withOpacity(1),
+                                spreadRadius: 4,
+                                blurRadius: 7,
+                                offset: const Offset(-5, -2),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'This name will be shown to the server and helps identify your device when multiple devices are connected.',
-                          style: TextStyle(
-                            color: colorScheme.onPrimary.withOpacity(0.7),
-                            fontSize: 14,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.smartphone,
+                                    color: colorScheme.onPrimary,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Device Name',
+                                    style: TextStyle(
+                                      color: colorScheme.onPrimary,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'This name identifies your device on the server when multiple devices are connected.',
+                                style: TextStyle(
+                                  color: colorScheme.onPrimary.withOpacity(0.7),
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: colorScheme.secondary,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: StyledInput(
+                                  controller: _deviceNameController,
+                                  hintText: 'Enter device name',
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        StyledInput(
-                          controller: _deviceNameController,
-                          hintText: 'Enter device name',
-                          inputTitle: 'Device Name',
                         ),
                         const SizedBox(height: 30),
                         WideStyledButton(
                           text: _isSaving ? 'Saving...' : 'Save',
-                          onPressed: _isSaving ? null : _saveDeviceName,
+                          textColor: colorScheme.onSecondary,
+                          backgroundColor: colorScheme.secondary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          onPressed: () {
+                            if (!_isSaving) {
+                              _saveDeviceName();
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -168,3 +219,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+
