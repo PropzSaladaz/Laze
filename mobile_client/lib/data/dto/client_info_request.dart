@@ -1,5 +1,3 @@
-// ignore_for_file: non_constant_identifier_names
-
 import 'package:json_annotation/json_annotation.dart';
 
 part 'client_info_request.g.dart';
@@ -8,10 +6,11 @@ part 'client_info_request.g.dart';
 /// Contains information about the client device
 @JsonSerializable()
 class ClientInfoRequest {
-  final String device_name;
+  @JsonKey(name: 'device_name')
+  final String deviceName;
 
   ClientInfoRequest({
-    required this.device_name,  
+    required this.deviceName,
   });
 
   factory ClientInfoRequest.fromJson(Map<String, dynamic> json) =>

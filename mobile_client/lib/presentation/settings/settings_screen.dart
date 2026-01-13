@@ -140,13 +140,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: customColors!.shadowColorDark.withOpacity(0.2),
+                                color: customColors!.shadowColorDark.withValues(alpha: 0.2),
                                 spreadRadius: 2,
                                 blurRadius: 7,
                                 offset: const Offset(5, 2),
                               ),
                               BoxShadow(
-                                color: customColors.shadowColorBright.withOpacity(1),
+                                color: customColors.shadowColorBright.withValues(alpha: 1),
                                 spreadRadius: 4,
                                 blurRadius: 7,
                                 offset: const Offset(-5, -2),
@@ -178,7 +178,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Text(
                                 'This name identifies your device on the server when multiple devices are connected.',
                                 style: TextStyle(
-                                  color: colorScheme.onPrimary.withOpacity(0.7),
+                                  color: colorScheme.onPrimary.withValues(alpha: 0.7),
                                   fontSize: 14,
                                 ),
                               ),
