@@ -42,6 +42,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     _controller = DraggableScrollableController();
     _controller.addListener(_onScroll);
 
+    // animate sheet open next frame
     WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
   }
 
@@ -55,10 +56,13 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
   @override
   Widget build(BuildContext context) {
     return Consumer<HomeViewModel>(builder: (context, viewModel, child) {
+
+      // still fetching shortcuts - loading icon
       if (viewModel.loadShortcuts.running) {
         return const Center(child: CircularProgressIndicator());
       }
 
+      // error fetching shortcuts - show error message
       if (viewModel.loadShortcuts.error) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -67,6 +71,8 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
         });
         return const SizedBox.shrink();
       }
+
+      // shortcuts loaded - show shortcuts sheet
       return _buildShortcutsSheet(context, viewModel);
     });
   }
@@ -110,48 +116,54 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                 child: Stack(
                   children: [
                     // Main content
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: 20.0,
-                        right: 20.0,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          const SizedBox(
-                            height: 60,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Text(
-                                "Shortcuts",
-                                style: TextStyle(fontSize: 25.0),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          left: 20.0,
+                          right: 20.0,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+
+                            // Render header if sheet is large enough
+                            if (_currentSheetSize > 0.08) 
+                              const SizedBox(
+                                height: 60,
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  child: Text(
+                                    "Shortcuts",
+                                    style: TextStyle(fontSize: 25.0),
+                                  ),
+                                ),
+                              ),
+                            
+                            
+                            Expanded(
+                              child: GridView(
+                                controller: scrollController,
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 4,
+                                  crossAxisSpacing: 15.0,
+                                  mainAxisSpacing: 15.0,
+                                ),
+                                children: viewModel.shortcuts.map((shortcut) {
+                                  return GestureDetector(
+                                    onLongPressStart: (details) {
+                                      _showOptionsMenu(context, viewModel,
+                                          details.globalPosition, shortcut);
+                                    },
+                                    child: ShortcutIcon(shortcut: shortcut),
+                                  );
+                                }).toList(),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: GridView(
-                              controller: scrollController,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
-                                crossAxisSpacing: 15.0,
-                                mainAxisSpacing: 15.0,
-                              ),
-                              children: viewModel.shortcuts.map((shortcut) {
-                                return GestureDetector(
-                                  onLongPressStart: (details) {
-                                    _showOptionsMenu(context, viewModel,
-                                        details.globalPosition, shortcut);
-                                  },
-                                  child: ShortcutIcon(shortcut: shortcut),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+
                     // ADD BUTTON - inside sheet, shown only when sheet is open enough
                     if (_currentSheetSize > 0.1)
                       Positioned(
@@ -185,7 +197,12 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     );
   }
 
+  // animate when slide down
   void _onScroll() {
+    // Check constraints to start the animation
+    // 1. Sheet is open
+    // 2. Sheet size is less than the closing threshold
+    // 3. Closing animation isn't on yet
     if (_sheetIsFullyOpen &&
         _controller.size <= _closeThreshold &&
         !_isClosingAnimation) {
@@ -202,6 +219,8 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
   }
 
   void _onOpen() {
+    // This check is needed since the DraggableScrollableController is only attached
+    // after the DraggableScrollableSheet is built into the widget tree.
     if (_controller.isAttached) {
       _controller
           .animateTo(_defaultOpenSize,
@@ -210,6 +229,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
         _sheetIsFullyOpen = true;
       });
     } else {
+      // try again next frame
       WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
     }
   }
