@@ -31,8 +31,10 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
   final _openAnimationTime = const Duration(milliseconds: 500);
 
   bool _sheetIsFullyOpen = false;
-  bool _isClosingAnimation =
-      false; // specifies if we are playing the closing animation
+  bool _isClosingAnimation = false;
+
+  // Track sheet size for button visibility
+  double _currentSheetSize = 0.0;
 
   @override
   void initState() {
@@ -40,6 +42,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     _controller = DraggableScrollableController();
     _controller.addListener(_onScroll);
 
+    // animate sheet open next frame
     WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
   }
 
@@ -53,10 +56,13 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
   @override
   Widget build(BuildContext context) {
     return Consumer<HomeViewModel>(builder: (context, viewModel, child) {
+
+      // still fetching shortcuts - loading icon
       if (viewModel.loadShortcuts.running) {
         return const Center(child: CircularProgressIndicator());
       }
 
+      // error fetching shortcuts - show error message
       if (viewModel.loadShortcuts.error) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -65,105 +71,128 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
         });
         return const SizedBox.shrink();
       }
+
+      // shortcuts loaded - show shortcuts sheet
       return _buildShortcutsSheet(context, viewModel);
     });
   }
 
   Widget _buildShortcutsSheet(BuildContext context, HomeViewModel viewModel) {
     final customColors = Theme.of(context).extension<CustomColors>();
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    
     return SizedBox(
       height: MediaQuery.of(context).size.height,
-      child: Stack(
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.linear,
-            child: DraggableScrollableSheet(
-                controller: _controller,
-                initialChildSize: 0.0,
-                minChildSize: 0,
-                maxChildSize: 0.6,
-                builder: (context, scrollController) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(30.0),
-                        topRight: Radius.circular(30.0),
-                      ),
-                      border: Border.all(
-                        width: 3.0,
-                        color: customColors!.border,
-                      ),
-                      color: Theme.of(context).colorScheme.surface,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        left: 20.0,
-                        right: 20.0,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          const SizedBox(
-                            height: 60,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Text(
-                                "Shortcuts",
-                                style: TextStyle(fontSize: 25.0),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: GridView(
-                              controller: scrollController,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
-                                crossAxisSpacing: 15.0,
-                                mainAxisSpacing: 15.0,
-                              ),
-                              children: viewModel.shortcuts.map((shortcut) {
-                                return GestureDetector(
-                                  onLongPressStart: (details) {
-                                    _showOptionsMenu(context, viewModel,
-                                        details.globalPosition, shortcut);
-                                  },
-                                  child: ShortcutIcon(shortcut: shortcut),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-          ),
-
-          // ADD BUTTON
-          Positioned(
-              left: 0,
-              right: 0,
-              bottom: 30.0,
-              child: FractionallySizedBox(
-                widthFactor: 0.8,
-                alignment: Alignment.center,
-                child: Center(
-                  child: WideStyledButton(
-                    icon: Icons.add,
-                    onPressed: () {
-                      _openShortcutsEditPage(
-                        context: context
-                      );
-                    },
-                    iconColor: Theme.of(context).colorScheme.onSecondary,
-                    backgroundColor: Theme.of(context).colorScheme.secondary,
+      child: NotificationListener<DraggableScrollableNotification>(
+        onNotification: (notification) {
+          setState(() {
+            _currentSheetSize = notification.extent;
+          });
+          return false;
+        },
+        child: DraggableScrollableSheet(
+          controller: _controller,
+          initialChildSize: 0.0,
+          minChildSize: 0,
+          maxChildSize: 0.6,
+          builder: (context, scrollController) {
+            return ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(30.0),
+                topRight: Radius.circular(30.0),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(30.0),
+                    topRight: Radius.circular(30.0),
                   ),
+                  border: Border.all(
+                    width: 3.0,
+                    color: customColors!.border,
+                  ),
+                  color: Theme.of(context).colorScheme.surface,
                 ),
-              ))
-        ],
+                child: Stack(
+                  children: [
+                    // Main content
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          left: 20.0,
+                          right: 20.0,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+
+                            // Render header if sheet is large enough
+                            if (_currentSheetSize > 0.08) 
+                              const SizedBox(
+                                height: 60,
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  child: Text(
+                                    "Shortcuts",
+                                    style: TextStyle(fontSize: 25.0),
+                                  ),
+                                ),
+                              ),
+                            
+                            
+                            Expanded(
+                              child: GridView(
+                                controller: scrollController,
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 4,
+                                  crossAxisSpacing: 15.0,
+                                  mainAxisSpacing: 15.0,
+                                ),
+                                children: viewModel.shortcuts.map((shortcut) {
+                                  return GestureDetector(
+                                    onLongPressStart: (details) {
+                                      _showOptionsMenu(context, viewModel,
+                                          details.globalPosition, shortcut);
+                                    },
+                                    child: ShortcutIcon(shortcut: shortcut),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // ADD BUTTON - inside sheet, shown only when sheet is open enough
+                    if (_currentSheetSize > 0.1)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 20.0 + bottomPadding,
+                        child: FractionallySizedBox(
+                          widthFactor: 0.8,
+                          alignment: Alignment.center,
+                          child: Center(
+                            child: WideStyledButton(
+                              icon: Icons.add,
+                              onPressed: () {
+                                _openShortcutsEditPage(context: context);
+                              },
+                              iconColor:
+                                  Theme.of(context).colorScheme.onSecondary,
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.secondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -189,7 +218,6 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     }
   }
 
-// animate when opening sheet
   void _onOpen() {
     // This check is needed since the DraggableScrollableController is only attached
     // after the DraggableScrollableSheet is built into the widget tree.
@@ -230,29 +258,23 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     );
 
     if (result == 'edit') {
-      _openShortcutsEditPage( 
-        context: context, 
-        shortcut: shortcut
-      );
+      _openShortcutsEditPage(context: context, shortcut: shortcut);
     } else if (result == 'delete') {
       await viewModel.deleteShortcut.execute(shortcut);
     }
   }
 
-  void _openShortcutsEditPage({required BuildContext context, Shortcut? shortcut}) {
+  void _openShortcutsEditPage(
+      {required BuildContext context, Shortcut? shortcut}) {
     final model = context.read<HomeViewModel>();
 
     Navigator.push(
         context,
         MaterialPageRoute(
             builder: (_) => ChangeNotifierProvider(
-              create: (_) => AddCustomShortcutViewModel(
-                homeViewModel: model, 
-                shortcut: shortcut
-              ),
-              child: const AddCustomShortcut() ,
-            )
-        )
-    );
+                  create: (_) => AddCustomShortcutViewModel(
+                      homeViewModel: model, shortcut: shortcut),
+                  child: const AddCustomShortcut(),
+                )));
   }
 }
