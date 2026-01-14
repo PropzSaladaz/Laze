@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
-import 'package:mobile_client/presentation/core/ui/styled_button.dart';
-import 'package:mobile_client/data/services/input.dart';
-import 'package:mobile_client/services/server_connector.dart';
+import 'package:laze/domain/models/shortcut/shortcut.dart';
+import 'package:laze/presentation/core/ui/styled_button.dart';
+import 'package:laze/data/services/input.dart';
+import 'package:laze/services/server_connector.dart';
 
 class ShortcutIcon extends StatelessWidget {
   final Shortcut shortcut;

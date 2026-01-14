@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile_client/data/dto/new_client_response.dart';
+import 'package:laze/data/dto/new_client_response.dart';
 
 void main() {
   group('NewClientResponse', () {

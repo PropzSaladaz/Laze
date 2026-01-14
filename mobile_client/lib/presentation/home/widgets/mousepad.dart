@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mobile_client/data/services/input.dart';
-import 'package:mobile_client/presentation/core/themes/colors.dart';
+import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/core/themes/colors.dart';
 import 'dart:math' as math;
 
 import '../../../services/server_connector.dart';

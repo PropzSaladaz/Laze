@@ -7,13 +7,13 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:mobile_client/data/dto/new_client_response.dart';
-import 'package:mobile_client/data/dto/client_info_request.dart';
-import 'package:mobile_client/data/dto/server_event.dart';
-import 'package:mobile_client/data/repositories/server/server_cache_repository.dart';
-import 'package:mobile_client/data/repositories/device/device_settings_repository.dart';
-import 'package:mobile_client/services/connection_status.dart';
-import 'package:mobile_client/services/udp_discovery.dart';
+import 'package:laze/data/dto/new_client_response.dart';
+import 'package:laze/data/dto/client_info_request.dart';
+import 'package:laze/data/dto/server_event.dart';
+import 'package:laze/data/repositories/server/server_cache_repository.dart';
+import 'package:laze/data/repositories/device/device_settings_repository.dart';
+import 'package:laze/services/connection_status.dart';
+import 'package:laze/services/udp_discovery.dart';
 
 typedef CallbackSetStatus = void Function(String connectionStatus);
 typedef CallbackGetStatus = String Function();

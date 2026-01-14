@@ -1,7 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:flutter/material.dart';
-import 'package:mobile_client/core/os_config.dart';
+import 'package:laze/core/os_config.dart';
 import 'package:hive/hive.dart';
 
 part 'shortcut_data.g.dart';

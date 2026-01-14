@@ -3,8 +3,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:mobile_client/core/limit_constants.dart';
-import 'package:mobile_client/services/server_connector.dart';
+import 'package:laze/core/limit_constants.dart';
+import 'package:laze/services/server_connector.dart';
 
 /// This class handles the encoding of any iput action into bytes.
 /// These bytes are then sent to the server to be processed and executed.

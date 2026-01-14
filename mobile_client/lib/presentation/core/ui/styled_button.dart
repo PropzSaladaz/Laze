@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/presentation/core/themes/colors.dart';
-import 'package:mobile_client/presentation/core/themes/dimensions.dart';
+import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 
 typedef Callback = void Function();
 

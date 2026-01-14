@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/presentation/core/ui/styled_button.dart';
-import 'package:mobile_client/services/server_connector.dart';
-import 'package:mobile_client/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/ui/styled_button.dart';
+import 'package:laze/services/server_connector.dart';
+import 'package:laze/presentation/core/themes/colors.dart';
 
 typedef Callback = void Function();
 
