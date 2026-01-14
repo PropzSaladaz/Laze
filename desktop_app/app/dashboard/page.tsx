@@ -15,6 +15,7 @@ interface Timer {
 interface ClientInfo {
     id: number;
     addr: string;
+    device_name?: string;
 }
 
 interface Client extends ClientInfo {
@@ -51,6 +52,9 @@ export default function Dashboard() {
     }
 
     useEffect(() => {
+        let isSubscribed = true;
+        const unsubscribers: (() => void)[] = [];
+
         // Timer for each client
         const interval = setInterval(() => {
             setClients((prev) =>
@@ -62,22 +66,45 @@ export default function Dashboard() {
         }, 1000);
 
         // Subscribe to client events
-        const clientAdded = listen<ClientInfo>("client-added", (event) => {
-            const newClient: Client = {
-                ...event.payload,
-                name: "David", // Default name, could be sent from mobile
-                timeConnected: { hours: 0, minutes: 0, seconds: 0 }
-            };
-            setClients((prev) => [...prev, newClient]);
-        });
+        const setupListeners = async () => {
+            if (!isSubscribed) return;
 
-        const clientRemoved = listen<ClientInfo>("client-removed", (event) => {
-            setClients((prev) => prev.filter(c => c.id !== event.payload.id));
-        });
+            const clientAddedUnsub = await listen<ClientInfo>("client-added", (event) => {
+                const newClient: Client = {
+                    ...event.payload,
+                    name: event.payload.device_name || "Unknown Device",
+                    timeConnected: { hours: 0, minutes: 0, seconds: 0 }
+                };
+                setClients((prev) => {
+                    // Check if client with same ID already exists (prevent duplicates)
+                    if (prev.some(c => c.id === event.payload.id)) {
+                        return prev.map(c => c.id === event.payload.id ? newClient : c);
+                    }
+                    return [...prev, newClient];
+                });
+            });
+            if (isSubscribed) unsubscribers.push(clientAddedUnsub);
+
+            const clientRemovedUnsub = await listen<ClientInfo>("client-removed", (event) => {
+                setClients((prev) => prev.filter(c => c.id !== event.payload.id));
+            });
+            if (isSubscribed) unsubscribers.push(clientRemovedUnsub);
+
+            const clientUpdatedUnsub = await listen<ClientInfo>("client-updated", (event) => {
+                setClients((prev) => prev.map(client =>
+                    client.id === event.payload.id
+                        ? { ...client, name: event.payload.device_name || client.name }
+                        : client
+                ));
+            });
+            if (isSubscribed) unsubscribers.push(clientUpdatedUnsub);
+        };
+
+        setupListeners();
 
         return () => {
-            clientAdded.then(unsub => unsub());
-            clientRemoved.then(unsub => unsub());
+            isSubscribed = false;
+            unsubscribers.forEach(unsub => unsub());
             clearInterval(interval);
         };
     }, []);
