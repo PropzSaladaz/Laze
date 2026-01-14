@@ -40,10 +40,12 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Decode keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         working-directory: mobile_client/android
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > app/upload-keystore.jks
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > app/upload-keystore.jks
+            echo "KEYSTORE_DECODED=true" >> $GITHUB_ENV
+          fi
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
@@ -51,7 +53,7 @@ jobs:
         working-directory: mobile_client
         run: flutter build apk --release
         env:
-          KEYSTORE_PATH: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && 'upload-keystore.jks' || '' }}
+          KEYSTORE_PATH: ${{ env.KEYSTORE_DECODED == 'true' && 'upload-keystore.jks' || '' }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -60,7 +62,7 @@ jobs:
         working-directory: mobile_client
         run: flutter build appbundle --release
         env:
-          KEYSTORE_PATH: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && 'upload-keystore.jks' || '' }}
+          KEYSTORE_PATH: ${{ env.KEYSTORE_DECODED == 'true' && 'upload-keystore.jks' || '' }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -80,7 +82,7 @@ jobs:
             Download the APK to install directly on your Android device.
             
             ### Installation
-            1. Download `laze-${{ steps.get_version.outputs.VERSION }}.apk`
+            1. Download `app-release.apk`
             2. Enable "Install from unknown sources" in Android settings
             3. Open the APK file to install
           files: |
@@ -91,7 +93,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Rename APK for release
-        run: |
-          mv mobile_client/build/app/outputs/flutter-apk/app-release.apk \
-             mobile_client/build/app/outputs/flutter-apk/laze-${{ steps.get_version.outputs.VERSION }}.apk
