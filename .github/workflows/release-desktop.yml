@@ -25,7 +25,8 @@ jobs:
             libwebkit2gtk-4.1-dev \
             librsvg2-dev \
             patchelf \
-            libayatana-appindicator3-dev
+            libayatana-appindicator3-dev \
+            libxdo-dev
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
