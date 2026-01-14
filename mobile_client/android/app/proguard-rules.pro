@@ -15,3 +15,7 @@
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
+
+# Play Core (deferred components)
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
