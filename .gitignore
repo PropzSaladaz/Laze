@@ -49,7 +49,6 @@ desktop_app/.next/
 desktop_app/out/
 desktop_app/build/
 desktop_app/dist/
-desktop_app/package-lock.json
 desktop_app/.env
 desktop_app/.env.local
 desktop_app/.env.development.local
