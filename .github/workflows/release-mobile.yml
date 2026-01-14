@@ -1,0 +1,97 @@
+name: Release Mobile App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.3'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        working-directory: mobile_client
+        run: flutter pub get
+
+      - name: Run code generation
+        working-directory: mobile_client
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Decode keystore
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        working-directory: mobile_client/android
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > app/upload-keystore.jks
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+
+      - name: Build APK
+        working-directory: mobile_client
+        run: flutter build apk --release
+        env:
+          KEYSTORE_PATH: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && 'upload-keystore.jks' || '' }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Build App Bundle (AAB)
+        working-directory: mobile_client
+        run: flutter build appbundle --release
+        env:
+          KEYSTORE_PATH: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && 'upload-keystore.jks' || '' }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: 'Laze ${{ steps.get_version.outputs.VERSION }}'
+          body: |
+            ## Laze Mobile App
+            
+            Download the APK to install directly on your Android device.
+            
+            ### Installation
+            1. Download `laze-${{ steps.get_version.outputs.VERSION }}.apk`
+            2. Enable "Install from unknown sources" in Android settings
+            3. Open the APK file to install
+          files: |
+            mobile_client/build/app/outputs/flutter-apk/app-release.apk
+            mobile_client/build/app/outputs/bundle/release/app-release.aab
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rename APK for release
+        run: |
+          mv mobile_client/build/app/outputs/flutter-apk/app-release.apk \
+             mobile_client/build/app/outputs/flutter-apk/laze-${{ steps.get_version.outputs.VERSION }}.apk
