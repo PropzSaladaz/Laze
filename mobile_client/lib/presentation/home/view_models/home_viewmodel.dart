@@ -1,10 +1,10 @@
 import 'package:logging/logging.dart';
 
 import 'package:flutter/material.dart';
-import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
-import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
-import 'package:mobile_client/utils/async_command.dart';
-import 'package:mobile_client/utils/result.dart';
+import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
+import 'package:laze/domain/models/shortcut/shortcut.dart';
+import 'package:laze/utils/async_command.dart';
+import 'package:laze/utils/result.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final ShortcutsRepository _shortcutsRepository;

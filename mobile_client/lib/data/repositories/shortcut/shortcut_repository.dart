@@ -1,6 +1,6 @@
 
-import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
-import 'package:mobile_client/utils/result.dart';
+import 'package:laze/domain/models/shortcut/shortcut.dart';
+import 'package:laze/utils/result.dart';
 
 abstract class ShortcutsRepository {
   Future<Result<void>> init();

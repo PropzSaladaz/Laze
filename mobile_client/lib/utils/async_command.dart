@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/utils/result.dart';
+import 'package:laze/utils/result.dart';
 
 // Represents a closure with 0 args, returning a type T
 typedef CommandFunction0<T> = Future<Result<T>> Function();
