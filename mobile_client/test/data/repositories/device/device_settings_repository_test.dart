@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:mobile_client/data/repositories/device/device_settings_repository.dart';
+import 'package:laze/data/repositories/device/device_settings_repository.dart';
 
 void main() {
   group('DeviceSettingsRepository', () {

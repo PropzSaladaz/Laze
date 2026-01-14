@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
+import 'package:laze/domain/models/shortcut/shortcut.dart';
 
 void main() {
   group('Shortcut', () {

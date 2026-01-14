@@ -3,12 +3,12 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:mobile_client/config/dependencies.dart';
-import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
-import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
-import 'package:mobile_client/presentation/home/widgets/home_screen.dart';
-import 'package:mobile_client/presentation/settings/settings_screen.dart';
-import 'package:mobile_client/presentation/core/themes/theme.dart';
+import 'package:laze/config/dependencies.dart';
+import 'package:laze/data/repositories/shortcut/models/shortcut_data.dart';
+import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
+import 'package:laze/presentation/home/widgets/home_screen.dart';
+import 'package:laze/presentation/settings/settings_screen.dart';
+import 'package:laze/presentation/core/themes/theme.dart';
 import 'package:provider/provider.dart';
 
 void setupLogging() {

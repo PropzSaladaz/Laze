@@ -1,6 +1,6 @@
-import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
-import 'package:mobile_client/data/repositories/shortcut/shortcuts_repository_local.dart';
-import 'package:mobile_client/data/repositories/device/device_settings_repository.dart';
+import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
+import 'package:laze/data/repositories/shortcut/shortcuts_repository_local.dart';
+import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
