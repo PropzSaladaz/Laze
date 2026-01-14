@@ -46,6 +46,7 @@ dependencies:
 
   uuid: ^4.0.0
   connectivity_plus: ^6.0.3
+  device_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:

@@ -110,6 +110,9 @@ fn spawn_event_listener(
                         ServerEvent::ClientRemoved(client_info) => {
                             app_handle.emit("client-removed", client_info)
                         }
+                        ServerEvent::ClientUpdated(client_info) => {
+                            app_handle.emit("client-updated", client_info)
+                        }
                     };
 
                     if let Err(e) = result {

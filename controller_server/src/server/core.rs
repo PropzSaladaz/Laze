@@ -59,12 +59,14 @@ pub struct NewClientResponse {
 pub enum ServerEvent {
     ClientAdded(ClientInfo),
     ClientRemoved(ClientInfo),
+    ClientUpdated(ClientInfo),
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ClientInfo {
     pub id: usize,
     pub addr: String,
+    pub device_name: Option<String>,
 }
 
 pub struct ServerHandler {
@@ -385,6 +387,7 @@ mod tests {
         let client_info = ClientInfo {
             id: 1,
             addr: "127.0.0.1:8080".to_string(),
+            device_name: Some("Test Device".to_string()),
         };
 
         let serialized = serde_json::to_string(&client_info).unwrap();
@@ -397,6 +400,7 @@ mod tests {
         let client_info = ClientInfo {
             id: 1,
             addr: "192.168.1.100:8080".to_string(),
+            device_name: Some("Test Device".to_string()),
         };
         let event = ServerEvent::ClientAdded(client_info.clone());
 
@@ -414,6 +418,7 @@ mod tests {
         let client_info = ClientInfo {
             id: 42,
             addr: "10.0.0.1:9999".to_string(),
+            device_name: None,
         };
         let event = ServerEvent::ClientRemoved(client_info);
 
