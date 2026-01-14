@@ -51,7 +51,7 @@ jobs:
 
       - name: Build APK
         working-directory: mobile_client
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
         env:
           KEYSTORE_PATH: ${{ env.KEYSTORE_DECODED == 'true' && 'upload-keystore.jks' || '' }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -60,7 +60,7 @@ jobs:
 
       - name: Build App Bundle (AAB)
         working-directory: mobile_client
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --no-tree-shake-icons
         env:
           KEYSTORE_PATH: ${{ env.KEYSTORE_DECODED == 'true' && 'upload-keystore.jks' || '' }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
