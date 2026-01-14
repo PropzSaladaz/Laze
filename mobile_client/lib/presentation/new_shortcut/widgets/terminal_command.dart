@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/presentation/core/ui/styled_input.dart';
+import 'package:laze/presentation/core/ui/styled_input.dart';
 
 class TerminalCommandInput extends StatefulWidget {
   final String operativeSystemName;

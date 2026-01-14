@@ -1,15 +1,15 @@
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
-import 'package:mobile_client/core/os_config.dart';
-import 'package:mobile_client/data/services/input.dart';
-import 'package:mobile_client/presentation/core/ui/wide_styled_button.dart';
-import 'package:mobile_client/presentation/core/themes/colors.dart';
-import 'package:mobile_client/presentation/core/ui/controller_page.dart';
-import 'package:mobile_client/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
-import 'package:mobile_client/presentation/new_shortcut/widgets/shortcut_input_row.dart';
-import 'package:mobile_client/presentation/new_shortcut/widgets/terminal_command.dart';
-import 'package:mobile_client/services/server_connector.dart';
+import 'package:laze/core/os_config.dart';
+import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/core/ui/wide_styled_button.dart';
+import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/ui/controller_page.dart';
+import 'package:laze/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
+import 'package:laze/presentation/new_shortcut/widgets/shortcut_input_row.dart';
+import 'package:laze/presentation/new_shortcut/widgets/terminal_command.dart';
+import 'package:laze/services/server_connector.dart';
 import 'package:provider/provider.dart';
 
 class AddCustomShortcut extends StatelessWidget {

@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:mobile_client/presentation/core/ui/styled_button.dart';
-import 'package:mobile_client/services/server_connector.dart';
-import 'package:mobile_client/presentation/core/ui/styled_long_button.dart';
-import 'package:mobile_client/data/services/input.dart';
-import 'package:mobile_client/presentation/home/widgets/keyboard.dart';
+import 'package:laze/presentation/core/ui/styled_button.dart';
+import 'package:laze/services/server_connector.dart';
+import 'package:laze/presentation/core/ui/styled_long_button.dart';
+import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/home/widgets/keyboard.dart';
 
 class CommandBtns extends StatefulWidget {
   final void Function() onShowShortcutsSheet;

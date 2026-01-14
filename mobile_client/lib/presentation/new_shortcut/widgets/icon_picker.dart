@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/presentation/core/themes/dimensions.dart';
-import 'package:mobile_client/presentation/core/ui/styled_button.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
+import 'package:laze/presentation/core/ui/styled_button.dart';
 
 class IconPicker extends StatefulWidget {
   final IconData? initialIcon;

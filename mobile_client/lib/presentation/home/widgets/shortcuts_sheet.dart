@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
-import 'package:mobile_client/presentation/core/ui/wide_styled_button.dart';
-import 'package:mobile_client/presentation/core/themes/colors.dart';
-import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
-import 'package:mobile_client/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
-import 'package:mobile_client/presentation/new_shortcut/widgets/add_custom_shortcut.dart';
-import 'package:mobile_client/presentation/home/widgets/shortcut_icon.dart';
+import 'package:laze/domain/models/shortcut/shortcut.dart';
+import 'package:laze/presentation/core/ui/wide_styled_button.dart';
+import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/home/view_models/home_viewmodel.dart';
+import 'package:laze/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
+import 'package:laze/presentation/new_shortcut/widgets/add_custom_shortcut.dart';
+import 'package:laze/presentation/home/widgets/shortcut_icon.dart';
 import 'package:provider/provider.dart';
 
 class ShortcutsSheet extends StatefulWidget {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/data/repositories/device/device_settings_repository.dart';
-import 'package:mobile_client/presentation/core/ui/controller_page.dart';
-import 'package:mobile_client/presentation/core/ui/styled_button.dart';
-import 'package:mobile_client/presentation/core/ui/styled_input.dart';
-import 'package:mobile_client/presentation/core/ui/wide_styled_button.dart';
-import 'package:mobile_client/presentation/core/themes/colors.dart';
+import 'package:laze/data/repositories/device/device_settings_repository.dart';
+import 'package:laze/presentation/core/ui/controller_page.dart';
+import 'package:laze/presentation/core/ui/styled_button.dart';
+import 'package:laze/presentation/core/ui/styled_input.dart';
+import 'package:laze/presentation/core/ui/wide_styled_button.dart';
+import 'package:laze/presentation/core/themes/colors.dart';
 import 'package:provider/provider.dart';
 
 class SettingsScreen extends StatefulWidget {

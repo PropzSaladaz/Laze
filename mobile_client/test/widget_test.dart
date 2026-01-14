@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile_client/main.dart';
+import 'package:laze/main.dart';
 
 void main() {
   testWidgets('MyApp creates MaterialApp', (WidgetTester tester) async {

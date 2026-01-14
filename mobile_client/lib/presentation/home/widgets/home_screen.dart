@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/data/dto/server_event.dart';
-import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
-import 'package:mobile_client/data/repositories/device/device_settings_repository.dart';
-import 'package:mobile_client/data/services/input.dart';
-import 'package:mobile_client/presentation/home/view_models/home_viewmodel.dart';
-import 'package:mobile_client/services/server_connector.dart';
-import 'package:mobile_client/presentation/home/widgets/connection_header.dart';
-import 'package:mobile_client/presentation/core/ui/controller_page.dart';
-import 'package:mobile_client/presentation/home/widgets/mousepad.dart';
-import 'package:mobile_client/presentation/home/widgets/shortcuts_sheet.dart';
+import 'package:laze/data/dto/server_event.dart';
+import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
+import 'package:laze/data/repositories/device/device_settings_repository.dart';
+import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/home/view_models/home_viewmodel.dart';
+import 'package:laze/services/server_connector.dart';
+import 'package:laze/presentation/home/widgets/connection_header.dart';
+import 'package:laze/presentation/core/ui/controller_page.dart';
+import 'package:laze/presentation/home/widgets/mousepad.dart';
+import 'package:laze/presentation/home/widgets/shortcuts_sheet.dart';
 import 'package:provider/provider.dart';
 
 import 'command_btns.dart';

@@ -1,10 +1,10 @@
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
-import 'package:mobile_client/data/repositories/shortcut/models/shortcut_data.dart';
-import 'package:mobile_client/data/repositories/shortcut/models/shortcuts_mapper.dart';
-import 'package:mobile_client/data/repositories/shortcut/shortcut_repository.dart';
-import 'package:mobile_client/domain/models/shortcut/shortcut.dart';
-import 'package:mobile_client/utils/result.dart';
+import 'package:laze/data/repositories/shortcut/models/shortcut_data.dart';
+import 'package:laze/data/repositories/shortcut/models/shortcuts_mapper.dart';
+import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
+import 'package:laze/domain/models/shortcut/shortcut.dart';
+import 'package:laze/utils/result.dart';
 
 class ShortcutsRepositoryLocal extends ShortcutsRepository {
   static const String _shortcutsBoxName = "shortcuts";

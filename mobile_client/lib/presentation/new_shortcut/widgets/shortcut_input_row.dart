@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_client/presentation/core/ui/styled_button.dart';
-import 'package:mobile_client/presentation/new_shortcut/widgets/icon_picker.dart';
+import 'package:laze/presentation/core/ui/styled_button.dart';
+import 'package:laze/presentation/new_shortcut/widgets/icon_picker.dart';
 
 class ShortcutInputRow extends StatefulWidget {
   final void Function(String) onNameChanged;

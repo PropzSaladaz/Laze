@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile_client/utils/result.dart';
+import 'package:laze/utils/result.dart';
 
 void main() {
   group('Result', () {
