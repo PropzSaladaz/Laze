@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:laze/data/services/input.dart';
@@ -29,6 +28,7 @@ class _MousePadState extends State<MousePad> {
   // Sub-pixel accumulation
   double _accumulatedX = 0.0;
   double _accumulatedY = 0.0;
+  double _accumulatedScrollY = 0.0;
 
   // Drag mode state
   bool _isDragging = false;
@@ -90,26 +90,43 @@ class _MousePadState extends State<MousePad> {
       ServerConnector.sendInput(input);
     }
   }
-  void _handleMouseScroll(DragUpdateDetails details, double midPos) {
-    var offset = details.localPosition.dy;
-    if (offset.toInt() % 3 == 0) {
-      sleep(const Duration(milliseconds: 10));
-      double amount = (offset - midPos) / midPos;
-      if (amount > 0) {
-        ServerConnector.sendInput(Input.scroll(amount: -1));
-      } else {
-        ServerConnector.sendInput(Input.scroll(amount: 1));
-      }
+  void _handleMouseScroll(DragUpdateDetails details) {
+    double scrollAmountY = details.delta.dy; 
+    double swipeSense = 2.0;
+
+    // Accumulate the scaled delta
+    // Inverse direction: drag up (negative dy) -> scroll down (negative scroll value, content moves up)
+    // Same logic as two-finger scroll
+    double delta = -(scrollAmountY / swipeSense);
+    _accumulatedScrollY += delta;
+
+    // Extract integer part to send
+    int scrollAmount = _accumulatedScrollY.truncate();
+
+    if (scrollAmount != 0) {
+      ServerConnector.sendInput(Input.scroll(amount: scrollAmount));
+      // Retain remainder
+      _accumulatedScrollY -= scrollAmount;
     }
   }
 
   void _handleScroll(ScaleUpdateDetails details) {
     double scrollAmountY = details.focalPointDelta.dy; 
     double swipeSense = 2.0;
-    // if there is some movement, scroll by the inverse of that amount.
-    // If fingers go up -> scroll down.
-    if (scrollAmountY != 0) {
-      ServerConnector.sendInput(Input.scroll(amount: -(scrollAmountY/swipeSense).toInt()));
+
+    // Accumulate the scaled delta
+    // Inverse direction: fingers up -> scroll down (positive input usually means down/right in many protocols, 
+    // but here we invert it based on previous logic -(scrollAmountY/swipeSense))
+    double delta = -(scrollAmountY / swipeSense);
+    _accumulatedScrollY += delta;
+
+    // Extract integer part to send
+    int scrollAmount = _accumulatedScrollY.truncate();
+
+    if (scrollAmount != 0) {
+      ServerConnector.sendInput(Input.scroll(amount: scrollAmount));
+      // Retain remainder
+      _accumulatedScrollY -= scrollAmount;
     }
   }
 
@@ -191,7 +208,6 @@ class _MousePadState extends State<MousePad> {
     Size screenSize = MediaQuery.of(context).size;
     double scrollHeight =
         widget.fullscreen ? screenSize.height : 0.40 * screenSize.height;
-    double midPos = scrollHeight / 2;
     return Stack(
       children: [
         // MousePad - wrapped in Listener for raw pointer events
@@ -252,7 +268,7 @@ class _MousePadState extends State<MousePad> {
           right: widget.fullscreen ? 25 : 10,
           child: GestureDetector(
             onPanUpdate: (details) {
-              _handleMouseScroll(details, midPos);
+              _handleMouseScroll(details);
             },
             child: Stack(
               children: [
