@@ -9,10 +9,14 @@ import 'package:laze/presentation/home/widgets/keyboard.dart';
 
 class CommandBtns extends StatefulWidget {
   final void Function() onShowShortcutsSheet;
+  final int sensitivity;
+  final Function(int) onSensitivityChanged;
 
   const CommandBtns({
     super.key, 
     required this.onShowShortcutsSheet,
+    required this.sensitivity,
+    required this.onSensitivityChanged,
   });
 
   @override
@@ -72,12 +76,16 @@ class _CommandBtnsState extends State<CommandBtns> {
                 iconUp: Icons.keyboard_arrow_up_rounded,
                 iconDown: Icons.keyboard_arrow_down_rounded,
                 onPressedUp: () {
-                  ServerConnector.sendInput(Input.sensitivityUp());
+                  // Increase sensitivity
+                  widget.onSensitivityChanged(widget.sensitivity + 1);
                 },
                 onPressedDown: () {
-                  ServerConnector.sendInput(Input.sensitivityDown());
+                  // Decrease sensitivity (min 1)
+                  if (widget.sensitivity > 1) {
+                    widget.onSensitivityChanged(widget.sensitivity - 1);
+                  }
                 },
-                description: "Speed",
+                description: "Speed: ${widget.sensitivity}",
                 vertical: true,
               ),
             ],

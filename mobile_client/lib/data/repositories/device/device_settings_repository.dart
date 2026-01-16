@@ -78,6 +78,30 @@ class DeviceSettingsRepository {
     return s[0].toUpperCase() + s.substring(1).toLowerCase();
   }
 
+  /// Get the device sensitivity setting
+  Future<int> getSensitivity() async {
+    if (!_initialized) {
+      await init();
+    }
+    
+    String? sensitivityStr = _box.get('sensitivity');
+    if (sensitivityStr == null) {
+      return 5; // Default sensitivity
+    }
+    
+    return int.tryParse(sensitivityStr) ?? 5;
+  }
+
+  /// Set the device sensitivity
+  Future<void> setSensitivity(int value) async {
+    if (!_initialized) {
+      await init();
+    }
+    
+    await _box.put('sensitivity', value.toString());
+    _log.info('Device sensitivity set to: $value');
+  }
+
   /// Clear all device settings
   Future<void> clear() async {
     if (!_initialized) return;

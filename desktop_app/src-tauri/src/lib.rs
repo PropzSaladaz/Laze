@@ -22,7 +22,7 @@ pub fn run() {
             // includes log level
             dotenv::dotenv().ok();
 
-            let controller: MobileController = MobileController::new(1, 1).unwrap();
+            let controller: MobileController = MobileController::new().unwrap();
 
             let config = ServerConfig::new(TCP_PORT as usize, 10);
 

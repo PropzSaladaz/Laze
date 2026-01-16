@@ -12,9 +12,6 @@ use crate::{
 pub struct MobileController {
     enigo: Enigo,
     key_bindings: KeyBindings,
-
-    move_x_sense: u8,
-    move_y_sense: u8,
 }
 
 // now device can be shared across threads
@@ -22,22 +19,16 @@ unsafe impl Send for MobileController {}
 unsafe impl Sync for MobileController {}
 
 impl MobileController {
-    pub fn new(move_x_sense: u8, move_y_sense: u8) -> Result<Self, Box<dyn Error>> {
+    pub fn new() -> Result<Self, Box<dyn Error>> {
         Ok(MobileController {
             enigo: Enigo::new(&Settings::default())?,
             key_bindings: KeyBindings::new(),
-            move_x_sense,
-            move_y_sense,
         })
     }
 
     pub fn mouse_move_relative(&mut self, move_x: i8, move_y: i8) {
         self.enigo
-            .move_mouse(
-                self.move_x_sense as i32 * move_x as i32,
-                self.move_y_sense as i32 * move_y as i32,
-                Coordinate::Rel,
-            )
+            .move_mouse(move_x as i32, move_y as i32, Coordinate::Rel)
             .unwrap();
     }
 
@@ -77,25 +68,8 @@ impl MobileController {
         self.enigo.text(text).unwrap();
     }
 
-    pub fn add_sensitivity(&mut self, sensitivity_delta: i8) {
-        let curr_sense = self.move_x_sense as i8; // cast for the sum as the result may be < 0
-        let mut new_sense = curr_sense + sensitivity_delta;
-
-        if new_sense < 1 {
-            new_sense = 1;
-        } // must always be at least at 1
-
-        let new_sense = new_sense as u8;
-
-        self.move_x_sense = new_sense;
-        self.move_y_sense = new_sense;
-    }
-
     fn handle_input(&mut self, action: Action) -> ConnectionStatus {
         match action {
-            Action::SensitivityUp => self.add_sensitivity(1),
-            Action::SensitivityDown => self.add_sensitivity(-1),
-
             Action::KeyPress(key) => {
                 if let Some(key_combo) = self.key_bindings.translate_to_os_key(&key) {
                     self.press_key_combo(&key_combo);
@@ -215,7 +189,7 @@ mod tests {
     fn parse_several_commands_at_once() {
         //                  | key backspace  | scroll | mouse move            |
         let commands: &[u8] = &[0u8, 0u8, 2u8, 2u8, 3u8, 2u8, (-8i8) as u8];
-        let mut app = MobileController::new(8, 8).unwrap();
+        let mut app = MobileController::new().unwrap();
         app.dispatch_to_device(commands);
     }
 

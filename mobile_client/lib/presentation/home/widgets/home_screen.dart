@@ -27,11 +27,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String connectionStatus = ServerConnector.NOT_CONNECTED;
   String? errorMessage;
+  
+  int sensitivity = 5; // Default sensitivity
 
   @override
   void initState() {
     super.initState();
     final deviceSettings = Provider.of<DeviceSettingsRepository>(context, listen: false);
+    _loadSensitivity(deviceSettings);
+    
     ServerConnector.init(
       _setConnectionState, 
       _getConnectionState,
@@ -39,6 +43,23 @@ class _HomeScreenState extends State<HomeScreen> {
       _onServerEvent,
       deviceSettings: deviceSettings,
     );
+  }
+
+  Future<void> _loadSensitivity(DeviceSettingsRepository settings) async {
+    final savedSensitivity = await settings.getSensitivity();
+    if (mounted) {
+      setState(() {
+        sensitivity = savedSensitivity;
+      });
+    }
+  }
+
+  void _updateSensitivity(int newSensitivity) {
+    setState(() {
+      sensitivity = newSensitivity;
+    });
+    final deviceSettings = Provider.of<DeviceSettingsRepository>(context, listen: false);
+    deviceSettings.setSensitivity(newSensitivity);
   }
 
   
@@ -94,15 +115,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           // CONNECTED
                           return Column(
                             children: [
-                              const MousePad(
+                              MousePad(
                                 fullscreen: false,
+                                sensitivity: sensitivity,
                               ),
                               const SizedBox(height: 15),
-                              CommandBtns(onShowShortcutsSheet: () {
-                                setState(() {
-                                  showShortcutsScrollableSheet = true;
-                                });
-                              }),
+                              CommandBtns(
+                                sensitivity: sensitivity,
+                                onSensitivityChanged: _updateSensitivity,
+                                onShowShortcutsSheet: () {
+                                  setState(() {
+                                    showShortcutsScrollableSheet = true;
+                                  });
+                                }
+                              ),
                             ],
                           );
                         }),
