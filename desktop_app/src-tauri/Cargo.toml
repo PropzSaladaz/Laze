@@ -18,11 +18,12 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 server = { path = "../../controller_server" }
 dotenv = "0.15"
 tokio = { version = "1.47.1", features = ["full"] }
+tauri-plugin-autostart = "2.5.1"
 
