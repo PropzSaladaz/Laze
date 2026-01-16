@@ -26,6 +26,18 @@
 
 Built with performance and user experience at its core, Laze isn't just another remote app—it's designed to feel like an extension of your computer.
 
+### 🖥️ Platform Support
+
+| Platform | Status | Release Available |
+|:---------|:------:|:-----------------:|
+| **Linux** | ✅ Tested | ✅ Yes |
+| **Windows** | ⚠️ Untested | ❌ Not yet |
+| **macOS** | ⚠️ Untested | ❌ Not yet |
+| **Android** | ✅ Tested | ✅ Yes |
+| **iOS** | ⚠️ Untested | ❌ Not yet |
+
+> **Note:** The codebase is designed for cross-platform support. Windows and macOS builds are planned but not yet tested or released.
+
 ---
 
 ## 📸 Showcase
@@ -165,6 +177,66 @@ Open the mobile app, tap "Connect," and you're in control!
 ## 🤝 Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
+
+---
+
+## � Why "Laze"?
+
+The name **Laze** is a nod to the lazy comfort that inspired this project.
+
+It all started with watching movies from bed. No TV subscription, just a laptop connected to the TV and free streaming sites. But every time the movie ended or something needed adjusting, it meant getting up, walking over to the computer, and breaking that cozy bubble.
+
+**Laze** was built to solve exactly that—so you never have to leave the comfort of your bed (or couch, or hammock) to control your computer. It's the ultimate lazy solution for the ultimate lazy lifestyle.
+
+*"Laze"* — because getting up is overrated.
+
+---
+
+## 🤔 Why Build Another Remote App?
+
+There are dozens of remote control apps out there. So why build another one?
+
+**Because I wanted complete control.**
+
+Most apps are locked down—you get what they give you, and that's it. Laze is different. It's built to be *yours*:
+
+- **Run any command.** Literally any terminal command, right from your phone. Shut down, sleep, launch apps, run scripts—if you can type it, Laze can run it.
+- **Customize everything.** Create shortcuts with custom names, icons, and actions. Make it work exactly the way you want.
+- **No subscriptions. No limits.** It's open source. Fork it, modify it, extend it. The possibilities are endless.
+
+This isn't just a remote—it's a toolkit.
+
+---
+
+## 📥 Installation
+
+> ⚠️ **Note:** Laze is not yet published on the Google Play Store, Apple App Store, or any desktop app store. This is planned for the future.
+
+For now, you can try Laze in two ways:
+
+### Option 1: Download from Releases
+
+Pre-built binaries are available on the [GitHub Releases](https://github.com/PropzSaladaz/Laze/releases) page:
+
+| Platform | Format |
+|:---------|:-------|
+| **Linux** | `.AppImage`, `.deb` |
+| **Android** | `.apk` |
+
+### Option 2: Build from Source
+
+Clone the repository and build locally:
+
+```bash
+git clone https://github.com/PropzSaladaz/Laze.git
+cd Laze
+
+# Desktop
+cd desktop_app && npm install && npm run tauri build
+
+# Mobile
+cd mobile_client && flutter build apk
+```
 
 ---
 
