@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:laze/data/services/input.dart';
 import 'package:laze/presentation/core/themes/colors.dart';
 import 'dart:math' as math;
@@ -11,10 +9,12 @@ import '../../../services/server_connector.dart';
 
 class MousePad extends StatefulWidget {
   final bool fullscreen;
+  final int sensitivity;
 
   const MousePad({
     super.key, 
-    required this.fullscreen
+    required this.fullscreen,
+    required this.sensitivity,
   });
 
   @override
@@ -24,6 +24,11 @@ class MousePad extends StatefulWidget {
 class _MousePadState extends State<MousePad> {
   bool isTwoFingerSwipe = false;
   double pointerLocationY = 0.0;
+  
+  // Sub-pixel accumulation
+  double _accumulatedX = 0.0;
+  double _accumulatedY = 0.0;
+  double _accumulatedScrollY = 0.0;
 
   // Drag mode state
   bool _isDragging = false;
@@ -35,31 +40,96 @@ class _MousePadState extends State<MousePad> {
   // --------- MOUSE EVENT HANDLERS -------- //
   void _handleMouseMove(ScaleUpdateDetails details) {
     var offset = details.focalPointDelta;
-    var x = offset.dx.abs() < 1 ? (2 * offset.dx) : offset.dx;
-    var y = offset.dy.abs() < 1 ? (2 * offset.dy) : offset.dy;
-    var input = Input.mouseMove(move_x: x.toInt(), move_y: y.toInt());
-    ServerConnector.sendInput(input);
+    
+    // Apply sensitivity locally
+    // Default base sensitivity on server was 1, so we map our new sensitivity directly
+    double sensitivityMultiplier = widget.sensitivity.toDouble();
+    double scaledDx = offset.dx * sensitivityMultiplier;
+    double scaledDy = offset.dy * sensitivityMultiplier;
+
+    // Calculate speed based on the SCALED movement
+    double scaledSpeed = math.sqrt(scaledDx * scaledDx + scaledDy * scaledDy);
+    
+    // Power function acceleration curve
+    // Similar to standard mouse acceleration curves (e.g. Windows/macOS)
+    // gain = 1 + (speed ^ exponent)
+    double acceleration = 1.0;
+    
+    // Only accelerate if moving fast enough to avoid noise
+    if (scaledSpeed > 1.0) {
+      // Exponent controls the curve shape. 
+      // < 1.0 gives "early" acceleration (fast rise)
+      // > 1.0 gives "late" acceleration (slow rise then fast)
+      const double exponent = 1.2; 
+      acceleration = 1.0 + (math.pow(scaledSpeed, exponent) * 0.01);
+      
+      // Cap max acceleration
+      if (acceleration > 5.0) acceleration = 5.0;
+    }
+
+    // Apply acceleration to the ALREADY scaled sensitivity
+    _accumulatedX += scaledDx * acceleration;
+    _accumulatedY += scaledDy * acceleration;
+    
+    // Extract integer part to send
+    int rawX = _accumulatedX.truncate();
+    int rawY = _accumulatedY.truncate();
+    
+    // If we have enough movement to send a pixel
+    if (rawX != 0 || rawY != 0) {
+      // Clamp to signed byte range [-127, 127] to match protocol expectations 
+      // (though dart sends full ints, the protocol might squash them or protocol doc says byte)
+      // data/services/input.dart sends [3, move_x, move_y] as bytes.
+      // So we MUST clamp to [-128, 127] or similar.
+      int sendX = rawX.clamp(-127, 127);
+      int sendY = rawY.clamp(-127, 127);
+
+      // Subtract only what we're sending to preserve the true remainder
+      // This fixes a bug where clamping would discard the excess movement
+      _accumulatedX -= sendX;
+      _accumulatedY -= sendY;
+      
+      var input = Input.mouseMove(move_x: sendX, move_y: sendY);
+      ServerConnector.sendInput(input);
+    }
   }
-  void _handleMouseScroll(DragUpdateDetails details, double midPos) {
-    var offset = details.localPosition.dy;
-    if (offset.toInt() % 3 == 0) {
-      sleep(const Duration(milliseconds: 10));
-      double amount = (offset - midPos) / midPos;
-      if (amount > 0) {
-        ServerConnector.sendInput(Input.scroll(amount: -1));
-      } else {
-        ServerConnector.sendInput(Input.scroll(amount: 1));
-      }
+  void _handleMouseScroll(DragUpdateDetails details) {
+    double scrollAmountY = details.delta.dy; 
+    double swipeSense = 2.0;
+
+    // Accumulate the scaled delta
+    // Inverse direction: drag up (negative dy) -> scroll down (negative scroll value, content moves up)
+    // Same logic as two-finger scroll
+    double delta = -(scrollAmountY / swipeSense);
+    _accumulatedScrollY += delta;
+
+    // Extract integer part to send
+    int scrollAmount = _accumulatedScrollY.truncate();
+
+    if (scrollAmount != 0) {
+      ServerConnector.sendInput(Input.scroll(amount: scrollAmount));
+      // Retain remainder
+      _accumulatedScrollY -= scrollAmount;
     }
   }
 
   void _handleScroll(ScaleUpdateDetails details) {
     double scrollAmountY = details.focalPointDelta.dy; 
     double swipeSense = 2.0;
-    // if there is some movement, scroll by the inverse of that amount.
-    // If fingers go up -> scroll down.
-    if (scrollAmountY != 0) {
-      ServerConnector.sendInput(Input.scroll(amount: -(scrollAmountY/swipeSense).toInt()));
+
+    // Accumulate the scaled delta
+    // Inverse direction: fingers up -> scroll down (positive input usually means down/right in many protocols, 
+    // but here we invert it based on previous logic -(scrollAmountY/swipeSense))
+    double delta = -(scrollAmountY / swipeSense);
+    _accumulatedScrollY += delta;
+
+    // Extract integer part to send
+    int scrollAmount = _accumulatedScrollY.truncate();
+
+    if (scrollAmount != 0) {
+      ServerConnector.sendInput(Input.scroll(amount: scrollAmount));
+      // Retain remainder
+      _accumulatedScrollY -= scrollAmount;
     }
   }
 
@@ -141,7 +211,6 @@ class _MousePadState extends State<MousePad> {
     Size screenSize = MediaQuery.of(context).size;
     double scrollHeight =
         widget.fullscreen ? screenSize.height : 0.40 * screenSize.height;
-    double midPos = scrollHeight / 2;
     return Stack(
       children: [
         // MousePad - wrapped in Listener for raw pointer events
@@ -202,7 +271,7 @@ class _MousePadState extends State<MousePad> {
           right: widget.fullscreen ? 25 : 10,
           child: GestureDetector(
             onPanUpdate: (details) {
-              _handleMouseScroll(details, midPos);
+              _handleMouseScroll(details);
             },
             child: Stack(
               children: [
@@ -260,8 +329,9 @@ class _MousePadState extends State<MousePad> {
                   ? Navigator.of(context).pop()
                   : Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const MousePad(
+                        builder: (context) => MousePad(
                           fullscreen: true,
+                          sensitivity: widget.sensitivity,
                         ),
                       ),
                     );

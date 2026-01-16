@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import Link from "next/link";
+import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import styles from "./dashboard.module.css";
 
 interface Timer {
@@ -39,6 +40,25 @@ function incrementTimer(timer: Timer): Timer {
 export default function Dashboard() {
     const [clients, setClients] = useState<Client[]>([]);
     const [selectedClient, setSelectedClient] = useState<number | null>(null);
+    const [autostart, setAutostart] = useState(false);
+
+    useEffect(() => {
+        isEnabled().then(setAutostart).catch(console.error);
+    }, []);
+
+    async function toggleAutostart() {
+        try {
+            if (autostart) {
+                await disable();
+                setAutostart(false);
+            } else {
+                await enable();
+                setAutostart(true);
+            }
+        } catch (error) {
+            console.error("Failed to toggle autostart:", error);
+        }
+    }
 
     async function stopServer() {
         await invoke<string>("stop_server", {});
@@ -118,11 +138,21 @@ export default function Dashboard() {
                     <span className={styles.statusDot}></span>
                     <span className={styles.statusText}>Running</span>
                 </div>
-                <Link href="/">
-                    <button onClick={stopServer} className={styles.stopButton}>
-                        Stop Server
-                    </button>
-                </Link>
+                <div className={styles.headerActions}>
+                    <label className={styles.checkboxLabel}>
+                        <input
+                            type="checkbox"
+                            checked={autostart}
+                            onChange={toggleAutostart}
+                        />
+                        Run on Startup
+                    </label>
+                    <Link href="/">
+                        <button onClick={stopServer} className={styles.stopButton}>
+                            Stop Server
+                        </button>
+                    </Link>
+                </div>
             </header>
 
             {/* Client Table */}
