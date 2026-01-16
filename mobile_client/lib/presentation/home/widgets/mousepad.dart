@@ -11,10 +11,12 @@ import '../../../services/server_connector.dart';
 
 class MousePad extends StatefulWidget {
   final bool fullscreen;
+  final int sensitivity;
 
   const MousePad({
     super.key, 
-    required this.fullscreen
+    required this.fullscreen,
+    required this.sensitivity,
   });
 
   @override
@@ -24,6 +26,10 @@ class MousePad extends StatefulWidget {
 class _MousePadState extends State<MousePad> {
   bool isTwoFingerSwipe = false;
   double pointerLocationY = 0.0;
+  
+  // Sub-pixel accumulation
+  double _accumulatedX = 0.0;
+  double _accumulatedY = 0.0;
 
   // Drag mode state
   bool _isDragging = false;
@@ -35,10 +41,39 @@ class _MousePadState extends State<MousePad> {
   // --------- MOUSE EVENT HANDLERS -------- //
   void _handleMouseMove(ScaleUpdateDetails details) {
     var offset = details.focalPointDelta;
-    var x = offset.dx.abs() < 1 ? (2 * offset.dx) : offset.dx;
-    var y = offset.dy.abs() < 1 ? (2 * offset.dy) : offset.dy;
-    var input = Input.mouseMove(move_x: x.toInt(), move_y: y.toInt());
-    ServerConnector.sendInput(input);
+    
+    // Apply sensitivity locally
+    // Default base sensitivity on server was 1, so we map our new sensitivity directly as a multiplier
+    double sensitivityMultiplier = widget.sensitivity.toDouble();
+    
+    // Accumulate the scaled delta
+    _accumulatedX += offset.dx * sensitivityMultiplier;
+    _accumulatedY += offset.dy * sensitivityMultiplier;
+    
+    // Extract integer part to send
+    int moveX = _accumulatedX.truncate();
+    int moveY = _accumulatedY.truncate();
+    
+    // If we have enough movement to send a pixel
+    if (moveX != 0 || moveY != 0) {
+      // Clamp to byte range if necessary, though typical usage won't exceed 127 in one frame
+      // Logic for byte clamping happens inherently if we cast to int8/uint8, 
+      // but let's just send it. The generic integer send might handle it, 
+      // but Input.mouseMove usually expects int.
+      // Important: Keep the remainder for next frame
+      _accumulatedX -= moveX;
+      _accumulatedY -= moveY;
+      
+      // Clamp to signed byte range [-127, 127] to match protocol expectations 
+      // (though dart sends full ints, the protocol might squash them or protocol doc says byte)
+      // data/services/input.dart sends [3, move_x, move_y] as bytes.
+      // So we MUST clamp to [-128, 127] or similar.
+      moveX = moveX.clamp(-127, 127);
+      moveY = moveY.clamp(-127, 127);
+      
+      var input = Input.mouseMove(move_x: moveX, move_y: moveY);
+      ServerConnector.sendInput(input);
+    }
   }
   void _handleMouseScroll(DragUpdateDetails details, double midPos) {
     var offset = details.localPosition.dy;
@@ -260,8 +295,9 @@ class _MousePadState extends State<MousePad> {
                   ? Navigator.of(context).pop()
                   : Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const MousePad(
+                        builder: (context) => MousePad(
                           fullscreen: true,
+                          sensitivity: widget.sensitivity,
                         ),
                       ),
                     );

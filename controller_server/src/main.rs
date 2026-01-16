@@ -18,7 +18,7 @@ const PORT: usize = 7878;
 
 fn main() {
     let config = ServerConfig::new(PORT, 10);
-    let app = MobileController::new(1, 1).unwrap();
+    let app = MobileController::new().unwrap();
 
     // server has started here
     let mut handle = Server::start(config, app);

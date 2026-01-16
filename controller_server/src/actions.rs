@@ -51,13 +51,11 @@ define_actions!(
     Scroll(i8) = 2,
     MouseMove(DeltaCoordinates) = 3,
     MouseClick(Button) = 4,
-    SensitivityDown = 5,
-    SensitivityUp = 6,
-    Disconnect = 7,
-    Shutdown = 8,
-    TerminalCommand(TerminalCommand) = 9,
-    MouseDown(Button) = 10,
-    MouseUp(Button) = 11,
+    Disconnect = 5,
+    Shutdown = 6,
+    TerminalCommand(TerminalCommand) = 7,
+    MouseDown(Button) = 8,
+    MouseUp(Button) = 9,
 );
 
 /// Action struct is defined by the define_macros! macro
@@ -84,8 +82,7 @@ impl Action {
             Some(ActionType::MouseClick) => {
                 Self::MouseClick(DeserializableAction::from_bytes(encoded))
             }
-            Some(ActionType::SensitivityDown) => Self::SensitivityDown,
-            Some(ActionType::SensitivityUp) => Self::SensitivityUp,
+
             Some(ActionType::Disconnect) => Self::Disconnect,
             Some(ActionType::Shutdown) => Self::Shutdown,
             Some(ActionType::TerminalCommand) => {
@@ -300,23 +297,8 @@ mod tests {
     }
 
     #[test]
-    fn mouse_sensitivity() {
-        let mut sense_down: &[u8] = &[5u8];
-        let mut sense_up: &[u8] = &[6u8];
-
-        assert!(matches!(
-            Action::decode(&mut sense_down),
-            Action::SensitivityDown
-        ));
-        assert!(matches!(
-            Action::decode(&mut sense_up),
-            Action::SensitivityUp
-        ));
-    }
-
-    #[test]
     fn disconnect() {
-        let mut disconnect: &[u8] = &[7u8];
+        let mut disconnect: &[u8] = &[5u8];
         assert!(matches!(
             Action::decode(&mut disconnect),
             Action::Disconnect
@@ -325,7 +307,7 @@ mod tests {
 
     #[test]
     fn terminal_command_open_firefox() {
-        let mut firefox_command: Vec<u8> = vec![9u8];
+        let mut firefox_command: Vec<u8> = vec![7u8];
         let utf8_bytes: &[u8] = "firefox".as_bytes();
         firefox_command.push(utf8_bytes.len() as u8);
         firefox_command.append(&mut utf8_bytes.to_owned());

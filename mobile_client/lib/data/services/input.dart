@@ -92,38 +92,18 @@ class Input {
     return Uint8List.fromList([4, 0]);
   }
 
-  // ------ MouseDown: [10, button] -------
-  static Uint8List mouseDown() {
-    return Uint8List.fromList([10, 0]);
-  }
-
-  // ------ MouseUp: [11, button] -------
-  static Uint8List mouseUp() {
-    return Uint8List.fromList([11, 0]);
-  }
-
-  // ------ SenseDown: [5] -------
-  static Uint8List sensitivityDown() {
+  // ------ Disconnect: [5] -------
+  static Uint8List disconnect() {
     return Uint8List.fromList([5]);
   }
 
-  // ------ SenseUp: [6] -------
-  static Uint8List sensitivityUp() {
+  // ------ Shutdown: [6] -------
+  static Uint8List shutdown() {
     return Uint8List.fromList([6]);
   }
 
-  // ------ Disconnect: [7] -------
-  static Uint8List disconnect() {
-    return Uint8List.fromList([7]);
-  }
-
-  // ------ Shutdown: [8] -------
-  static Uint8List shutdown() {
-    return Uint8List.fromList([8]);
-  }
-
-  // ------ Run Terminal Command: [9] -------
-  // Command: [9, command_size, command]
+  // ------ Run Terminal Command: [7] -------
+  // Command: [7, command_size, command]
   static Uint8List runCommand(Map os_commands) {
     String serverOS = ServerConnector.getServerOS();
     String command = os_commands[serverOS];
@@ -135,12 +115,22 @@ class Input {
     } else if (command.isEmpty) {
       throw FormatException("No command specified for $serverOS OS");
     }
-    // 9 is the command code, then we send command size (nbr of characters) followed
+    // 7 is the command code, then we send command size (nbr of characters) followed
     // by the command for each suported OS
-    List<int> encoded_commands = [9, command.length];
+    List<int> encoded_commands = [7, command.length];
     List<int> commandBytes = utf8.encode(command);
     encoded_commands.addAll(commandBytes);
     return Uint8List.fromList(encoded_commands);
+  }
+
+  // ------ MouseDown: [8] -------
+  static Uint8List mouseDown() {
+    return Uint8List.fromList([8, 0]);
+  }
+
+  // ------ MouseUp: [9] -------
+  static Uint8List mouseUp() {
+    return Uint8List.fromList([9, 0]);
   }
 
   // static setHold() {
