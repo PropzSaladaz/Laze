@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:laze/data/services/input.dart';
 import 'package:laze/presentation/core/themes/colors.dart';
 import 'dart:math' as math;
@@ -43,12 +42,28 @@ class _MousePadState extends State<MousePad> {
     var offset = details.focalPointDelta;
     
     // Apply sensitivity locally
-    // Default base sensitivity on server was 1, so we map our new sensitivity directly as a multiplier
-    double sensitivityMultiplier = widget.sensitivity.toDouble();
+    // Default base sensitivity on server was 1, so we map our new sensitivity directly    // Calculate speed (distance per frame)
+    double speed = offset.distance;
     
-    // Accumulate the scaled delta
-    _accumulatedX += offset.dx * sensitivityMultiplier;
-    _accumulatedY += offset.dy * sensitivityMultiplier;
+    // Calculate acceleration multiplier
+    // Base is 1.0 (no acceleration)
+    double acceleration = 1.0;
+    
+    // Simple linear acceleration curve
+    // If moving faster than 1 logical pixel per frame, start accelerating
+    if (speed > 1.0) {
+      // Curve: Linear increase in gain based on speed
+      // Adjust the 0.05 coefficient to tune how aggressive the acceleration is
+      acceleration = 1.0 + (speed * 0.05);
+      
+      // Cap max acceleration to prevent uncontrollable flying
+      if (acceleration > 3.0) acceleration = 3.0;
+    }
+
+    // Apply sensitivity AND acceleration
+    double sensitivityMultiplier = widget.sensitivity.toDouble();
+    _accumulatedX += offset.dx * sensitivityMultiplier * acceleration;
+    _accumulatedY += offset.dy * sensitivityMultiplier * acceleration;
     
     // Extract integer part to send
     int moveX = _accumulatedX.truncate();
