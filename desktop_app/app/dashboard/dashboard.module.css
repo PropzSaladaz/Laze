@@ -43,6 +43,26 @@
     transition: all 0.2s;
 }
 
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-grey4);
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkboxLabel input {
+    cursor: pointer;
+}
+
 .stopButton:hover {
     background: var(--color-white4);
     border-color: var(--color-grey1);
