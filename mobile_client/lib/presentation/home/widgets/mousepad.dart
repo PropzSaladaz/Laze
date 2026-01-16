@@ -42,51 +42,54 @@ class _MousePadState extends State<MousePad> {
     var offset = details.focalPointDelta;
     
     // Apply sensitivity locally
-    // Default base sensitivity on server was 1, so we map our new sensitivity directly    // Calculate speed (distance per frame)
-    double speed = offset.distance;
+    // Default base sensitivity on server was 1, so we map our new sensitivity directly
+    double sensitivityMultiplier = widget.sensitivity.toDouble();
+    double scaledDx = offset.dx * sensitivityMultiplier;
+    double scaledDy = offset.dy * sensitivityMultiplier;
+
+    // Calculate speed based on the SCALED movement
+    double scaledSpeed = math.sqrt(scaledDx * scaledDx + scaledDy * scaledDy);
     
-    // Calculate acceleration multiplier
-    // Base is 1.0 (no acceleration)
+    // Power function acceleration curve
+    // Similar to standard mouse acceleration curves (e.g. Windows/macOS)
+    // gain = 1 + (speed ^ exponent)
     double acceleration = 1.0;
     
-    // Simple linear acceleration curve
-    // If moving faster than 1 logical pixel per frame, start accelerating
-    if (speed > 1.0) {
-      // Curve: Linear increase in gain based on speed
-      // Adjust the 0.05 coefficient to tune how aggressive the acceleration is
-      acceleration = 1.0 + (speed * 0.05);
+    // Only accelerate if moving fast enough to avoid noise
+    if (scaledSpeed > 1.0) {
+      // Exponent controls the curve shape. 
+      // < 1.0 gives "early" acceleration (fast rise)
+      // > 1.0 gives "late" acceleration (slow rise then fast)
+      const double exponent = 1.2; 
+      acceleration = 1.0 + (math.pow(scaledSpeed, exponent) * 0.01);
       
-      // Cap max acceleration to prevent uncontrollable flying
-      if (acceleration > 3.0) acceleration = 3.0;
+      // Cap max acceleration
+      if (acceleration > 5.0) acceleration = 5.0;
     }
 
-    // Apply sensitivity AND acceleration
-    double sensitivityMultiplier = widget.sensitivity.toDouble();
-    _accumulatedX += offset.dx * sensitivityMultiplier * acceleration;
-    _accumulatedY += offset.dy * sensitivityMultiplier * acceleration;
+    // Apply acceleration to the ALREADY scaled sensitivity
+    _accumulatedX += scaledDx * acceleration;
+    _accumulatedY += scaledDy * acceleration;
     
     // Extract integer part to send
-    int moveX = _accumulatedX.truncate();
-    int moveY = _accumulatedY.truncate();
+    int rawX = _accumulatedX.truncate();
+    int rawY = _accumulatedY.truncate();
     
     // If we have enough movement to send a pixel
-    if (moveX != 0 || moveY != 0) {
-      // Clamp to byte range if necessary, though typical usage won't exceed 127 in one frame
-      // Logic for byte clamping happens inherently if we cast to int8/uint8, 
-      // but let's just send it. The generic integer send might handle it, 
-      // but Input.mouseMove usually expects int.
-      // Important: Keep the remainder for next frame
-      _accumulatedX -= moveX;
-      _accumulatedY -= moveY;
-      
+    if (rawX != 0 || rawY != 0) {
       // Clamp to signed byte range [-127, 127] to match protocol expectations 
       // (though dart sends full ints, the protocol might squash them or protocol doc says byte)
       // data/services/input.dart sends [3, move_x, move_y] as bytes.
       // So we MUST clamp to [-128, 127] or similar.
-      moveX = moveX.clamp(-127, 127);
-      moveY = moveY.clamp(-127, 127);
+      int sendX = rawX.clamp(-127, 127);
+      int sendY = rawY.clamp(-127, 127);
+
+      // Subtract only what we're sending to preserve the true remainder
+      // This fixes a bug where clamping would discard the excess movement
+      _accumulatedX -= sendX;
+      _accumulatedY -= sendY;
       
-      var input = Input.mouseMove(move_x: moveX, move_y: moveY);
+      var input = Input.mouseMove(move_x: sendX, move_y: sendY);
       ServerConnector.sendInput(input);
     }
   }
