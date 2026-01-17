@@ -68,6 +68,7 @@ pub fn run() {
             Some(vec![]),
         ))
         .invoke_handler(tauri::generate_handler![
+            commands::is_server_initialized,
             commands::init_server,
             commands::start_server,
             commands::stop_server,

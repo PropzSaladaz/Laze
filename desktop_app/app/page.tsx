@@ -1,7 +1,7 @@
 "use client";
 
 import { invoke } from "@tauri-apps/api/core";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import styles from "./home.module.css";
 
 interface InitResult {
@@ -9,115 +9,161 @@ interface InitResult {
   message: string;
 }
 
-type ConnectionState = "idle" | "connecting" | "connected" | "failed";
+type ConnectionState = "loading" | "connecting" | "ready" | "failed" | "starting";
 
-const MAX_RETRY_DURATION_MS = 60000; // 1 minute
-const RETRY_INTERVAL_MS = 5000; // 5 seconds
+const MAX_RETRY_DURATION_MS = 60000;
+const RETRY_INTERVAL_MS = 5000;
+const SESSION_KEY_INIT = "server_initialized";
+const SESSION_KEY_NAVIGATING = "navigating_to_dashboard";
 
 export default function Home() {
-  const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
+  const [connectionState, setConnectionState] = useState<ConnectionState>("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [retryCount, setRetryCount] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(MAX_RETRY_DURATION_MS / 1000);
 
-  const startTimeRef = useRef<number | null>(null);
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  // Start the server listening and navigate to dashboard
+  async function startServer() {
+    console.log("[Home] startServer called");
+    setConnectionState("starting");
 
-  const clearTimers = useCallback(() => {
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-      retryTimeoutRef.current = null;
-    }
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current);
-      countdownRef.current = null;
-    }
-  }, []);
-
-  const attemptConnection = useCallback(async (): Promise<boolean> => {
     try {
-      // First init the server
-      const initResult = await invoke<InitResult>("init_server", {});
+      const result = await invoke<string>("start_server", {});
+      console.log("[Home] start_server result:", result);
 
-      if (!initResult.success) {
-        setErrorMessage(initResult.message);
-        return false;
-      }
-
-      // Then start the server
-      const startResult = await invoke<string>("start_server", {});
-
-      if (startResult.includes("successfully")) {
-        return true;
+      if (result.includes("successfully")) {
+        console.log("[Home] Setting navigation flag and redirecting");
+        // Set navigation flag BEFORE navigation - survives Fast Refresh
+        sessionStorage.setItem(SESSION_KEY_NAVIGATING, "true");
+        window.location.href = "/dashboard";
       } else {
-        setErrorMessage(startResult);
-        return false;
+        console.error("[Home] start_server failed:", result);
+        setErrorMessage(result);
+        setConnectionState("failed");
       }
     } catch (error) {
+      console.error("[Home] start_server exception:", error);
       setErrorMessage(error instanceof Error ? error.message : String(error));
-      return false;
+      setConnectionState("failed");
     }
-  }, []);
+  }
 
-  const startAutoRetry = useCallback(async () => {
+  async function handleManualRetry() {
     setConnectionState("connecting");
     setErrorMessage("");
-    setRetryCount(0);
-    setTimeRemaining(MAX_RETRY_DURATION_MS / 1000);
-    startTimeRef.current = Date.now();
+    await doInitWithRetry();
+  }
 
-    // Countdown timer
-    countdownRef.current = setInterval(() => {
-      if (startTimeRef.current) {
-        const elapsed = Date.now() - startTimeRef.current;
-        const remaining = Math.max(0, Math.ceil((MAX_RETRY_DURATION_MS - elapsed) / 1000));
-        setTimeRemaining(remaining);
+  async function doInitWithRetry() {
+    const startTime = Date.now();
+    let attempt = 0;
+
+    const tryInit = async (): Promise<boolean> => {
+      try {
+        const initResult = await invoke<InitResult>("init_server", {});
+        console.log("[Home] init_server result:", initResult);
+        return initResult.success;
+      } catch (error) {
+        console.error("[Home] init_server error:", error);
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+        return false;
       }
-    }, 1000);
+    };
 
-    const tryConnect = async () => {
-      const success = await attemptConnection();
+    while (Date.now() - startTime < MAX_RETRY_DURATION_MS) {
+      attempt++;
+      setRetryCount(attempt);
+      setTimeRemaining(Math.ceil((MAX_RETRY_DURATION_MS - (Date.now() - startTime)) / 1000));
 
+      const success = await tryInit();
       if (success) {
-        clearTimers();
-        setConnectionState("connected");
+        sessionStorage.setItem(SESSION_KEY_INIT, "true");
+        setConnectionState("ready");
+        return;
+      }
 
-        // Use direct navigation instead of Next.js router to avoid chunk loading issues
+      await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL_MS));
+    }
+
+    setConnectionState("failed");
+  }
+
+  // Main initialization effect
+  useEffect(() => {
+    let cancelled = false;
+
+    async function initialize() {
+      // Check if we were navigating to dashboard (Fast Refresh recovery)
+      const wasNavigating = sessionStorage.getItem(SESSION_KEY_NAVIGATING) === "true";
+      if (wasNavigating) {
+        console.log("[Home] Detected navigation flag, redirecting to dashboard");
+        // Don't clear the flag yet - let dashboard clear it
         window.location.href = "/dashboard";
         return;
       }
 
-      // Check if we've exceeded the retry duration
-      const elapsed = Date.now() - (startTimeRef.current || Date.now());
-      if (elapsed >= MAX_RETRY_DURATION_MS) {
-        clearTimers();
-        setConnectionState("failed");
-        return;
+      // Check if already initialized
+      const wasInitialized = sessionStorage.getItem(SESSION_KEY_INIT) === "true";
+
+      if (wasInitialized) {
+        try {
+          const isInit = await invoke<boolean>("is_server_initialized", {});
+          console.log("[Home] sessionStorage says init, backend says:", isInit);
+          if (isInit && !cancelled) {
+            setConnectionState("ready");
+            return;
+          }
+        } catch (e) {
+          console.error("[Home] is_server_initialized check failed:", e);
+        }
+        sessionStorage.removeItem(SESSION_KEY_INIT);
       }
 
-      // Schedule next retry
-      setRetryCount(prev => prev + 1);
-      retryTimeoutRef.current = setTimeout(tryConnect, RETRY_INTERVAL_MS);
-    };
+      // Check backend directly
+      try {
+        const isInit = await invoke<boolean>("is_server_initialized", {});
+        console.log("[Home] is_server_initialized:", isInit);
 
-    // First attempt immediately
-    await tryConnect();
-  }, [attemptConnection, clearTimers]);
+        if (isInit && !cancelled) {
+          sessionStorage.setItem(SESSION_KEY_INIT, "true");
+          setConnectionState("ready");
+          return;
+        }
+      } catch (e) {
+        console.error("[Home] is_server_initialized error:", e);
+      }
 
-  const handleManualRetry = useCallback(() => {
-    clearTimers();
-    startAutoRetry();
-  }, [clearTimers, startAutoRetry]);
+      // Not initialized, start retry loop
+      if (!cancelled) {
+        setConnectionState("connecting");
+        await doInitWithRetry();
+      }
+    }
 
-  // Start connection attempt on mount
-  useEffect(() => {
-    startAutoRetry();
+    initialize();
 
     return () => {
-      clearTimers();
+      cancelled = true;
     };
-  }, [startAutoRetry, clearTimers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (connectionState === "loading") {
+    return (
+      <main className={styles.container}>
+        <h1 className={styles.title}>Initializing...</h1>
+      </main>
+    );
+  }
+
+  if (connectionState === "starting") {
+    return (
+      <main className={styles.container}>
+        <div className={styles.spinner}></div>
+        <h1 className={styles.title}>Starting server...</h1>
+      </main>
+    );
+  }
 
   if (connectionState === "connecting") {
     return (
@@ -125,7 +171,7 @@ export default function Home() {
         <div className={styles.spinner}></div>
         <h1 className={styles.title}>Connecting to network...</h1>
         <p className={styles.subtitle}>
-          Attempt #{retryCount + 1} • {timeRemaining}s remaining
+          Attempt #{retryCount} • {timeRemaining}s remaining
         </p>
         <p className={styles.hint}>
           Waiting for WiFi connection...
@@ -151,12 +197,17 @@ export default function Home() {
     );
   }
 
-  // This shouldn't normally be visible (redirects on success)
   return (
     <main className={styles.container}>
       <h1 className={styles.title}>
-        Initializing...
+        Server is ready.
       </h1>
+      <p className={styles.subtitle}>
+        Press "Start Server" to begin accepting connections.
+      </p>
+      <button onClick={startServer} className={styles.startButton}>
+        Start Server
+      </button>
     </main>
   );
 }
