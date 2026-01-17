@@ -246,7 +246,18 @@ impl<A: Application + 'static> Server<A> {
             server_is_scheduled_for_termination = lock.terminate_signal;
             lock.config.starting_port
         };
-        let socket = utils::create_socket(starting_port);
+
+        let socket = match utils::create_socket(starting_port) {
+            Ok(socket) => socket,
+            Err(e) => {
+                Self::static_log_error(&format!(
+                    "Failed to create socket for client listener: {}. Network may be unavailable.",
+                    e
+                ));
+                return;
+            }
+        };
+
         // configure it such that .accept() returns immediately
         // without blocking the thread. Allows to sleep for a while if no
         // new connections are available.
