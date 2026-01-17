@@ -161,7 +161,8 @@ impl ClientPool {
             app,
             self.client_termination_sender.clone(),
             self.event_publisher.clone(),
-        );
+        )
+        .map_err(|e| format!("Failed to create client socket: {}", e))?;
 
         // publish event about new client
         self.event_publisher
@@ -289,9 +290,9 @@ impl Client {
         app: Arc<Mutex<A>>,
         termination_sender: Sender<Terminate>,
         event_publisher: broadcast::Sender<ServerEvent>,
-    ) -> Arc<Client> {
+    ) -> Result<Arc<Client>, std::io::Error> {
         let port = DEFAULT_CLIENT_PORT + id;
-        let socket = utils::create_socket(port);
+        let socket = utils::create_socket(port)?;
 
         let client = Arc::new(Client {
             address,
@@ -347,7 +348,7 @@ impl Client {
             }
         });
 
-        cloned_client
+        Ok(cloned_client)
     }
 
     /// Handle incomming client inputs.
