@@ -32,9 +32,11 @@
     color: var(--color-grey4);
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .startButton:hover {
     background: var(--color-grey1);
     color: var(--color-black2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
