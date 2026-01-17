@@ -1,17 +1,114 @@
 use std::sync::{Arc, Mutex};
 
-use server::{ServerEvent, ServerHandler};
+use server::{MobileController, Server, ServerConfig, ServerEvent, ServerHandler};
 use tauri::Emitter;
 use tokio::sync::broadcast;
 
-pub type SharedCommunicator = Arc<Mutex<ServerHandler>>;
+use crate::TCP_PORT;
+
+pub type SharedCommunicator = Arc<Mutex<Option<ServerHandler>>>;
+
+/// Result type for server initialization
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct InitResult {
+    pub success: bool,
+    pub message: String,
+}
+
+/// Check if server is already initialized (quick check, no side effects)
+#[tauri::command]
+pub fn is_server_initialized(state: tauri::State<'_, SharedCommunicator>) -> bool {
+    let guard = state.lock().unwrap();
+    guard.is_some()
+}
+
+/// Initialize the server - can be called multiple times for retry
+#[tauri::command]
+pub fn init_server(
+    _app_handle: tauri::AppHandle,
+    state: tauri::State<'_, SharedCommunicator>,
+) -> InitResult {
+    let mut guard = state.lock().unwrap();
+
+    // Already initialized - but verify network is still available
+    if let Some(handler) = guard.as_mut() {
+        // Check if network is available
+        if let Err(e) = local_ip_address::local_ip() {
+            // Network went away after initialization. Terminate the old server instance.
+            if let Err(term_err) = handler.terminate_server() {
+                eprintln!(
+                    "Failed to terminate server after network loss: {:?}",
+                    term_err
+                );
+            }
+            // Wait for termination to complete
+            match handler.receive_response() {
+                Ok(server::ServerResponse::ServerTerminated(_)) => {
+                    println!("Server terminated due to network loss.");
+                }
+                Err(recv_err) => {
+                    eprintln!("Failed to receive termination confirmation: {:?}", recv_err);
+                }
+                _ => {}
+            }
+
+            *guard = None; // Clear the old handler
+            return InitResult {
+                success: false,
+                message: format!("Network unavailable: {}", e),
+            };
+        }
+        return InitResult {
+            success: true,
+            message: "Server already initialized.".to_string(),
+        };
+    }
+
+    // First check if network is available before doing anything else
+    if let Err(e) = local_ip_address::local_ip() {
+        return InitResult {
+            success: false,
+            message: format!(
+                "Network unavailable: {}. Please check your WiFi connection.",
+                e
+            ),
+        };
+    }
+
+    // Try to create the controller (requires display access on Linux)
+    let controller = match MobileController::new() {
+        Ok(c) => c,
+        Err(e) => {
+            return InitResult {
+                success: false,
+                message: format!("Failed to create controller: {}", e),
+            };
+        }
+    };
+
+    let config = ServerConfig::new(TCP_PORT as usize, 10);
+
+    // Now safe to start since we verified network is available
+    let handler = Server::start(config, controller);
+    *guard = Some(handler);
+
+    InitResult {
+        success: true,
+        message: "Server initialized successfully.".to_string(),
+    }
+}
 
 #[tauri::command]
 pub fn start_server(
     app_handle: tauri::AppHandle,
     state: tauri::State<'_, SharedCommunicator>,
 ) -> String {
-    let mut handler = state.lock().unwrap();
+    let mut guard = state.lock().unwrap();
+
+    let handler = match guard.as_mut() {
+        Some(h) => h,
+        None => return "Server not initialized. Call init_server first.".to_string(),
+    };
 
     if let Err(e) = handler.start_server() {
         return format!("Failed to start server: {:?}", e);
@@ -33,7 +130,12 @@ pub fn start_server(
 
 #[tauri::command]
 pub fn stop_server(state: tauri::State<'_, SharedCommunicator>) -> String {
-    let mut handler = state.lock().unwrap();
+    let mut guard = state.lock().unwrap();
+
+    let handler = match guard.as_mut() {
+        Some(h) => h,
+        None => return "Server not initialized.".to_string(),
+    };
 
     if let Err(e) = handler.stop_server() {
         return format!("Failed to stop server: {:?}", e);
@@ -52,7 +154,12 @@ pub fn stop_server(state: tauri::State<'_, SharedCommunicator>) -> String {
 
 /// Called on app exit to fully terminate the server
 pub fn terminate_server(state: &SharedCommunicator) {
-    let mut handler = state.lock().unwrap();
+    let mut guard = state.lock().unwrap();
+
+    let handler = match guard.as_mut() {
+        Some(h) => h,
+        None => return, // Server was never initialized, nothing to terminate
+    };
 
     if let Err(e) = handler.terminate_server() {
         eprintln!("Failed to terminate server: {:?}", e);
@@ -74,7 +181,12 @@ pub fn terminate_server(state: &SharedCommunicator) {
 
 #[tauri::command]
 pub fn remove_client(state: tauri::State<'_, SharedCommunicator>, client_id: usize) -> String {
-    let mut handler = state.lock().unwrap();
+    let mut guard = state.lock().unwrap();
+
+    let handler = match guard.as_mut() {
+        Some(h) => h,
+        None => return "Server not initialized.".to_string(),
+    };
 
     if let Err(e) = handler.terminate_client(client_id) {
         return format!("Failed to remove client: {:?}", e);
