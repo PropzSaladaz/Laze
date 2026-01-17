@@ -41,6 +41,7 @@
     color: var(--color-grey4);
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .headerActions {
@@ -59,13 +60,45 @@
     user-select: none;
 }
 
-.checkboxLabel input {
+.checkboxLabel input[type="checkbox"] {
     cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--color-grey2);
+    border-radius: 3px;
+    background: var(--color-white);
+    position: relative;
+    transition: all 0.2s;
+}
+
+.checkboxLabel input[type="checkbox"]:hover {
+    border-color: var(--color-grey3);
+    background: var(--color-white2);
+}
+
+.checkboxLabel input[type="checkbox"]:checked {
+    background: var(--color-grey4);
+    border-color: var(--color-grey4);
+}
+
+.checkboxLabel input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid var(--color-white);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
 .stopButton:hover {
     background: var(--color-white4);
     border-color: var(--color-grey1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* Table Container */
@@ -131,10 +164,12 @@
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .removeButton:hover:not(:disabled) {
     background: var(--color-black2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .removeButton:disabled {
