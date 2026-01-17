@@ -53,10 +53,7 @@ impl KeyBindings {
                 actions::Key::PreviousTab,
                 vec![enigo::Key::Control, enigo::Key::Shift, enigo::Key::Tab],
             ),
-            (
-                actions::Key::AltTab,
-                vec![enigo::Key::Alt, enigo::Key::Tab],
-            ),
+            (actions::Key::AltTab, vec![enigo::Key::Alt, enigo::Key::Tab]),
             // BrightnessDown not supported by enigo - maps to no-op (empty vec handled specially)
         ]);
     }
