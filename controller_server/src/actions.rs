@@ -140,6 +140,7 @@ pub enum Key {
     NextTab = 9,
     PreviousTab = 10,
     BrightnessDown = 11,
+    AltTab = 12,
     // Add new keys here with incrementing values
 }
 
@@ -161,6 +162,7 @@ impl DeserializableAction for Key {
             9 => Key::NextTab,
             10 => Key::PreviousTab,
             11 => Key::BrightnessDown,
+            12 => Key::AltTab,
             _ => {
                 log::warn!("Unknown key code: {}, ignoring", btn);
                 Key::Backspace // Fallback to no-op key
