@@ -31,10 +31,27 @@ pub fn init_server(
     let mut guard = state.lock().unwrap();
 
     // Already initialized - but verify network is still available
-    if guard.is_some() {
+    if let Some(handler) = guard.as_mut() {
         // Check if network is available
         if let Err(e) = local_ip_address::local_ip() {
-            // Network went away after initialization
+            // Network went away after initialization. Terminate the old server instance.
+            if let Err(term_err) = handler.terminate_server() {
+                eprintln!(
+                    "Failed to terminate server after network loss: {:?}",
+                    term_err
+                );
+            }
+            // Wait for termination to complete
+            match handler.receive_response() {
+                Ok(server::ServerResponse::ServerTerminated(_)) => {
+                    println!("Server terminated due to network loss.");
+                }
+                Err(recv_err) => {
+                    eprintln!("Failed to receive termination confirmation: {:?}", recv_err);
+                }
+                _ => {}
+            }
+
             *guard = None; // Clear the old handler
             return InitResult {
                 success: false,
