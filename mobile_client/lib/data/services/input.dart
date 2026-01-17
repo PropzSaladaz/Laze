@@ -72,6 +72,10 @@ class Input {
     return Uint8List.fromList([0, 11]); // unsuported yet
   }
 
+  static Uint8List altTab() {
+    return Uint8List.fromList([0, 12]);
+  }
+
   // ------ Text: [1, char] -------
   static Uint8List keyboardCharacter({required String text}) {
     return Uint8List.fromList([1, text.codeUnitAt(0)]);
