@@ -15,6 +15,13 @@ pub struct InitResult {
     pub message: String,
 }
 
+/// Check if server is already initialized (quick check, no side effects)
+#[tauri::command]
+pub fn is_server_initialized(state: tauri::State<'_, SharedCommunicator>) -> bool {
+    let guard = state.lock().unwrap();
+    guard.is_some()
+}
+
 /// Initialize the server - can be called multiple times for retry
 #[tauri::command]
 pub fn init_server(
