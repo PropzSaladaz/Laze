@@ -3,7 +3,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-import Link from "next/link";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import styles from "./dashboard.module.css";
 
@@ -62,6 +61,7 @@ export default function Dashboard() {
 
     async function stopServer() {
         await invoke<string>("stop_server", {});
+        window.location.href = "/";
     }
 
     async function removeClient() {
@@ -72,6 +72,9 @@ export default function Dashboard() {
     }
 
     useEffect(() => {
+        // Clear navigation flag when dashboard loads (Fast Refresh recovery)
+        sessionStorage.removeItem("navigating_to_dashboard");
+
         let isSubscribed = true;
         const unsubscribers: (() => void)[] = [];
 
@@ -147,11 +150,9 @@ export default function Dashboard() {
                         />
                         Run on Startup
                     </label>
-                    <Link href="/">
-                        <button onClick={stopServer} className={styles.stopButton}>
-                            Stop Server
-                        </button>
-                    </Link>
+                    <button onClick={stopServer} className={styles.stopButton}>
+                        Stop Server
+                    </button>
                 </div>
             </header>
 
