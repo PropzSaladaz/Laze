@@ -2,7 +2,6 @@ pub mod commands;
 
 use std::sync::{Arc, Mutex};
 
-use server::{MobileController, Server, ServerConfig};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{TrayIconBuilder, TrayIconEvent},
@@ -12,7 +11,7 @@ use tauri_plugin_autostart::MacosLauncher;
 
 use commands::SharedCommunicator;
 
-const TCP_PORT: u16 = 7878;
+pub const TCP_PORT: u16 = 7878;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -22,12 +21,8 @@ pub fn run() {
             // includes log level
             dotenv::dotenv().ok();
 
-            let controller: MobileController = MobileController::new().unwrap();
-
-            let config = ServerConfig::new(TCP_PORT as usize, 10);
-
-            let handle = Server::start(config, controller);
-            let shared_comm: SharedCommunicator = Arc::new(Mutex::new(handle));
+            // Initialize shared communicator as None - will be populated when server starts
+            let shared_comm: SharedCommunicator = Arc::new(Mutex::new(None));
             app.manage(shared_comm);
 
             // System Tray Setup
@@ -73,6 +68,7 @@ pub fn run() {
             Some(vec![]),
         ))
         .invoke_handler(tauri::generate_handler![
+            commands::init_server,
             commands::start_server,
             commands::stop_server,
             commands::remove_client,
