@@ -53,7 +53,22 @@ impl KeyBindings {
                 actions::Key::PreviousTab,
                 vec![enigo::Key::Control, enigo::Key::Shift, enigo::Key::Tab],
             ),
-            // BrightnessDown not supported by enigo - maps to no-op (empty vec handled specially)
+            // OS-specific "show all apps" shortcut:
+            // - Linux: Super key (GNOME overview / activities)
+            // - Windows: Win+Tab (Task View)
+            // - macOS: Control+Up (Mission Control)
+            #[cfg(target_os = "linux")]
+            (actions::Key::AltTab, vec![enigo::Key::Meta]),
+            #[cfg(target_os = "windows")]
+            (
+                actions::Key::AltTab,
+                vec![enigo::Key::Meta, enigo::Key::Tab],
+            ),
+            #[cfg(target_os = "macos")]
+            (
+                actions::Key::AltTab,
+                vec![enigo::Key::Control, enigo::Key::UpArrow],
+            ),
         ]);
     }
 
