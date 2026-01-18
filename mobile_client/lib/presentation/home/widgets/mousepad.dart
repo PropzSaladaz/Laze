@@ -23,7 +23,9 @@ class MousePad extends StatefulWidget {
 
 class _MousePadState extends State<MousePad> {
   bool isTwoFingerSwipe = false;
+  bool isThreeFingerSwipe = false;
   double pointerLocationY = 0.0;
+  Offset? _threeFingerSwipeStart;
   
   // Sub-pixel accumulation
   double _accumulatedX = 0.0;
@@ -36,6 +38,7 @@ class _MousePadState extends State<MousePad> {
   Offset? _initialTouchPosition;
   static const _longPressDuration = Duration(milliseconds: 400);
   static const _movementThreshold = 3.0; // pixels - very small, any real movement cancels
+  static const _threeFingerSwipeThreshold = 50.0; // pixels - minimum swipe distance
 
   // --------- MOUSE EVENT HANDLERS -------- //
   void _handleMouseMove(ScaleUpdateDetails details) {
@@ -184,7 +187,12 @@ class _MousePadState extends State<MousePad> {
 
   // --------- FINGER GESTURES HANDLERS -------- //
   void _handleScaleStart(ScaleStartDetails details) {
-    if (details.pointerCount == 2) {
+    if (details.pointerCount == 3) {
+      isThreeFingerSwipe = true;
+      _threeFingerSwipeStart = details.focalPoint;
+      // Cancel long press timer when three fingers detected
+      _cancelLongPressTimer();
+    } else if (details.pointerCount == 2) {
       isTwoFingerSwipe = true;
       pointerLocationY = details.focalPoint.dy;
       // Cancel long press timer when second finger added
@@ -193,7 +201,10 @@ class _MousePadState extends State<MousePad> {
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
-    if (isTwoFingerSwipe && details.pointerCount == 2) {
+    if (isThreeFingerSwipe && details.pointerCount == 3) {
+      // 3-finger swipe is in progress, don't process updates yet
+      // We'll handle it in _handleScaleEnd
+    } else if (isTwoFingerSwipe && details.pointerCount == 2) {
       _handleScroll(details);
     } else if (details.pointerCount == 1) {
       _handleMouseMove(details);
@@ -201,6 +212,27 @@ class _MousePadState extends State<MousePad> {
   }
 
   void _handleScaleEnd(ScaleEndDetails details) {
+    if (isThreeFingerSwipe && _threeFingerSwipeStart != null) {
+      // Calculate the swipe distance and direction
+      // Note: details.velocity is more reliable but we use accumulated position
+      // Get current focal point from the last update
+      final dy = details.velocity.pixelsPerSecond.dy;
+      
+      // Determine if swipe was significant and in which direction
+      if (dy.abs() > 100) { // velocity threshold
+        if (dy < 0) {
+          // Swiped up (negative velocity)
+          ServerConnector.sendInput(Input.threeFingerSwipeUp());
+        } else {
+          // Swiped down (positive velocity)
+          ServerConnector.sendInput(Input.threeFingerSwipeDown());
+        }
+      }
+      
+      isThreeFingerSwipe = false;
+      _threeFingerSwipeStart = null;
+    }
+    
     isTwoFingerSwipe = false;
   }
 

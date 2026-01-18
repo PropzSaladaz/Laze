@@ -137,6 +137,15 @@ class Input {
     return Uint8List.fromList([9, 0]);
   }
 
+  // ------ ThreeFingerSwipe: [10, direction] -------
+  static Uint8List threeFingerSwipeUp() {
+    return Uint8List.fromList([10, 0]);
+  }
+
+  static Uint8List threeFingerSwipeDown() {
+    return Uint8List.fromList([10, 1]);
+  }
+
   // static setHold() {
   //   return Input(action: 'SetHold', data: null);
   // }
