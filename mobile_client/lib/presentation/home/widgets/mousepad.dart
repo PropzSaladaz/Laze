@@ -25,7 +25,6 @@ class _MousePadState extends State<MousePad> {
   bool isTwoFingerSwipe = false;
   bool isThreeFingerSwipe = false;
   double pointerLocationY = 0.0;
-  Offset? _threeFingerSwipeStart;
   
   // Sub-pixel accumulation
   double _accumulatedX = 0.0;
@@ -38,7 +37,6 @@ class _MousePadState extends State<MousePad> {
   Offset? _initialTouchPosition;
   static const _longPressDuration = Duration(milliseconds: 400);
   static const _movementThreshold = 3.0; // pixels - very small, any real movement cancels
-  static const _threeFingerSwipeThreshold = 50.0; // pixels - minimum swipe distance
 
   // --------- MOUSE EVENT HANDLERS -------- //
   void _handleMouseMove(ScaleUpdateDetails details) {
@@ -189,7 +187,6 @@ class _MousePadState extends State<MousePad> {
   void _handleScaleStart(ScaleStartDetails details) {
     if (details.pointerCount == 3) {
       isThreeFingerSwipe = true;
-      _threeFingerSwipeStart = details.focalPoint;
       // Cancel long press timer when three fingers detected
       _cancelLongPressTimer();
     } else if (details.pointerCount == 2) {
@@ -212,10 +209,8 @@ class _MousePadState extends State<MousePad> {
   }
 
   void _handleScaleEnd(ScaleEndDetails details) {
-    if (isThreeFingerSwipe && _threeFingerSwipeStart != null) {
-      // Calculate the swipe distance and direction
-      // Note: details.velocity is more reliable but we use accumulated position
-      // Get current focal point from the last update
+    if (isThreeFingerSwipe) {
+      // Determine swipe direction based on vertical velocity
       final dy = details.velocity.pixelsPerSecond.dy;
       
       // Determine if swipe was significant and in which direction
@@ -230,7 +225,6 @@ class _MousePadState extends State<MousePad> {
       }
       
       isThreeFingerSwipe = false;
-      _threeFingerSwipeStart = null;
     }
     
     isTwoFingerSwipe = false;
