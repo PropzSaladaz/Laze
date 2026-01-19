@@ -56,6 +56,7 @@ define_actions!(
     TerminalCommand(TerminalCommand) = 7,
     MouseDown(Button) = 8,
     MouseUp(Button) = 9,
+    ThreeFingerSwipe(SwipeDirection) = 10,
 );
 
 /// Action struct is defined by the define_macros! macro
@@ -92,6 +93,9 @@ impl Action {
                 Self::MouseDown(DeserializableAction::from_bytes(encoded))
             }
             Some(ActionType::MouseUp) => Self::MouseUp(DeserializableAction::from_bytes(encoded)),
+            Some(ActionType::ThreeFingerSwipe) => {
+                Self::ThreeFingerSwipe(DeserializableAction::from_bytes(encoded))
+            }
             None => unreachable!("Action type not recognized!"),
         }
     }
@@ -210,10 +214,33 @@ impl DeserializableAction for Button {
     }
 }
 
+#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
+#[repr(u8)]
+pub enum SwipeDirection {
+    Up = 0,
+    Down = 1,
+}
+
+impl DeserializableAction for SwipeDirection {
+    fn from_bytes(bytes: &mut &[u8]) -> Self {
+        let direction = bytes[0];
+        // after consuming the bytes, move forward
+        *bytes = &bytes[1..];
+        match direction {
+            0 => SwipeDirection::Up,
+            1 => SwipeDirection::Down,
+            _ => {
+                log::warn!("Unknown swipe direction: {}, defaulting to Up", direction);
+                SwipeDirection::Up
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
-    use crate::actions::{Action, Button, DeltaCoordinates, Key, TerminalCommand};
+    use crate::actions::{Action, Button, DeltaCoordinates, Key, SwipeDirection, TerminalCommand};
 
     #[test]
     fn decode_key() {
@@ -323,5 +350,23 @@ mod tests {
         } else {
             panic!("Expected TerminalCommand but got something else.");
         }
+    }
+
+    #[test]
+    fn three_finger_swipe_up() {
+        let mut swipe_up: &[u8] = &[10u8, 0u8];
+        assert!(matches!(
+            Action::decode(&mut swipe_up),
+            Action::ThreeFingerSwipe(SwipeDirection::Up)
+        ));
+    }
+
+    #[test]
+    fn three_finger_swipe_down() {
+        let mut swipe_down: &[u8] = &[10u8, 1u8];
+        assert!(matches!(
+            Action::decode(&mut swipe_down),
+            Action::ThreeFingerSwipe(SwipeDirection::Down)
+        ));
     }
 }

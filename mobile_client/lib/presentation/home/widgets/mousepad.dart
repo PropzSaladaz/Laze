@@ -23,6 +23,7 @@ class MousePad extends StatefulWidget {
 
 class _MousePadState extends State<MousePad> {
   bool isTwoFingerSwipe = false;
+  bool isThreeFingerSwipe = false;
   double pointerLocationY = 0.0;
   
   // Sub-pixel accumulation
@@ -184,7 +185,11 @@ class _MousePadState extends State<MousePad> {
 
   // --------- FINGER GESTURES HANDLERS -------- //
   void _handleScaleStart(ScaleStartDetails details) {
-    if (details.pointerCount == 2) {
+    if (details.pointerCount == 3) {
+      isThreeFingerSwipe = true;
+      // Cancel long press timer when three fingers detected
+      _cancelLongPressTimer();
+    } else if (details.pointerCount == 2) {
       isTwoFingerSwipe = true;
       pointerLocationY = details.focalPoint.dy;
       // Cancel long press timer when second finger added
@@ -193,7 +198,10 @@ class _MousePadState extends State<MousePad> {
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
-    if (isTwoFingerSwipe && details.pointerCount == 2) {
+    if (isThreeFingerSwipe && details.pointerCount == 3) {
+      // 3-finger swipe is in progress, don't process updates yet
+      // We'll handle it in _handleScaleEnd
+    } else if (isTwoFingerSwipe && details.pointerCount == 2) {
       _handleScroll(details);
     } else if (details.pointerCount == 1) {
       _handleMouseMove(details);
@@ -201,6 +209,24 @@ class _MousePadState extends State<MousePad> {
   }
 
   void _handleScaleEnd(ScaleEndDetails details) {
+    if (isThreeFingerSwipe) {
+      // Determine swipe direction based on vertical velocity
+      final dy = details.velocity.pixelsPerSecond.dy;
+      
+      // Determine if swipe was significant and in which direction
+      if (dy.abs() > 100) { // velocity threshold
+        if (dy < 0) {
+          // Swiped up (negative velocity)
+          ServerConnector.sendInput(Input.threeFingerSwipeUp());
+        } else {
+          // Swiped down (positive velocity)
+          ServerConnector.sendInput(Input.threeFingerSwipeDown());
+        }
+      }
+      
+      isThreeFingerSwipe = false;
+    }
+    
     isTwoFingerSwipe = false;
   }
 

@@ -111,6 +111,15 @@ impl MobileController {
             Action::Shutdown => shutdown_computer(),
 
             Action::TerminalCommand(TerminalCommand { command }) => run_command(&command),
+
+            Action::ThreeFingerSwipe(_direction) => {
+                // Both up and down trigger the "show all apps" view
+                if let Some(key_combo) = self.key_bindings.translate_to_os_key(&crate::actions::Key::AltTab) {
+                    self.press_key_combo(&key_combo);
+                } else {
+                    self.log_warn("AltTab key combo is not mapped for current OS");
+                }
+            }
         };
 
         ConnectionStatus::Connected
