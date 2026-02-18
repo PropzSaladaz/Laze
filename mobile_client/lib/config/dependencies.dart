@@ -17,8 +17,8 @@ class RepositoryService {
   static Future<RepositoryService> initializeLocal() async {
     final ShortcutsRepository shortcutsRepoLocal =
         await ShortcutsRepositoryLocal.create();
-    
-    final DeviceSettingsRepository deviceSettingsRepo = 
+
+    final DeviceSettingsRepository deviceSettingsRepo =
         DeviceSettingsRepository();
     await deviceSettingsRepo.init();
 
