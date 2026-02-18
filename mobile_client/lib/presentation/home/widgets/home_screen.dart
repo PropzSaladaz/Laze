@@ -27,22 +27,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String connectionStatus = ServerConnector.NOT_CONNECTED;
   String? errorMessage;
-  
+
   int sensitivity = 5; // Default sensitivity
+
+  late final HomeViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    final deviceSettings = Provider.of<DeviceSettingsRepository>(context, listen: false);
+    final deviceSettings =
+        Provider.of<DeviceSettingsRepository>(context, listen: false);
     _loadSensitivity(deviceSettings);
-    
+
     ServerConnector.init(
-      _setConnectionState, 
+      _setConnectionState,
       _getConnectionState,
       _onError,
       _onServerEvent,
       deviceSettings: deviceSettings,
     );
+
+    _viewModel = HomeViewModel(
+      shortcutsRepository:
+          Provider.of<ShortcutsRepository>(context, listen: false),
+      sendInput: ServerConnector.sendInput,
+    );
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSensitivity(DeviceSettingsRepository settings) async {
@@ -58,20 +73,17 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       sensitivity = newSensitivity;
     });
-    final deviceSettings = Provider.of<DeviceSettingsRepository>(context, listen: false);
+    final deviceSettings =
+        Provider.of<DeviceSettingsRepository>(context, listen: false);
     deviceSettings.setSensitivity(newSensitivity);
   }
 
-  
   @override
   Widget build(BuildContext context) {
-    final shortcutsRepo = Provider.of<ShortcutsRepository>(context);
-
     _checkAndShowErrorSnackbar(context);
-    
-    return ChangeNotifierProvider<HomeViewModel>(
-      create: (_) =>
-          HomeViewModel(shortcutsRepository: shortcutsRepo),
+
+    return ChangeNotifierProvider<HomeViewModel>.value(
+      value: _viewModel,
       child: ControllerPage(
         resizeToAvoidBottomInset: false,
         body: Column(
@@ -121,14 +133,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 15),
                               CommandBtns(
-                                sensitivity: sensitivity,
-                                onSensitivityChanged: _updateSensitivity,
-                                onShowShortcutsSheet: () {
-                                  setState(() {
-                                    showShortcutsScrollableSheet = true;
-                                  });
-                                }
-                              ),
+                                  sensitivity: sensitivity,
+                                  onSensitivityChanged: _updateSensitivity,
+                                  onShowShortcutsSheet: () {
+                                    setState(() {
+                                      showShortcutsScrollableSheet = true;
+                                    });
+                                  }),
                             ],
                           );
                         }),
@@ -171,7 +182,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _connect() {
     setState(() {
-      connected = ServerConnector.findServer();
+      connected = ServerConnector.findServer().then((success) {
+        if (success) _viewModel.onConnected();
+        return success;
+      });
     });
   }
 
@@ -182,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _disconnect() {
+    _viewModel.onDisconnected();
     ServerConnector.sendInput(Input.disconnect());
     setState(() {
       ServerConnector.disconnect();
@@ -195,7 +210,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onServerEvent(ServerEvent event) {
-    // Handle server events by disconnecting and showing appropriate message
+    // Server closed the connection — gate the queue before updating UI.
+    _viewModel.onDisconnected();
     setState(() {
       connectionStatus = ServerConnector.NOT_CONNECTED;
       errorMessage = event.description;
@@ -203,8 +219,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _turnOffPc() {
+    _viewModel.onDisconnected();
     ServerConnector.sendInput(Input.shutdown());
-
     setState(() {
       ServerConnector.disconnect();
     });
