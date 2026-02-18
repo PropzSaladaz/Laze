@@ -26,13 +26,6 @@ void main() async {
   // Hive needs WidgetsBinding to be initialized for platform channel access
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Enable edge-to-edge mode - app renders behind system navigation bar
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarDividerColor: Colors.transparent,
-  ));
-
   await Hive.initFlutter("shortcuts_data");
   // register Hive adapters
   Hive.registerAdapter(ShortcutDataAdapter());
