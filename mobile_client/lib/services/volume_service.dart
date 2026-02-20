@@ -1,11 +1,10 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:laze/data/services/input.dart';
-import 'package:laze/services/gated_command_queue.dart';
 import 'package:laze/services/volume_observer.dart';
 
-/// Orchestrates [VolumeObserver] and [GatedCommandQueue] into a single
-/// lifecycle-managed service.
+/// Orchestrates [VolumeObserver] into a single lifecycle-managed service.
 ///
 /// Typical usage:
 /// ```dart
@@ -16,10 +15,11 @@ import 'package:laze/services/volume_observer.dart';
 /// service.dispose();                        // call in dispose()
 /// ```
 class VolumeService {
-  late final GatedCommandQueue<VolumeDirection> _queue;
-  late final VolumeObserver _observer;
+  final VolumeObserver _observer = VolumeObserver();
+  StreamSubscription<VolumeDirection>? _sub;
 
   bool _started = false;
+  bool _isConnected = false;
 
   /// Wire up and start the observer.
   ///
@@ -27,30 +27,28 @@ class VolumeService {
   /// that passes through the gate. Typically [ServerConnector.sendInput].
   ///
   /// Call this once (e.g. in `initState`). The observer runs for the lifetime
-  /// of the service; only the queue gate opens/closes with connection state.
+  /// of the service.
   void start(void Function(Uint8List bytes) sendInput) {
     assert(!_started, 'VolumeService.start() called more than once');
     _started = true;
 
-    _queue = GatedCommandQueue<VolumeDirection>();
-    _observer = VolumeObserver(_queue);
+    _observer.start();
 
-    _queue.consume((VolumeDirection dir) async {
+    _sub = _observer.stream.listen((VolumeDirection dir) {
+      if (!_isConnected) return;
       sendInput(
         dir == VolumeDirection.up ? Input.volumeUp() : Input.volumeDown(),
       );
     });
-
-    _observer.start();
   }
 
   // ── Gate control ──────────────────────────────────────────────────────────
 
   /// Open the gate — call when the server connection is established.
-  void setConnected() => _queue.setReady();
+  void setConnected() => _isConnected = true;
 
   /// Close the gate — call when the server connection is lost or cancelled.
-  void setDisconnected() => _queue.unsetReady();
+  void setDisconnected() => _isConnected = false;
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -58,7 +56,7 @@ class VolumeService {
   /// called (no-op).
   void dispose() {
     if (!_started) return;
+    _sub?.cancel();
     _observer.dispose();
-    _queue.dispose();
   }
 }

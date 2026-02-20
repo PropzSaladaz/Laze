@@ -6,9 +6,11 @@ import 'package:logging/logging.dart';
 import 'package:laze/config/dependencies.dart';
 import 'package:laze/data/repositories/shortcut/models/shortcut_data.dart';
 import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
+import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/presentation/home/widgets/home_screen.dart';
 import 'package:laze/presentation/settings/settings_screen.dart';
 import 'package:laze/presentation/core/themes/theme.dart';
+import 'package:laze/services/app_service_wrapper.dart';
 import 'package:provider/provider.dart';
 
 void setupLogging() {
@@ -35,7 +37,14 @@ void main() async {
 
   runApp(
     MultiProvider(
-      providers: repositoryService.providers, 
+      providers: [
+        ...repositoryService.providers,
+        ChangeNotifierProvider<AppServiceWrapper>(
+          create: (context) => AppServiceWrapper(
+            deviceSettings: Provider.of<DeviceSettingsRepository>(context, listen: false),
+          ),
+        ),
+      ],
       child: const MyApp()
     ),
   );
