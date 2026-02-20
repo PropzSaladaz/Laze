@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:laze/data/dto/server_event.dart';
 import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
-import 'package:laze/data/services/input.dart';
 import 'package:laze/presentation/home/view_models/home_viewmodel.dart';
 import 'package:laze/services/server_connector.dart';
+import 'package:laze/services/app_service_wrapper.dart';
 import 'package:laze/presentation/home/widgets/connection_header.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/home/widgets/mousepad.dart';
@@ -21,15 +20,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<bool> connected;
-
   bool showShortcutsScrollableSheet = false;
-
-  String connectionStatus = ServerConnector.NOT_CONNECTED;
-  String? errorMessage;
-
   int sensitivity = 5; // Default sensitivity
-
   late final HomeViewModel _viewModel;
 
   @override
@@ -39,18 +31,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Provider.of<DeviceSettingsRepository>(context, listen: false);
     _loadSensitivity(deviceSettings);
 
-    ServerConnector.init(
-      _setConnectionState,
-      _getConnectionState,
-      _onError,
-      _onServerEvent,
-      deviceSettings: deviceSettings,
-    );
-
     _viewModel = HomeViewModel(
       shortcutsRepository:
           Provider.of<ShortcutsRepository>(context, listen: false),
-      sendInput: ServerConnector.sendInput,
     );
   }
 
@@ -80,7 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _checkAndShowErrorSnackbar(context);
+    final wrapper = context.watch<AppServiceWrapper>();
+    _checkAndShowErrorSnackbar(context, wrapper);
 
     return ChangeNotifierProvider<HomeViewModel>.value(
       value: _viewModel,
@@ -89,11 +73,11 @@ class _HomeScreenState extends State<HomeScreen> {
         body: Column(
           children: [
             ConnectionHeader(
-              connectionStatus: connectionStatus,
-              connect: _connect,
-              cancelSearch: _cancelSearch,
-              disconnect: _disconnect,
-              turnOffPc: _turnOffPc,
+              connectionStatus: wrapper.connectionStatus,
+              connect: wrapper.connect,
+              cancelSearch: wrapper.cancelSearch,
+              disconnect: wrapper.disconnect,
+              turnOffPc: wrapper.turnOffPc,
             ),
             const SizedBox(
               height: 23,
@@ -102,47 +86,45 @@ class _HomeScreenState extends State<HomeScreen> {
             // PAGE BODY
             () {
               // NOT CONNECTED
-              if (connectionStatus == ServerConnector.NOT_CONNECTED) {
+              if (wrapper.connectionStatus == ServerConnector.NOT_CONNECTED) {
                 return Expanded(
                   child: Center(
                       child: Image.asset("assets/images/NoConnection.png")),
+                );
+
+                // LOOKING
+              } else if (wrapper.connectionStatus ==
+                  ServerConnector.SEARCHING) {
+                return Expanded(
+                  child: Center(
+                    child: CircularProgressIndicator.adaptive(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.onPrimary),
+                  ),
                 );
 
                 // CONNECTED
               } else {
                 return Expanded(
                   child: Center(
-                    child: FutureBuilder(
-                        future: connected,
-                        builder: (context, snapshot) {
-                          // WAITING FOR CONNECTION
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return CircularProgressIndicator.adaptive(
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.onPrimary);
-                          } else if (snapshot.hasError) {
-                            return Text(snapshot.error.toString());
-                          }
-                          // CONNECTED
-                          return Column(
-                            children: [
-                              MousePad(
-                                fullscreen: false,
-                                sensitivity: sensitivity,
-                              ),
-                              const SizedBox(height: 15),
-                              CommandBtns(
-                                  sensitivity: sensitivity,
-                                  onSensitivityChanged: _updateSensitivity,
-                                  onShowShortcutsSheet: () {
-                                    setState(() {
-                                      showShortcutsScrollableSheet = true;
-                                    });
-                                  }),
-                            ],
-                          );
-                        }),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        MousePad(
+                          fullscreen: false,
+                          sensitivity: sensitivity,
+                        ),
+                        const SizedBox(height: 15),
+                        CommandBtns(
+                            sensitivity: sensitivity,
+                            onSensitivityChanged: _updateSensitivity,
+                            onShowShortcutsSheet: () {
+                              setState(() {
+                                showShortcutsScrollableSheet = true;
+                              });
+                            }),
+                      ],
+                    ),
                   ),
                 );
               }
@@ -172,80 +154,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _setConnectionState(String state) {
-    setState(() => connectionStatus = state);
-  }
-
-  String _getConnectionState() {
-    return connectionStatus;
-  }
-
-  void _connect() {
-    setState(() {
-      connected = ServerConnector.findServer().then((success) {
-        if (success) _viewModel.onConnected();
-        return success;
-      });
-    });
-  }
-
-  void _cancelSearch() {
-    setState(() {
-      _setConnectionState(ServerConnector.NOT_CONNECTED);
-    });
-  }
-
-  void _disconnect() {
-    _viewModel.onDisconnected();
-    ServerConnector.sendInput(Input.disconnect());
-    setState(() {
-      ServerConnector.disconnect();
-    });
-  }
-
-  void _onError(String error) {
-    setState(() {
-      errorMessage = error;
-    });
-  }
-
-  void _onServerEvent(ServerEvent event) {
-    // Server closed the connection — gate the queue before updating UI.
-    _viewModel.onDisconnected();
-    setState(() {
-      connectionStatus = ServerConnector.NOT_CONNECTED;
-      errorMessage = event.description;
-    });
-  }
-
-  void _turnOffPc() {
-    _viewModel.onDisconnected();
-    ServerConnector.sendInput(Input.shutdown());
-    setState(() {
-      ServerConnector.disconnect();
-    });
-  }
-
-  void _checkAndShowErrorSnackbar(BuildContext context) {
-    ColorScheme colors = Theme.of(context).colorScheme;
-    // show error snackbar if any error message is set
-    if (errorMessage != null) {
+  void _checkAndShowErrorSnackbar(
+      BuildContext context, AppServiceWrapper wrapper) {
+    if (wrapper.errorMessage != null) {
+      final String msg = wrapper.errorMessage!;
+      ColorScheme colors = Theme.of(context).colorScheme;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage!),
+            content: Text(msg),
             backgroundColor: colors.error,
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: "OK",
               onPressed: () {
-                // Dismiss the snackbar
+                wrapper.dismissError();
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
               },
             ),
           ),
         );
-        errorMessage = null;
       });
     }
   }
