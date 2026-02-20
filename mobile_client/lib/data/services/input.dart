@@ -8,7 +8,7 @@ import 'package:laze/services/server_connector.dart';
 
 /// This class handles the encoding of any iput action into bytes.
 /// These bytes are then sent to the server to be processed and executed.
-/// 
+///
 /// Input actions are encoded in byte arrays
 /// `[0u8, 1u8, ...]`
 /// Where the 1st byte identifies the action type at the server side,
@@ -94,6 +94,10 @@ class Input {
   // ------ MouseBtn: [4, button] -------
   static Uint8List leftClick() {
     return Uint8List.fromList([4, 0]);
+  }
+
+  static Uint8List rightClick() {
+    return Uint8List.fromList([4, 1]);
   }
 
   // ------ Disconnect: [5] -------
