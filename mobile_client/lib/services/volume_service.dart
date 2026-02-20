@@ -19,6 +19,7 @@ class VolumeService {
   StreamSubscription<VolumeDirection>? _sub;
 
   bool _started = false;
+  bool _isConnected = false;
 
   /// Wire up and start the observer.
   ///
@@ -26,7 +27,7 @@ class VolumeService {
   /// that passes through the gate. Typically [ServerConnector.sendInput].
   ///
   /// Call this once (e.g. in `initState`). The observer runs for the lifetime
-  /// of the service; only the stream pauses/resumes with connection state.
+  /// of the service.
   void start(void Function(Uint8List bytes) sendInput) {
     assert(!_started, 'VolumeService.start() called more than once');
     _started = true;
@@ -34,22 +35,20 @@ class VolumeService {
     _observer.start();
 
     _sub = _observer.stream.listen((VolumeDirection dir) {
+      if (!_isConnected) return;
       sendInput(
         dir == VolumeDirection.up ? Input.volumeUp() : Input.volumeDown(),
       );
     });
-
-    // Start paused, waiting for connection
-    _sub?.pause();
   }
 
   // ── Gate control ──────────────────────────────────────────────────────────
 
   /// Open the gate — call when the server connection is established.
-  void setConnected() => _sub?.resume();
+  void setConnected() => _isConnected = true;
 
   /// Close the gate — call when the server connection is lost or cancelled.
-  void setDisconnected() => _sub?.pause();
+  void setDisconnected() => _isConnected = false;
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 

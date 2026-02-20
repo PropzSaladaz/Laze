@@ -20,8 +20,8 @@ class VolumeObserver {
   DateTime _lastEventTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastBounceTime = DateTime.fromMillisecondsSinceEpoch(0);
 
-  static const int _minGapMs = 100;
-  static const int _bounceIgnoreMs = 500;
+  static const int _minGapMs = 50;
+  static const int _bounceIgnoreMs = 200;
 
   StreamSubscription<double>? _sub;
 
@@ -48,6 +48,17 @@ class VolumeObserver {
         final last = _lastVol;
         _lastVol = volume;
 
+        // Bouncing mechanism:
+        // `flutter_volume_controller` uses `.distinct()` internally. If the phone's
+        // hardware volume hits exactly 0.0 or 1.0, further presses of the same
+        // button are discarded at the platform level and will never reach Dart.
+        // To fix holding and rapid clicks, we instantly snap the volume back to the
+        // dead center (0.5) any time it wanders too close to the edge.
+        if (volume <= 0.3 || volume >= 0.7) {
+          _lastBounceTime = now;
+          FlutterVolumeController.setVolume(0.5);
+        }
+
         // Ignore the baseline emission on start
         if (last == null) return;
 
@@ -63,19 +74,6 @@ class VolumeObserver {
 
         _lastEventTime = now;
         _controller.add(direction);
-
-        // Bouncing mechanism:
-        // `flutter_volume_controller` uses `.distinct()` internally. If the phone's
-        // hardware volume hits exactly 0.0 or 1.0, further presses of the same
-        // button are discarded at the platform level and will never reach Dart.
-        // We bounce the volume back slightly so we never hit the limits.
-        if (volume <= 0.01) {
-          _lastBounceTime = now;
-          FlutterVolumeController.setVolume(0.05);
-        } else if (volume >= 0.99) {
-          _lastBounceTime = now;
-          FlutterVolumeController.setVolume(0.95);
-        }
       },
       emitOnStart: true,
     );
