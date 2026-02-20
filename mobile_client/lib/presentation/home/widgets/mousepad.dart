@@ -12,7 +12,7 @@ class MousePad extends StatefulWidget {
   final int sensitivity;
 
   const MousePad({
-    super.key, 
+    super.key,
     required this.fullscreen,
     required this.sensitivity,
   });
@@ -22,9 +22,17 @@ class MousePad extends StatefulWidget {
 }
 
 class _MousePadState extends State<MousePad> {
-  bool isTwoFingerSwipe = false;
+  bool _isTwoFingerTouch = false;
+  bool _hasScrolledTwoFinger = false;
+  DateTime? _twoFingerStartTime;
+  int _maxPointerCount = 0;
+
+  bool _isThreeFingerSwipe = false;
+  bool _hasTriggeredThreeFinger = false;
+  double _accumulatedThreeFingerY = 0.0;
+
   double pointerLocationY = 0.0;
-  
+
   // Sub-pixel accumulation
   double _accumulatedX = 0.0;
   double _accumulatedY = 0.0;
@@ -35,12 +43,19 @@ class _MousePadState extends State<MousePad> {
   Timer? _longPressTimer;
   Offset? _initialTouchPosition;
   static const _longPressDuration = Duration(milliseconds: 400);
-  static const _movementThreshold = 3.0; // pixels - very small, any real movement cancels
+  static const _movementThreshold =
+      3.0; // pixels - very small, any real movement cancels
+
+  // 2-finger tap detection (done at the raw pointer level to beat the gesture arena)
+  int _activePointers = 0;
+  int _maxActivePointers = 0;
+  DateTime? _firstPointerDownTime;
+  bool _suppressNextTap = false;
 
   // --------- MOUSE EVENT HANDLERS -------- //
   void _handleMouseMove(ScaleUpdateDetails details) {
     var offset = details.focalPointDelta;
-    
+
     // Apply sensitivity locally
     // Default base sensitivity on server was 1, so we map our new sensitivity directly
     double sensitivityMultiplier = widget.sensitivity.toDouble();
@@ -49,20 +64,20 @@ class _MousePadState extends State<MousePad> {
 
     // Calculate speed based on the SCALED movement
     double scaledSpeed = math.sqrt(scaledDx * scaledDx + scaledDy * scaledDy);
-    
+
     // Power function acceleration curve
     // Similar to standard mouse acceleration curves (e.g. Windows/macOS)
     // gain = 1 + (speed ^ exponent)
     double acceleration = 1.0;
-    
+
     // Only accelerate if moving fast enough to avoid noise
     if (scaledSpeed > 1.0) {
-      // Exponent controls the curve shape. 
+      // Exponent controls the curve shape.
       // < 1.0 gives "early" acceleration (fast rise)
       // > 1.0 gives "late" acceleration (slow rise then fast)
-      const double exponent = 1.2; 
+      const double exponent = 1.2;
       acceleration = 1.0 + (math.pow(scaledSpeed, exponent) * 0.01);
-      
+
       // Cap max acceleration
       if (acceleration > 5.0) acceleration = 5.0;
     }
@@ -70,14 +85,14 @@ class _MousePadState extends State<MousePad> {
     // Apply acceleration to the ALREADY scaled sensitivity
     _accumulatedX += scaledDx * acceleration;
     _accumulatedY += scaledDy * acceleration;
-    
+
     // Extract integer part to send
     int rawX = _accumulatedX.truncate();
     int rawY = _accumulatedY.truncate();
-    
+
     // If we have enough movement to send a pixel
     if (rawX != 0 || rawY != 0) {
-      // Clamp to signed byte range [-127, 127] to match protocol expectations 
+      // Clamp to signed byte range [-127, 127] to match protocol expectations
       // (though dart sends full ints, the protocol might squash them or protocol doc says byte)
       // data/services/input.dart sends [3, move_x, move_y] as bytes.
       // So we MUST clamp to [-128, 127] or similar.
@@ -88,52 +103,44 @@ class _MousePadState extends State<MousePad> {
       // This fixes a bug where clamping would discard the excess movement
       _accumulatedX -= sendX;
       _accumulatedY -= sendY;
-      
+
       var input = Input.mouseMove(move_x: sendX, move_y: sendY);
       ServerConnector.sendInput(input);
     }
   }
-  void _handleMouseScroll(DragUpdateDetails details) {
-    double scrollAmountY = details.delta.dy; 
+
+  void _processScrollDelta(double dy) {
     double swipeSense = 2.0;
 
     // Accumulate the scaled delta
-    // Inverse direction: drag up (negative dy) -> scroll down (negative scroll value, content moves up)
-    // Same logic as two-finger scroll
-    double delta = -(scrollAmountY / swipeSense);
+    // Inverse direction: movement up (negative dy) -> scroll down (negative scroll value, content moves up)
+    double delta = -(dy / swipeSense);
     _accumulatedScrollY += delta;
 
     // Extract integer part to send
     int scrollAmount = _accumulatedScrollY.truncate();
 
     if (scrollAmount != 0) {
+      _hasScrolledTwoFinger = true;
       ServerConnector.sendInput(Input.scroll(amount: scrollAmount));
       // Retain remainder
       _accumulatedScrollY -= scrollAmount;
     }
+  }
+
+  void _handleMouseScroll(DragUpdateDetails details) {
+    _processScrollDelta(details.delta.dy);
   }
 
   void _handleScroll(ScaleUpdateDetails details) {
-    double scrollAmountY = details.focalPointDelta.dy; 
-    double swipeSense = 2.0;
-
-    // Accumulate the scaled delta
-    // Inverse direction: fingers up -> scroll down (positive input usually means down/right in many protocols, 
-    // but here we invert it based on previous logic -(scrollAmountY/swipeSense))
-    double delta = -(scrollAmountY / swipeSense);
-    _accumulatedScrollY += delta;
-
-    // Extract integer part to send
-    int scrollAmount = _accumulatedScrollY.truncate();
-
-    if (scrollAmount != 0) {
-      ServerConnector.sendInput(Input.scroll(amount: scrollAmount));
-      // Retain remainder
-      _accumulatedScrollY -= scrollAmount;
-    }
+    _processScrollDelta(details.focalPointDelta.dy);
   }
 
   void _handleMouseClick() {
+    if (_suppressNextTap) {
+      _suppressNextTap = false;
+      return;
+    }
     var input = Input.leftClick();
     ServerConnector.sendInput(input);
   }
@@ -159,11 +166,21 @@ class _MousePadState extends State<MousePad> {
 
   // --------- RAW POINTER HANDLERS (for long press detection) -------- //
   void _onPointerDown(PointerDownEvent event) {
-    _initialTouchPosition = event.position;
-    _cancelLongPressTimer();
-    _longPressTimer = Timer(_longPressDuration, () {
-      _activateDragMode();
-    });
+    _activePointers++;
+    _maxActivePointers = math.max(_maxActivePointers, _activePointers);
+    _firstPointerDownTime ??= DateTime.now();
+
+    if (_activePointers == 1) {
+      // Only set up long-press timer for single-finger
+      _initialTouchPosition = event.position;
+      _cancelLongPressTimer();
+      _longPressTimer = Timer(_longPressDuration, () {
+        if (_activePointers == 1) _activateDragMode();
+      });
+    } else {
+      // Multi-finger: cancel long press
+      _cancelLongPressTimer();
+    }
   }
 
   void _onPointerMove(PointerMoveEvent event) {
@@ -177,31 +194,86 @@ class _MousePadState extends State<MousePad> {
   }
 
   void _onPointerUp(PointerUpEvent event) {
-    _cancelLongPressTimer();
-    _initialTouchPosition = null;
-    _deactivateDragMode();
+    _activePointers = math.max(0, _activePointers - 1);
+
+    if (_activePointers == 0) {
+      // All fingers lifted — check for 2-finger tap
+      final elapsed = _firstPointerDownTime != null
+          ? DateTime.now().difference(_firstPointerDownTime!).inMilliseconds
+          : 999;
+      if (_maxActivePointers == 2 && !_hasScrolledTwoFinger && elapsed < 400) {
+        _suppressNextTap = true;
+        ServerConnector.sendInput(Input.rightClick());
+      }
+
+      // Reset pointer tracking
+      _maxActivePointers = 0;
+      _firstPointerDownTime = null;
+      _cancelLongPressTimer();
+      _initialTouchPosition = null;
+      _deactivateDragMode();
+    }
   }
 
   // --------- FINGER GESTURES HANDLERS -------- //
   void _handleScaleStart(ScaleStartDetails details) {
+    _maxPointerCount = math.max(_maxPointerCount, details.pointerCount);
+
     if (details.pointerCount == 2) {
-      isTwoFingerSwipe = true;
+      _isTwoFingerTouch = true;
+      _hasScrolledTwoFinger = false;
+      _twoFingerStartTime = DateTime.now();
       pointerLocationY = details.focalPoint.dy;
       // Cancel long press timer when second finger added
+      _cancelLongPressTimer();
+    } else if (details.pointerCount == 3) {
+      _isThreeFingerSwipe = true;
+      _hasTriggeredThreeFinger = false;
+      _accumulatedThreeFingerY = 0.0;
       _cancelLongPressTimer();
     }
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
-    if (isTwoFingerSwipe && details.pointerCount == 2) {
+    _maxPointerCount = math.max(_maxPointerCount, details.pointerCount);
+
+    if (_isThreeFingerSwipe && _maxPointerCount == 3) {
+      if (!_hasTriggeredThreeFinger) {
+        _accumulatedThreeFingerY += details.focalPointDelta.dy;
+        // Trigger if swipe distance exceeds a threshold (e.g. 40 pixels up or down)
+        if (_accumulatedThreeFingerY.abs() > 40.0) {
+          _hasTriggeredThreeFinger = true;
+          ServerConnector.sendInput(Input.altTab());
+        }
+      }
+    } else if (_isTwoFingerTouch && _maxPointerCount == 2) {
       _handleScroll(details);
-    } else if (details.pointerCount == 1) {
+    } else if (_maxPointerCount == 1) {
       _handleMouseMove(details);
     }
   }
 
   void _handleScaleEnd(ScaleEndDetails details) {
-    isTwoFingerSwipe = false;
+    final elapsed = _twoFingerStartTime != null
+        ? DateTime.now().difference(_twoFingerStartTime!).inMilliseconds
+        : -1;
+
+    // A tap is registered if the max fingers on screen was 2,
+    // they didn't scroll, and they were released quickly.
+    if (_maxPointerCount == 2 &&
+        !_hasScrolledTwoFinger &&
+        _twoFingerStartTime != null &&
+        elapsed < 300) {
+      ServerConnector.sendInput(Input.rightClick());
+    }
+
+    // Always reset all gesture state when scale gesture ends
+    _isTwoFingerTouch = false;
+    _isThreeFingerSwipe = false;
+    _hasTriggeredThreeFinger = false;
+    _hasScrolledTwoFinger = false;
+    _twoFingerStartTime = null;
+    _maxPointerCount = 0;
   }
 
   @override
@@ -229,37 +301,33 @@ class _MousePadState extends State<MousePad> {
                 // main mousepad
                 Container(
                   width: double.infinity,
-                  height: widget.fullscreen ? double.infinity : 0.4 * screenSize.height,
+                  height: widget.fullscreen
+                      ? double.infinity
+                      : 0.4 * screenSize.height,
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     border: Border.all(
-                      color: customColors!.border, 
+                      color: customColors!.border,
                       width: 3,
                     ),
                   ),
                 ),
-                () {
-                  // mousepad text
-                  if (widget.fullscreen) {
-                    return const SizedBox();
-                  } else {
-                    return Positioned(
-                      left: -65,
-                      top: 105,
-                      child: Transform.rotate(
-                        angle: rotationAngle,
-                        child: const Text(
-                          "MOUSEPAD",
-                          style: TextStyle(
-                              fontWeight: FontWeight.w400,
-                              fontSize: 40,
-                              // color: ColorConstants.mousepadText,
-                          ),
+                if (!widget.fullscreen)
+                  Positioned(
+                    left: -65,
+                    top: 105,
+                    child: Transform.rotate(
+                      angle: rotationAngle,
+                      child: const Text(
+                        "MOUSEPAD",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 40,
+                          // color: ColorConstants.mousepadText,
                         ),
                       ),
-                    );
-                  }
-                }(),
+                    ),
+                  ),
                 // mousepad text
               ],
             ),
@@ -289,28 +357,22 @@ class _MousePadState extends State<MousePad> {
                     ),
                   ),
                 ),
-                () {
-                  // scroll text
-                  if (widget.fullscreen) {
-                    return const SizedBox();
-                  } else {
-                    return Positioned(
-                      bottom: 70,
-                      right: -27,
-                      child: Transform.rotate(
-                        angle: rotationAngle,
-                        child: const Text(
-                          "SCROLL",
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 30,
-                              // color: ColorConstants.scrollText
-                            ),
+                if (!widget.fullscreen)
+                  Positioned(
+                    bottom: 70,
+                    right: -27,
+                    child: Transform.rotate(
+                      angle: rotationAngle,
+                      child: const Text(
+                        "SCROLL",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 30,
+                          // color: ColorConstants.scrollText
                         ),
                       ),
-                    );
-                  }
-                }(),
+                    ),
+                  ),
               ],
             ),
           ),

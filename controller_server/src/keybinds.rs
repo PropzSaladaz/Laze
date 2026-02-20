@@ -76,6 +76,7 @@ impl KeyBindings {
         return HashMap::from([
             // keyboard
             (actions::Button::Left, enigo::Button::Left),
+            (actions::Button::Right, enigo::Button::Right),
         ]);
     }
 }
