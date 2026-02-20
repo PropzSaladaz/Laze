@@ -196,6 +196,7 @@ impl DeserializableAction for DeltaCoordinates {
 #[repr(u8)]
 pub enum Button {
     Left = 0,
+    Right = 1,
 }
 
 impl DeserializableAction for Button {
@@ -205,6 +206,7 @@ impl DeserializableAction for Button {
         *bytes = &bytes[1..];
         match btn {
             0 => Button::Left,
+            1 => Button::Right,
             _ => unreachable!("Unsupported button type"),
         }
     }
