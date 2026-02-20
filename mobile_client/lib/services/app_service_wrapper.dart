@@ -61,9 +61,13 @@ class AppServiceWrapper extends ChangeNotifier {
   }
 
   Future<bool> connect() async {
+    _setConnectionState(ServerConnector.SEARCHING);
     final success = await ServerConnector.findServer();
     if (success) {
       _volumeService.setConnected();
+      _setConnectionState(ServerConnector.CONNECTED);
+    } else {
+      _setConnectionState(ServerConnector.NOT_CONNECTED);
     }
     return success;
   }
