@@ -22,7 +22,7 @@ class MousePad extends StatefulWidget {
 }
 
 class _MousePadState extends State<MousePad> {
-  bool isTwoFingerSwipe = false;
+  bool _isTwoFingerTouch = false;
   bool _hasScrolledTwoFinger = false;
   DateTime? _twoFingerStartTime;
   int _maxPointerCount = 0;
@@ -109,34 +109,12 @@ class _MousePadState extends State<MousePad> {
     }
   }
 
-  void _handleMouseScroll(DragUpdateDetails details) {
-    double scrollAmountY = details.delta.dy;
+  void _processScrollDelta(double dy) {
     double swipeSense = 2.0;
 
     // Accumulate the scaled delta
-    // Inverse direction: drag up (negative dy) -> scroll down (negative scroll value, content moves up)
-    // Same logic as two-finger scroll
-    double delta = -(scrollAmountY / swipeSense);
-    _accumulatedScrollY += delta;
-
-    // Extract integer part to send
-    int scrollAmount = _accumulatedScrollY.truncate();
-
-    if (scrollAmount != 0) {
-      ServerConnector.sendInput(Input.scroll(amount: scrollAmount));
-      // Retain remainder
-      _accumulatedScrollY -= scrollAmount;
-    }
-  }
-
-  void _handleScroll(ScaleUpdateDetails details) {
-    double scrollAmountY = details.focalPointDelta.dy;
-    double swipeSense = 2.0;
-
-    // Accumulate the scaled delta
-    // Inverse direction: fingers up -> scroll down (positive input usually means down/right in many protocols,
-    // but here we invert it based on previous logic -(scrollAmountY/swipeSense))
-    double delta = -(scrollAmountY / swipeSense);
+    // Inverse direction: movement up (negative dy) -> scroll down (negative scroll value, content moves up)
+    double delta = -(dy / swipeSense);
     _accumulatedScrollY += delta;
 
     // Extract integer part to send
@@ -148,6 +126,14 @@ class _MousePadState extends State<MousePad> {
       // Retain remainder
       _accumulatedScrollY -= scrollAmount;
     }
+  }
+
+  void _handleMouseScroll(DragUpdateDetails details) {
+    _processScrollDelta(details.delta.dy);
+  }
+
+  void _handleScroll(ScaleUpdateDetails details) {
+    _processScrollDelta(details.focalPointDelta.dy);
   }
 
   void _handleMouseClick() {
@@ -234,7 +220,7 @@ class _MousePadState extends State<MousePad> {
     _maxPointerCount = math.max(_maxPointerCount, details.pointerCount);
 
     if (details.pointerCount == 2) {
-      isTwoFingerSwipe = true;
+      _isTwoFingerTouch = true;
       _hasScrolledTwoFinger = false;
       _twoFingerStartTime = DateTime.now();
       pointerLocationY = details.focalPoint.dy;
@@ -260,7 +246,7 @@ class _MousePadState extends State<MousePad> {
           ServerConnector.sendInput(Input.altTab());
         }
       }
-    } else if (isTwoFingerSwipe && _maxPointerCount == 2) {
+    } else if (_isTwoFingerTouch && _maxPointerCount == 2) {
       _handleScroll(details);
     } else if (_maxPointerCount == 1) {
       _handleMouseMove(details);
@@ -282,7 +268,7 @@ class _MousePadState extends State<MousePad> {
     }
 
     // Always reset all gesture state when scale gesture ends
-    isTwoFingerSwipe = false;
+    _isTwoFingerTouch = false;
     _isThreeFingerSwipe = false;
     _hasTriggeredThreeFinger = false;
     _hasScrolledTwoFinger = false;
@@ -326,28 +312,22 @@ class _MousePadState extends State<MousePad> {
                     ),
                   ),
                 ),
-                () {
-                  // mousepad text
-                  if (widget.fullscreen) {
-                    return const SizedBox();
-                  } else {
-                    return Positioned(
-                      left: -65,
-                      top: 105,
-                      child: Transform.rotate(
-                        angle: rotationAngle,
-                        child: const Text(
-                          "MOUSEPAD",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w400,
-                            fontSize: 40,
-                            // color: ColorConstants.mousepadText,
-                          ),
+                if (!widget.fullscreen)
+                  Positioned(
+                    left: -65,
+                    top: 105,
+                    child: Transform.rotate(
+                      angle: rotationAngle,
+                      child: const Text(
+                        "MOUSEPAD",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 40,
+                          // color: ColorConstants.mousepadText,
                         ),
                       ),
-                    );
-                  }
-                }(),
+                    ),
+                  ),
                 // mousepad text
               ],
             ),
@@ -377,28 +357,22 @@ class _MousePadState extends State<MousePad> {
                     ),
                   ),
                 ),
-                () {
-                  // scroll text
-                  if (widget.fullscreen) {
-                    return const SizedBox();
-                  } else {
-                    return Positioned(
-                      bottom: 70,
-                      right: -27,
-                      child: Transform.rotate(
-                        angle: rotationAngle,
-                        child: const Text(
-                          "SCROLL",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 30,
-                            // color: ColorConstants.scrollText
-                          ),
+                if (!widget.fullscreen)
+                  Positioned(
+                    bottom: 70,
+                    right: -27,
+                    child: Transform.rotate(
+                      angle: rotationAngle,
+                      child: const Text(
+                        "SCROLL",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 30,
+                          // color: ColorConstants.scrollText
                         ),
                       ),
-                    );
-                  }
-                }(),
+                    ),
+                  ),
               ],
             ),
           ),
