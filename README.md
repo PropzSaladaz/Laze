@@ -26,21 +26,21 @@
 
 Built with performance and user experience at its core, Laze isn't just another remote app—it's designed to feel like an extension of your computer.
 
+Contrary to other apps out there, Laze is clean, modern, simple and feels right. 1 swipe and 1 click and you can open you favorite movie website, your favorite app.
+
 ### 🖥️ Platform Support
 
-| Platform | Status | Release Available |
-|:---------|:------:|:-----------------:|
-| **Linux** | ✅ Tested | ✅ Yes |
-| **Windows** | ⚠️ Untested | ❌ Not yet |
-| **macOS** | ⚠️ Untested | ❌ Not yet |
-| **Android** | ✅ Tested | ✅ Yes |
-| **iOS** | ⚠️ Untested | ❌ Not yet |
+| Platform    | Status      | Release Available |
+|:------------|:-----------:|:-----------------:|
+| **Linux**   | ✅ Tested   | ✅ Yes            |
+| **Windows** | ⚠️ Untested | ❌ Not yet        |
+| **macOS**   | ⚠️ Untested | ❌ Not yet        |
+| **Android** | ✅ Tested   | ✅ Yes            |
+| **iOS**     | ⚠️ Untested | ❌ Not yet        |
 
 > **Note:** The codebase is designed for cross-platform support. Windows and macOS builds are planned but not yet tested or released.
 
----
-
-## 📸 Showcase
+## Showcase
 
 <p align="center">
   <img src="design-tokens/readme-images/desktop.png" width="600" alt="Desktop Dashboard">
@@ -54,7 +54,8 @@ Built with performance and user experience at its core, Laze isn't just another 
 <br>
 
 <p align="center">
-  <img src="design-tokens/readme-images/mobile.png" width="600" alt="Mobile Controller">
+  <img src="design-tokens/readme-images/p2.jpg" width="49%" alt="Screenshot 2">
+  <img src="design-tokens/readme-images/p4.jpg" width="49%" alt="Screenshot 4">
 </p>
 
 <p align="center">
@@ -62,11 +63,36 @@ Built with performance and user experience at its core, Laze isn't just another 
   Your entire computer at your fingertips. A responsive touchpad with velocity acceleration, a dedicated scroll strip, quick-action buttons, and a full keyboard—all designed for one-handed or two-handed use. Built with Flutter for buttery-smooth 60fps performance.
 </p>
 
----
 
-## ✨ Key Features
+## Why "Laze"? (The Story)
 
-### 🖱️ Mouse & Cursor Control
+The name **Laze** is a nod to the lazy comfort that inspired this project.
+
+It all started with watching movies from bed. No TV subscription, just a laptop connected to the TV and free streaming sites. But every time the movie ended or something needed adjusting, it meant getting up, walking over to the computer, and breaking that cozy bubble.
+
+**Laze** was built to solve exactly that—so you never have to leave the comfort of your bed (or couch, or hammock) to control your computer. It's the ultimate lazy solution for the ultimate lazy lifestyle.
+
+Sure, there are some apps that solve the desktop control via smartphone issue. The thing is - they either are cumbersome to use (require extrac config, extra steps to do simple things), or they are ugly. Or both.
+
+So I decided to make a clean, modern & **simple** UI. Now I can open firefox on my favorite movie website with 1 swipe and 1 click! You can't make it any simpler!
+
+
+## How Laze Compares
+
+There are great remote apps out there, but they often require clunky desktop setups, lack modern UI, or lock custom commands behind a paywall. Here is how Laze stacks up:
+
+| Feature | **Laze** | **KDE Connect** | **Unified Remote** | **Remote Mouse / Monect** | **Remote Desktop Apps** |
+|---|---|---|---|---|---|
+| **Cost / License** | 🆓 Free & Open Source | 🆓 Free & Open Source | 💰 Freemium | 💰 Freemium | 🆓 / 💰 |
+| **Primary Focus** | Fast local PC control | Device ecosystem | PC remote toolkit | Mouse/keyboard control | Full remote desktop |
+| **Custom Commands** | ✅ Create directly on phone | ⚠️ Configured on desktop | 💰 Paid feature | ❌ Limited | ❌ Not typical |
+| **Setup Complexity** | ✅ Instant LAN discovery | ⚠️ Pairing required | ⚠️ Server install | ⚠️ Helper install | ⚠️ Account setup |
+| **UX Design** | Modern, mobile-first | Functional | Functional | Basic | Desktop-style |
+| **Architecture** | Rust + Tauri + Flutter | C++ / Qt | Mixed native | Proprietary | Cloud-based |
+
+## Key Features
+
+### Mouse & Cursor Control
 
 | Feature | Description |
 |:--------|:------------|
@@ -78,7 +104,7 @@ Built with performance and user experience at its core, Laze isn't just another 
 | **Adjustable Sensitivity** | Increase or decrease sensitivity on-the-fly to match your preference |
 | **Sub-Pixel Smoothing** | Every micro-movement counts—no jittery or "sticky" cursor behavior |
 
-### �️ Desktop Server
+### Desktop Server
 
 | Feature | Description |
 |:--------|:------------|
@@ -88,7 +114,7 @@ Built with performance and user experience at its core, Laze isn't just another 
 | **Graceful Disconnection** | When the server shuts down, all connected clients are notified and disconnected cleanly |
 | **UDP Discovery** | Clients find the server instantly via broadcast—no IP configuration needed |
 
-### 📱 Mobile App
+### Mobile App
 
 | Feature | Description |
 |:--------|:------------|
@@ -99,7 +125,7 @@ Built with performance and user experience at its core, Laze isn't just another 
 | **Fullscreen Mode** | Expand the mousepad to fullscreen for maximum precision and control |
 | **Light & Dark Themes** | Switch between themes to match your style or environment |
 
-### 💾 Persistence & Personalization
+### Persistence & Personalization
 
 | Feature | Description |
 |:--------|:------------|
@@ -108,34 +134,20 @@ Built with performance and user experience at its core, Laze isn't just another 
 | **Device Naming** | Give your device a custom name for easy identification on the server |
 | **Session Continuity** | All settings are stored locally—pick up right where you left off |
 
----
 
-## ⚙️ How It Works
+## 📥 Installation
 
-Laze consists of three main components working in harmony:
+> ⚠️ **Note:** Laze is not yet published on the Google Play Store, Apple App Store, or any desktop app store. This is planned for the future.
 
-```
-┌─────────────────┐         UDP/TCP         ┌─────────────────┐
-│   Mobile App    │ ◄─────────────────────► │  Desktop Server │
-│    (Flutter)    │       Low-Latency       │     (Tauri)     │
-└─────────────────┘                         └────────┬────────┘
-                                                     │
-                                                     ▼
-                                            ┌─────────────────┐
-                                            │ Controller Core │
-                                            │     (Rust)      │
-                                            │ Mouse, Keyboard │
-                                            │   Simulation    │
-                                            └─────────────────┘
-```
+Pre-built binaries are available on the [GitHub Releases](https://github.com/PropzSaladaz/Laze/releases) page:
 
-1.  **Mobile App (Flutter):** Captures your touches, gestures, and keyboard input. Sends them as optimized binary packets.
-2.  **Desktop Server (Tauri):** A lightweight, native app that manages connections and provides a user-friendly dashboard.
-3.  **Controller Core (Rust):** The engine. It receives commands and simulates mouse movements, clicks, scrolls, and keystrokes on your OS using `enigo`.
+| Platform | Format |
+|:---------|:-------|
+| **Linux** | `.AppImage`, `.deb` |
+| **Android** | `.apk` |
 
----
 
-## 🚀 Getting Started
+## Getting Started ( For Developers)
 
 ### Prerequisites
 - **Desktop:** Rust, Node.js (for Tauri/Next.js)
@@ -157,12 +169,9 @@ flutter run
 ```
 The app will automatically discover your desktop on the same network.
 
-### 3. Connect & Control
-Open the mobile app, tap "Connect," and you're in control!
-
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Document | Description |
 |:---------|:------------|
@@ -174,78 +183,19 @@ Open the mobile app, tap "Connect," and you're in control!
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
 
----
-
-## � Why "Laze"?
-
-The name **Laze** is a nod to the lazy comfort that inspired this project.
-
-It all started with watching movies from bed. No TV subscription, just a laptop connected to the TV and free streaming sites. But every time the movie ended or something needed adjusting, it meant getting up, walking over to the computer, and breaking that cozy bubble.
-
-**Laze** was built to solve exactly that—so you never have to leave the comfort of your bed (or couch, or hammock) to control your computer. It's the ultimate lazy solution for the ultimate lazy lifestyle.
-
-*"Laze"* — because getting up is overrated.
 
 ---
 
-## 🤔 Why Build Another Remote App?
-
-There are dozens of remote control apps out there. So why build another one?
-
-**Because I wanted complete control.**
-
-Most apps are locked down—you get what they give you, and that's it. Laze is different. It's built to be *yours*:
-
-- **Run any command.** Literally any terminal command, right from your phone. Shut down, sleep, launch apps, run scripts—if you can type it, Laze can run it.
-- **Customize everything.** Create shortcuts with custom names, icons, and actions. Make it work exactly the way you want.
-- **No subscriptions. No limits.** It's open source. Fork it, modify it, extend it. The possibilities are endless.
-
-This isn't just a remote—it's a toolkit.
-
----
-
-## 📥 Installation
-
-> ⚠️ **Note:** Laze is not yet published on the Google Play Store, Apple App Store, or any desktop app store. This is planned for the future.
-
-For now, you can try Laze in two ways:
-
-### Option 1: Download from Releases
-
-Pre-built binaries are available on the [GitHub Releases](https://github.com/PropzSaladaz/Laze/releases) page:
-
-| Platform | Format |
-|:---------|:-------|
-| **Linux** | `.AppImage`, `.deb` |
-| **Android** | `.apk` |
-
-### Option 2: Build from Source
-
-Clone the repository and build locally:
-
-```bash
-git clone https://github.com/PropzSaladaz/Laze.git
-cd Laze
-
-# Desktop
-cd desktop_app && npm install && npm run tauri build
-
-# Mobile
-cd mobile_client && flutter build apk
-```
-
----
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
 ---
 
 <p align="center">
-  <strong>Built with ❤️ and a lot of ☕ by PropzSaladaz</strong>
+  <strong>Built with ❤️ by PropzSaladaz</strong>
 </p>

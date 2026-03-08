@@ -31,7 +31,7 @@ cd mobile_client
 dart run flutter_launcher_icons
 ```
 
-## 🖥️ Desktop App (Tauri)
+## Desktop App (Tauri)
 
 The desktop app uses the Tauri CLI's built-in icon generator.
 
