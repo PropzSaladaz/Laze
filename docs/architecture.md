@@ -10,13 +10,13 @@ The Mobile Virtual Device system allows a mobile phone to act as a remote input 
 
 ### 1. Mobile Client (Flutter)
 - **Responsibility**: Captures touch gestures and sensor data, converts them into command packets, and sends them to the server.
-- **Discovery**: Uses UDP broadcast (or direct IP entry) to find the server.
+- **Discovery**: Uses UDP broadcast to find the server.
 - **Protocol**: TCP for reliable command transmission (mouse moves, clicks, scrolling).
 
 ### 2. Controller Server (Rust)
 - **Responsibility**: Listens for connections, parses incoming commands, and simulates input events.
 - **Concurrency**: Spawns a dedicated thread for each connected client.
-- **Input Simulation**: Uses `enigo` (or `rdev`) to interact with X11/Xorg.
+- **Input Simulation**: Uses `enigo` to interact with X11/Xorg.
 - **State**: Manages connected clients and broadcasts status updates to the Desktop App.
 
 ### 3. Desktop App (Tauri)

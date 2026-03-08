@@ -14,10 +14,6 @@ mobile-virtual-device/
 ├─ mobile_client/            # Flutter client for mobile devices
 │  └─ README.md
 ├─ docs/                     # Documentation (this folder)
-│  ├─ README.md              # Docs hub
-│  ├─ developers.md          # You are here
-│  ├─ use-cases.md           # Use cases with sequence diagrams
-│  └─ diagrams/
 └─ design/                   # Design tokens and assets
 ```
 
@@ -32,15 +28,27 @@ See per-app READMEs for platform-specific packages.
 
 ## Quickstart
 
-Option A — Desktop App (starts the server for you):
-1) `cd desktop_app`
-2) `npm install`
-3) `npm run tauri dev`
+#### 1. [Recomended] Start desktop GUI
+```bash
+cd desktop_app
+npm install
+npm run tauri dev
+```
 
-Option B — Run components manually:
-- Server: `cd controller_server && cargo run`
-- Mobile: `cd mobile_client && flutter pub get && flutter run`
+#### 1.1 [Optional] Start backend server directly
+You can also start the backend server directly without GUI:
+```bash
+cd controller_server
+cargo run
+```
 
+#### 2. Start mobile app
+```bash
+# start mobile app
+cd mobile_client 
+flutter pub get 
+flutter run
+```
 
 ## Architecture & flows
 
@@ -60,7 +68,7 @@ Option B — Run components manually:
 
 ## Troubleshooting
 
-- Wayland sessions are not supported for virtual input; use an Xorg session.
+- **Wayland sessions are not supported for virtual input; use an Xorg session.**
 - If the desktop app fails to start the backend, start the Rust server manually to verify it runs.
 - If the mobile app cannot find the server, ensure you are on Wi‑Fi and on the same subnet; check firewall rules.
 
