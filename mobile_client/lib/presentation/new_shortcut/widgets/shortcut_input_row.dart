@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/new_shortcut/widgets/icon_picker.dart';
 
@@ -41,6 +42,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -50,7 +52,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
             widthFactor: 0.7,
             child: TextField(
               controller: _controller,
-              cursorColor: Theme.of(context).colorScheme.onSecondary,
+              cursorColor: appColors.textMuted,
               style: const TextStyle(
                 fontSize: 39,
                 fontWeight: FontWeight.w600,

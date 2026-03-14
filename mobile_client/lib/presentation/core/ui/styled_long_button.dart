@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 typedef Callback = void Function();
 
@@ -22,31 +22,31 @@ class StyledLongButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final customColors = Theme.of(context).extension<CustomColors>();
+    final appColors = Theme.of(context).extension<AppColors>()!;
 
     return Container(
       margin: const EdgeInsets.all(10),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.rectangle,
-        color: Theme.of(context).colorScheme.primary,
+        color: appColors.surface_1,
         borderRadius: BorderRadius.circular(50),
         boxShadow: [
           BoxShadow(
-            color: customColors!.shadowColorDark.withOpacity(0.2), // Shadow color
-            spreadRadius: 1, // Spread radius
-            blurRadius: 7, // Blur radius
-            offset: const Offset(5, 2), // Offset (horizontal, vertical)
+            color: appColors.shadowLow.withValues(alpha: 0.2),
+            spreadRadius: 1,
+            blurRadius: 7,
+            offset: const Offset(5, 2),
           ),
           BoxShadow(
-            color: customColors.shadowColorBright.withOpacity(1), // Shadow color
-            spreadRadius: 2, // Spread radius
-            blurRadius: 7, // Blur radius
-            offset: const Offset(-5, -2), // Offset (horizontal, vertical)
+            color: appColors.shadowHigh,
+            spreadRadius: 2,
+            blurRadius: 7,
+            offset: const Offset(-5, -2),
           ),
         ],
       ),
-      child: _autoLayout(context),
+      child: _autoLayout(context, appColors),
     );
   }
 
@@ -61,7 +61,7 @@ class StyledLongButton extends StatelessWidget {
     );
   }
 
-  Widget _autoLayout(BuildContext context) {
+  Widget _autoLayout(BuildContext context, AppColors appColors) {
     if (vertical != null && vertical == true) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -70,19 +70,19 @@ class StyledLongButton extends StatelessWidget {
             onPressed: onPressedUp,
             icon: Icon(iconUp),
             iconSize: 45,
-            color: Theme.of(context).colorScheme.onPrimary,
+            color: appColors.text,
           ),
           _autoSpacing(spacing: 12),
           Text(
             description,
-            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            style: TextStyle(color: appColors.text),
           ),
           _autoSpacing(spacing: 12),
           IconButton(
             onPressed: onPressedDown,
             icon: Icon(iconDown),
             iconSize: 45,
-            color: Theme.of(context).colorScheme.onPrimary,
+            color: appColors.text,
           ),
         ],
       );
@@ -90,16 +90,15 @@ class StyledLongButton extends StatelessWidget {
     return Row(
       children: [
         TextButton(
-          style: const ButtonStyle(
-            overlayColor: MaterialStatePropertyAll(Colors.white),
+          style: ButtonStyle(
+            overlayColor: WidgetStatePropertyAll(appColors.hover),
           ),
           onPressed: onPressedDown,
           child: Container(
             padding: const EdgeInsets.fromLTRB(25, 10, 25, 10),
             child: Text(
               description,
-              style:
-                  TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontSize: 20),
+              style: TextStyle(color: appColors.text, fontSize: 20),
             ),
           ),
         ),

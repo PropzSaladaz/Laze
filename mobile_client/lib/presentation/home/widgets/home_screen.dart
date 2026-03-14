@@ -4,6 +4,7 @@ import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/presentation/home/view_models/home_viewmodel.dart';
 import 'package:laze/services/server_connector.dart';
 import 'package:laze/services/app_service_wrapper.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/home/widgets/connection_header.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/home/widgets/mousepad.dart';
@@ -95,11 +96,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 // LOOKING
               } else if (wrapper.connectionStatus ==
                   ServerConnector.SEARCHING) {
+                final appColors = Theme.of(context).extension<AppColors>()!;
                 return Expanded(
                   child: Center(
                     child: CircularProgressIndicator.adaptive(
-                        backgroundColor:
-                            Theme.of(context).colorScheme.onPrimary),
+                      backgroundColor: appColors.text,
+                    ),
                   ),
                 );
 
@@ -158,12 +160,12 @@ class _HomeScreenState extends State<HomeScreen> {
       BuildContext context, AppServiceWrapper wrapper) {
     if (wrapper.errorMessage != null) {
       final String msg = wrapper.errorMessage!;
-      ColorScheme colors = Theme.of(context).colorScheme;
+      final appColors = Theme.of(context).extension<AppColors>()!;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg),
-            backgroundColor: colors.error,
+            backgroundColor: appColors.error,
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: "OK",

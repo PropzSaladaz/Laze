@@ -4,7 +4,7 @@ import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/core/ui/styled_input.dart';
 import 'package:laze/presentation/core/ui/wide_styled_button.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:provider/provider.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -71,20 +71,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showError(String message) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Theme.of(context).colorScheme.error,
+        backgroundColor: appColors.error,
         duration: const Duration(seconds: 3),
       ),
     );
   }
 
   void _showSuccess(String message) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: appColors.success,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -92,8 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final customColors = Theme.of(context).extension<CustomColors>();
+    final appColors = Theme.of(context).extension<AppColors>()!;
 
     return ControllerPage(
       body: Column(
@@ -107,7 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text(
                 'SETTINGS',
                 style: TextStyle(
-                  color: colorScheme.onPrimary,
+                  color: appColors.text,
                   fontSize: 35,
                   fontWeight: FontWeight.w500,
                 ),
@@ -125,7 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: _isLoading
                 ? Center(
                     child: CircularProgressIndicator(
-                      color: colorScheme.onPrimary,
+                      color: appColors.text,
                     ),
                   )
                 : SingleChildScrollView(
@@ -136,17 +137,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: colorScheme.primary,
+                            color: appColors.surface_1,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: customColors!.shadowColorDark.withValues(alpha: 0.2),
+                                color: appColors.shadowLow.withValues(alpha: 0.2),
                                 spreadRadius: 2,
                                 blurRadius: 7,
                                 offset: const Offset(5, 2),
                               ),
                               BoxShadow(
-                                color: customColors.shadowColorBright.withValues(alpha: 1),
+                                color: appColors.shadowHigh,
                                 spreadRadius: 4,
                                 blurRadius: 7,
                                 offset: const Offset(-5, -2),
@@ -160,14 +161,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 children: [
                                   Icon(
                                     Icons.smartphone,
-                                    color: colorScheme.onPrimary,
+                                    color: appColors.text,
                                     size: 24,
                                   ),
                                   const SizedBox(width: 10),
                                   Text(
                                     'Device Name',
                                     style: TextStyle(
-                                      color: colorScheme.onPrimary,
+                                      color: appColors.text,
                                       fontSize: 20,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -178,14 +179,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Text(
                                 'This name identifies your device on the server when multiple devices are connected.',
                                 style: TextStyle(
-                                  color: colorScheme.onPrimary.withValues(alpha: 0.7),
+                                  color: appColors.textMuted,
                                   fontSize: 14,
                                 ),
                               ),
                               const SizedBox(height: 20),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: colorScheme.secondary,
+                                  color: appColors.surface_2,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -200,8 +201,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 30),
                         WideStyledButton(
                           text: _isSaving ? 'Saving...' : 'Save',
-                          textColor: colorScheme.onSecondary,
-                          backgroundColor: colorScheme.secondary,
+                          textColor: appColors.textMuted,
+                          backgroundColor: appColors.surface_2,
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                           onPressed: () {
@@ -219,4 +220,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-

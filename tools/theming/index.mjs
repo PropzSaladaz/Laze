@@ -4,7 +4,7 @@ import { generateNext } from './gen_next.mjs';
 import { generateFlutter } from './gen_flutter.mjs';
 
 const input = process.argv[2];
-const targetNext = 'desktop_app/app/src/theme';
+const targetNext = 'desktop_app/app';
 const targetFlutter = 'mobile_client/lib/presentation/core/themes';
 
 if (!input) {

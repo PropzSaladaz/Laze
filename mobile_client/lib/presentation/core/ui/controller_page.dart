@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
 
 class ControllerPage extends StatelessWidget {
   final Widget body;

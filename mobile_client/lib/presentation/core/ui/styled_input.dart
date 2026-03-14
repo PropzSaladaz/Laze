@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 class StyledInput extends StatelessWidget {
   final Function(String)? onInputUpdated;
@@ -22,28 +22,29 @@ class StyledInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final customColors = Theme.of(context).extension<CustomColors>()!;
+    final appColors = Theme.of(context).extension<AppColors>()!;
 
     return TextField(
       controller: controller,
       style: TextStyle(
         fontFamily: 'monospace',
-        color: colorScheme.onSecondary,
+        color: appColors.text,
       ),
-      cursorColor: colorScheme.onSecondary,
+      cursorColor: appColors.text,
       onChanged: onInputUpdated,
       maxLength: 256,
       decoration: InputDecoration(
         labelText: inputTitle,
         labelStyle: TextStyle(
-            color: colorScheme.onSecondary, fontWeight: FontWeight.w800),
-        fillColor: colorScheme.secondary,
+          color: appColors.text,
+          fontWeight: FontWeight.w800,
+        ),
+        fillColor: appColors.surface_2,
         prefixText: prefixText,
         hintText: hintText,
         border: InputBorder.none,
         hintStyle: TextStyle(
-          color: customColors.hintText,
+          color: appColors.textMuted,
           fontWeight: FontWeight.w300,
         ),
       ),

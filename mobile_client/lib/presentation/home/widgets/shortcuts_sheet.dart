@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:laze/domain/models/shortcut/shortcut.dart';
 import 'package:laze/presentation/core/ui/wide_styled_button.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/home/view_models/home_viewmodel.dart';
 import 'package:laze/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
 import 'package:laze/presentation/new_shortcut/widgets/add_custom_shortcut.dart';
@@ -78,7 +78,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
   }
 
   Widget _buildShortcutsSheet(BuildContext context, HomeViewModel viewModel) {
-    final customColors = Theme.of(context).extension<CustomColors>();
+    final appColors = Theme.of(context).extension<AppColors>()!;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     
     return SizedBox(
@@ -109,9 +109,9 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                   ),
                   border: Border.all(
                     width: 3.0,
-                    color: customColors!.border,
+                    color: appColors.border,
                   ),
-                  color: Theme.of(context).colorScheme.surface,
+                  color: appColors.surface_1,
                 ),
                 child: Stack(
                   children: [
@@ -179,10 +179,8 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                               onPressed: () {
                                 _openShortcutsEditPage(context: context);
                               },
-                              iconColor:
-                                  Theme.of(context).colorScheme.onSecondary,
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.secondary,
+                              iconColor: appColors.textMuted,
+                              backgroundColor: appColors.surface_1,
                             ),
                           ),
                         ),
