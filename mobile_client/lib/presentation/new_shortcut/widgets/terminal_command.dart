@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_input.dart';
 
 class TerminalCommandInput extends StatefulWidget {
@@ -34,7 +35,7 @@ class _TerminalCommandInputState extends State<TerminalCommandInput> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final appColors = Theme.of(context).extension<AppColors>()!;
     
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -47,7 +48,7 @@ class _TerminalCommandInputState extends State<TerminalCommandInput> {
           ),
           Container(
               decoration: BoxDecoration(
-                color: colorScheme.secondary,
+                color: appColors.surface_2,
                 borderRadius: const BorderRadius.all(Radius.circular(25.0)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),

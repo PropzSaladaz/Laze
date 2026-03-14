@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 typedef Callback = void Function();
 
@@ -34,7 +34,7 @@ class WideStyledButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final customColors = Theme.of(context).extension<CustomColors>();
+    final appColors = Theme.of(context).extension<AppColors>()!;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.all(1),
@@ -43,16 +43,16 @@ class WideStyledButton extends StatelessWidget {
         color: backgroundColor,
         boxShadow: [
           BoxShadow(
-            color: customColors!.shadowColorDark.withOpacity(0.2), // Shadow color
-            spreadRadius: 3, // Spread radius
-            blurRadius: 6, // Blur radius
-            offset: const Offset(3, 2), // Offset (horizontal, vertical)
+            color: appColors.shadowLow.withValues(alpha: 0.2),
+            spreadRadius: 3,
+            blurRadius: 6,
+            offset: const Offset(3, 2),
           ),
           BoxShadow(
-            color: customColors.shadowColorBright.withOpacity(1), // Shadow color
-            spreadRadius: 4, // Spread radius
-            blurRadius: 7, // Blur radius
-            offset: const Offset(-5, -2), // Offset (horizontal, vertical)
+            color: appColors.shadowHigh,
+            spreadRadius: 4,
+            blurRadius: 7,
+            offset: const Offset(-5, -2),
           ),
         ],
       ),

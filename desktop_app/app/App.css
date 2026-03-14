@@ -1,4 +1,4 @@
-@import './src/theme/css-vars.css';
+@import './theme/css-vars.css';
 @import 'tailwindcss';
 
 html,

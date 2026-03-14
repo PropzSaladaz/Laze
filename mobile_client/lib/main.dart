@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:laze/config/dependencies.dart';
 import 'package:laze/data/repositories/shortcut/models/shortcut_data.dart';
-import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/presentation/home/widgets/home_screen.dart';
 import 'package:laze/presentation/settings/settings_screen.dart';
-import 'package:laze/presentation/core/themes/theme.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/services/app_service_wrapper.dart';
 import 'package:provider/provider.dart';
 
@@ -59,8 +57,8 @@ class MyApp extends StatelessWidget {
     debugPaintSizeEnabled = false;
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
       home: const HomeScreen(),

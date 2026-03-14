@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laze/presentation/core/themes/dimensions.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 
 class IconPicker extends StatefulWidget {
@@ -27,7 +28,7 @@ class _IconPickerState extends State<IconPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final appColors = Theme.of(context).extension<AppColors>()!;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(
@@ -55,7 +56,7 @@ class _IconPickerState extends State<IconPicker> {
                   child: Icon(
                     Icons.close,
                     size: Dimens.icon.medium,
-                    color: colorScheme.onSecondary,
+                    color: appColors.textMuted,
                   ),
                 )
               ],

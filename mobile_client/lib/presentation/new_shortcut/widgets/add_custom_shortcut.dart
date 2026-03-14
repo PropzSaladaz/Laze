@@ -1,10 +1,8 @@
-import 'dart:collection';
-
 import 'package:flutter/material.dart';
 import 'package:laze/core/os_config.dart';
 import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/wide_styled_button.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
 import 'package:laze/presentation/new_shortcut/widgets/shortcut_input_row.dart';
@@ -18,7 +16,7 @@ class AddCustomShortcut extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shortcutVM = context.watch<AddCustomShortcutViewModel>();
-    final customColors = Theme.of(context).extension<CustomColors>()!;
+    final appColors = Theme.of(context).extension<AppColors>()!;
     final textTheme = Theme.of(context).textTheme;
 
     return ControllerPage(
@@ -71,7 +69,7 @@ class AddCustomShortcut extends StatelessWidget {
               
                         // TEST COMMAND
                         WideStyledButton(
-                          backgroundColor:  customColors.negativeOnSecondary,
+                          backgroundColor: appColors.surface_2,
                           onPressed: () => {
                             ServerConnector.sendInput(Input.runCommand(shortcutVM.commands))
                           },
@@ -88,7 +86,7 @@ class AddCustomShortcut extends StatelessWidget {
                     children: [
                       _expandedFractionalButton(
                           text: "CANCEL",
-                          backgroundColor:  customColors.negativeSecondary,
+                          backgroundColor: appColors.muted,
                           onPressed: () => Navigator.of(context).pop(),
                       ),
               
@@ -96,7 +94,7 @@ class AddCustomShortcut extends StatelessWidget {
                           text: shortcutVM.isNew 
                             ? "CREATE"
                             : "SAVE",
-                          backgroundColor:  customColors.negativePrimary,
+                          backgroundColor: appColors.primary,
                           onPressed: () {
                             shortcutVM.saveShortcut.execute();
                             Navigator.of(context).pop();

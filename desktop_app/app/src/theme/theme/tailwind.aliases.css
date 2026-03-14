@@ -1,9 +1,0 @@
-/* AUTO-GENERATED utilities — optional sugar */
-@tailwind utilities;
-@layer utilities {
-  .surface-1{@apply bg-surface-1;}
-  .surface-2{@apply bg-surface-2;}
-  .surface-3{@apply bg-surface-3;}
-  .muted{@apply text-text-muted;}
-  .inverse{@apply text-text-inverse;}
-}

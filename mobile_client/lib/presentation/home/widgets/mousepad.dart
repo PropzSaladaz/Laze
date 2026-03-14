@@ -1,9 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:laze/data/services/input.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
-import 'dart:math' as math;
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 import '../../../services/server_connector.dart';
 
@@ -278,7 +278,7 @@ class _MousePadState extends State<MousePad> {
 
   @override
   Widget build(BuildContext context) {
-    final customColors = Theme.of(context).extension<CustomColors>();
+    final appColors = Theme.of(context).extension<AppColors>()!;
     const rotationAngle = -90 * math.pi / 180;
     Size screenSize = MediaQuery.of(context).size;
     double scrollHeight =
@@ -305,9 +305,9 @@ class _MousePadState extends State<MousePad> {
                       ? double.infinity
                       : 0.4 * screenSize.height,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
+                    color: appColors.surface_1,
                     border: Border.all(
-                      color: customColors!.border,
+                      color: appColors.border,
                       width: 3,
                     ),
                   ),
@@ -352,7 +352,7 @@ class _MousePadState extends State<MousePad> {
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
-                        color: customColors.border,
+                        color: appColors.border,
                       ),
                     ),
                   ),

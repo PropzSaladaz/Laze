@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/services/server_connector.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
 
 typedef Callback = void Function();
 
@@ -27,6 +27,7 @@ class ConnectionHeader extends StatefulWidget {
 class _ConnectionHeaderState extends State<ConnectionHeader> {
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Row(
@@ -36,7 +37,7 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
           Text(
             widget.connectionStatus,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimary,
+              color: appColors.text,
               fontSize: 35,
               fontWeight: FontWeight.w500,
             ),
@@ -84,11 +85,11 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
   }
 
   Widget _disconnectPopup(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme; 
+    final appColors = Theme.of(context).extension<AppColors>()!;
 
     return AlertDialog(
       alignment: Alignment.center,
-      backgroundColor: colorScheme.secondary,
+      backgroundColor: appColors.surface_1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       // backgroundColor: ColorConstants.background,
       title: const Text(
@@ -99,7 +100,7 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
       actions: [
         TextButton(
           style: ButtonStyle(
-            backgroundColor: WidgetStatePropertyAll(colorScheme.onSecondary),
+            backgroundColor: WidgetStatePropertyAll(appColors.muted),
           ),
           onPressed: () {
             widget.disconnect();
@@ -108,13 +109,13 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
           child: Text(
             "Disconnect",
             style: TextStyle(
-              color: colorScheme.surface
+              color: appColors.text,
             ),
           ),
         ),
         TextButton(
           style: ButtonStyle(
-            backgroundColor: WidgetStatePropertyAll(colorScheme.error)
+            backgroundColor: WidgetStatePropertyAll(appColors.error),
           ),
           onPressed: () {
             widget.turnOffPc();
@@ -123,7 +124,7 @@ class _ConnectionHeaderState extends State<ConnectionHeader> {
           child: Text(
             "Turn OFF PC",
             style: TextStyle(
-              color: colorScheme.onPrimary,
+              color: appColors.onError,
             ),
           ),
         )

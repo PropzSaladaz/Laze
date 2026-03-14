@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
 import 'package:laze/presentation/core/themes/dimensions.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 typedef Callback = void Function();
 
@@ -18,29 +18,25 @@ class StyledButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final customColors = Theme.of(context).extension<CustomColors>();
-    final colorScheme = Theme.of(context).colorScheme;
+    final appColors = Theme.of(context).extension<AppColors>()!;
 
     return Container(
       margin: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isClicked ? Colors.blue : Theme.of(context).colorScheme.primary,
+        color: isClicked ? appColors.primary : appColors.surface_1,
         shape: BoxShape.circle,
-        // color: ColorConstants.background,
         boxShadow: [
           BoxShadow(
-            color:
-                customColors!.shadowColorDark.withOpacity(0.2), // Shadow color
-            spreadRadius: 2, // Spread radius
-            blurRadius: 7, // Blur radius
-            offset: const Offset(5, 2), // Offset (horizontal, vertical)
+            color: appColors.shadowLow.withValues(alpha: 0.2),
+            spreadRadius: 2,
+            blurRadius: 7,
+            offset: const Offset(5, 2),
           ),
           BoxShadow(
-            color:
-                customColors.shadowColorBright.withOpacity(1), // Shadow color
-            spreadRadius: 4, // Spread radius
-            blurRadius: 7, // Blur radius
-            offset: const Offset(-5, -2), // Offset (horizontal, vertical)
+            color: appColors.shadowHigh,
+            spreadRadius: 4,
+            blurRadius: 7,
+            offset: const Offset(-5, -2),
           ),
         ],
       ),
@@ -48,9 +44,7 @@ class StyledButton extends StatelessWidget {
         onPressed: onPressed,
         icon: Icon(icon),
         iconSize: Dimens.icon.large,
-        color: isClicked 
-        ? colorScheme.primary
-        : colorScheme.onPrimary,
+        color: isClicked ? appColors.onPrimary : appColors.text,
       ),
     );
   }
