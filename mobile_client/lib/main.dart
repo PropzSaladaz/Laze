@@ -7,7 +7,7 @@ import 'package:laze/data/repositories/shortcut/models/shortcut_data.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/presentation/home/widgets/home_screen.dart';
 import 'package:laze/presentation/settings/settings_screen.dart';
-import 'package:laze/presentation/core/themes/generated_theme.dart';
+import 'package:laze/presentation/core/themes/app_theme.dart';
 import 'package:laze/services/app_service_wrapper.dart';
 import 'package:provider/provider.dart';
 
