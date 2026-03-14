@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:laze/presentation/core/ui/styled_long_button.dart';
 import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/core/ui/split_panel_button.dart';
 import 'package:laze/services/server_connector.dart';
 
 class KeyboardButton extends StatefulWidget {
+  final double width;
+  final double height;
+
   const KeyboardButton({
     super.key,
+    this.width = 176,
+    this.height = 176,
   });
 
   @override
@@ -15,7 +19,7 @@ class KeyboardButton extends StatefulWidget {
 
 class _KeyboardButtonState extends State<KeyboardButton>
     with WidgetsBindingObserver {
-  String currentString = "";
+  String currentString = '';
   bool keyboardOn = false;
   // stores the timestamp of the last key press
   DateTime lastPressTime = DateTime.now();
@@ -34,19 +38,28 @@ class _KeyboardButtonState extends State<KeyboardButton>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     inputNode.dispose();
+    textFieldNode.dispose();
     super.dispose();
   }
 
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    if (MediaQuery.of(context).viewInsets.bottom == 0) {
+    final viewInsets = WidgetsBinding
+        .instance.platformDispatcher.views.first.viewInsets.bottom;
+
+    if (viewInsets == 0) {
       Future.delayed(const Duration(milliseconds: 50), () {
-        if (MediaQuery.of(context).viewInsets.bottom == 0) {
-          setState(() {
-            keyboardOn = false;
-          });
+        final currentViewInsets = WidgetsBinding
+            .instance.platformDispatcher.views.first.viewInsets.bottom;
+
+        if (!mounted || currentViewInsets != 0) {
+          return;
         }
+
+        setState(() {
+          keyboardOn = false;
+        });
       });
     }
   }
@@ -55,24 +68,28 @@ class _KeyboardButtonState extends State<KeyboardButton>
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SizedBox(
-            width: 100,
-            child: Visibility(
-                visible: keyboardOn,
-                child: KeyboardListener(
-                    focusNode: inputNode,
-                    onKeyEvent: _onKeyPressed,
-                    child: TextField(
-                      focusNode: textFieldNode,
-                      onChanged: _onTextChanged,
-                      onSubmitted: _onSubmitted,
-                      // focusNode: inputNode,
-                    )))),
-        StyledLongButton(
-          iconUp: Icons.keyboard_arrow_up_rounded,
-          iconDown: Icons.keyboard_arrow_down_rounded,
-          description: "Keyboard",
-          onPressedDown: _showKeyboard,
+        Offstage(
+          offstage: !keyboardOn,
+          child: SizedBox(
+            width: 1,
+            height: 1,
+            child: KeyboardListener(
+              focusNode: inputNode,
+              onKeyEvent: _onKeyPressed,
+              child: TextField(
+                focusNode: textFieldNode,
+                onChanged: _onTextChanged,
+                onSubmitted: _onSubmitted,
+              ),
+            ),
+          ),
+        ),
+        SplitPanelButton(
+          topText: '...',
+          bottomText: 'KEYBOARD',
+          onBottomPressed: _showKeyboard,
+          width: widget.width,
+          height: widget.height,
         ),
       ],
     );
@@ -102,8 +119,6 @@ class _KeyboardButtonState extends State<KeyboardButton>
 
   /// Callback that takes care of input changes
   void _onTextChanged(String newString) {
-    print("String size changed");
-
     if (newString.length > currentString.length) {
       // send last character
       ServerConnector.sendInput(
