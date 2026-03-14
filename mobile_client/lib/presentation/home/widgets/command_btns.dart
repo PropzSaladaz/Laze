@@ -1,154 +1,76 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:laze/presentation/core/ui/styled_button.dart';
-import 'package:laze/services/server_connector.dart';
-import 'package:laze/presentation/core/ui/styled_long_button.dart';
 import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/core/ui/styled_long_button.dart';
 import 'package:laze/presentation/home/widgets/keyboard.dart';
+import 'package:laze/services/server_connector.dart';
 
-class CommandBtns extends StatefulWidget {
-  final void Function() onShowShortcutsSheet;
+final class _CommandControlSizes {
+  static const double sideButtonWidth = 70;
+  static const double sideButtonHeight = 180;
+  static const double sideButtonIconSize = 48;
+  static const double sideButtonLabelSize = 18;
+  static const double centerPanelWidth = 195;
+  static const double centerPanelHeight = sideButtonHeight;
+}
+
+class CommandBtns extends StatelessWidget {
   final int sensitivity;
-  final Function(int) onSensitivityChanged;
+  final ValueChanged<int> onSensitivityChanged;
 
   const CommandBtns({
-    super.key, 
-    required this.onShowShortcutsSheet,
+    super.key,
     required this.sensitivity,
     required this.onSensitivityChanged,
   });
 
   @override
-  State<CommandBtns> createState() => _CommandBtnsState();
-}
-
-class _CommandBtnsState extends State<CommandBtns> {
-  bool isShortcutsSheetVisible = false;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // occupy the rest of the screen - use Expanded
-    return Expanded(
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // VOLUME
-              StyledLongButton(
-                iconUp: Icons.keyboard_arrow_up_rounded,
-                iconDown: Icons.keyboard_arrow_down_rounded,
-                onPressedUp: () {
-                  ServerConnector.sendInput(Input.volumeUp());
-                },
-                onPressedDown: () {
-                  ServerConnector.sendInput(Input.volumeDown());
-                },
-                description: "VOL",
-                vertical: true,
-              ),
-              Column(
-                children: [
-                  // KEYBOARD
-                  const KeyboardButton(),
-                  // SHORTCUTS
-                  StyledLongButton(
-                    iconUp: Icons.keyboard_arrow_up_rounded,
-                    iconDown: Icons.keyboard_arrow_down_rounded,
-                    description: "Shortcuts",
-                    onPressedDown: widget.onShowShortcutsSheet
-                  ),
-                ],
-              ),
-              // SENSITIVITY
-              StyledLongButton(
-                iconUp: Icons.keyboard_arrow_up_rounded,
-                iconDown: Icons.keyboard_arrow_down_rounded,
-                onPressedUp: () {
-                  // Increase sensitivity
-                  widget.onSensitivityChanged(widget.sensitivity + 1);
-                },
-                onPressedDown: () {
-                  // Decrease sensitivity (min 1)
-                  if (widget.sensitivity > 1) {
-                    widget.onSensitivityChanged(widget.sensitivity - 1);
-                  }
-                },
-                description: "Speed: ${widget.sensitivity}",
-                vertical: true,
-              ),
-            ],
+          StyledLongButton(
+            iconUp: Icons.keyboard_arrow_up_rounded,
+            iconDown: Icons.keyboard_arrow_down_rounded,
+            onPressedUp: () {
+              ServerConnector.sendInput(Input.volumeUp());
+            },
+            onPressedDown: () {
+              ServerConnector.sendInput(Input.volumeDown());
+            },
+            description: 'VOL',
+            vertical: true,
+            width: _CommandControlSizes.sideButtonWidth,
+            height: _CommandControlSizes.sideButtonHeight,
+            iconSize: _CommandControlSizes.sideButtonIconSize,
+            descriptionFontSize: _CommandControlSizes.sideButtonLabelSize,
           ),
-          _fourButtonRow([
-            _ButtonData(Icons.volume_off, Input.mute()),
-            _ButtonData(Icons.tab, Input.altTab()),
-            _ButtonData(Icons.pause, Input.pause()),
-            _ButtonData(Icons.play_arrow, Input.play()),
-          ]),
-          _fourButtonRow([
-            _ButtonData(Icons.fullscreen, Input.fullScreen()),
-            _ButtonData(Icons.close, Input.closeTab()),
-            _ButtonData(Icons.arrow_left, Input.previousTab()),
-            _ButtonData(Icons.arrow_right, Input.nextTab()),
-          ]),
+          const KeyboardButton(
+            width: _CommandControlSizes.centerPanelWidth,
+            height: _CommandControlSizes.centerPanelHeight,
+          ),
+          StyledLongButton(
+            iconUp: Icons.keyboard_arrow_up_rounded,
+            iconDown: Icons.keyboard_arrow_down_rounded,
+            onPressedUp: () {
+              onSensitivityChanged(sensitivity + 1);
+            },
+            onPressedDown: () {
+              if (sensitivity > 1) {
+                onSensitivityChanged(sensitivity - 1);
+              }
+            },
+            description: 'SEN',
+            vertical: true,
+            width: _CommandControlSizes.sideButtonWidth,
+            height: _CommandControlSizes.sideButtonHeight,
+            iconSize: _CommandControlSizes.sideButtonIconSize,
+            descriptionFontSize: _CommandControlSizes.sideButtonLabelSize,
+          ),
         ],
       ),
     );
   }
-
-  Widget _fourButtonRow(List<_ButtonData> buttons) {
-    assert(buttons.length == 4, "There must be exactly 4 buttons");
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        // MUTE
-        StyledButton(
-          icon: buttons[0].icon,
-          onPressed: () {
-            ServerConnector.sendInput(buttons[0].dataToSend);
-          },
-        ),
-        // BRIGHTNESS
-        StyledButton(
-          icon: buttons[1].icon,
-          onPressed: () {
-            ServerConnector.sendInput(buttons[1].dataToSend);
-          },
-        ),
-        //PAUSE
-        StyledButton(
-          icon: buttons[2].icon,
-          onPressed: () {
-            ServerConnector.sendInput(buttons[2].dataToSend);
-          },
-        ),
-        // PLAY
-        StyledButton(
-          icon: buttons[3].icon,
-          onPressed: () {
-            ServerConnector.sendInput(buttons[3].dataToSend);
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _ButtonData {
-  final IconData icon;
-  Uint8List dataToSend;
-
-  _ButtonData(this.icon, this.dataToSend);
 }

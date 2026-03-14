@@ -6,6 +6,7 @@ import 'package:laze/services/server_connector.dart';
 import 'package:laze/services/app_service_wrapper.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/home/widgets/connection_header.dart';
+import 'package:laze/presentation/home/widgets/not_connected_screen.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/home/widgets/mousepad.dart';
 import 'package:laze/presentation/home/widgets/shortcuts_sheet.dart';
@@ -21,7 +22,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool showShortcutsScrollableSheet = false;
   int sensitivity = 5; // Default sensitivity
   late final HomeViewModel _viewModel;
 
@@ -69,89 +69,68 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return ChangeNotifierProvider<HomeViewModel>.value(
       value: _viewModel,
-      child: ControllerPage(
-        resizeToAvoidBottomInset: false,
-        body: Column(
+      child: wrapper.connectionStatus == ServerConnector.NOT_CONNECTED
+          ? NotConnectedScreen(
+              onConnect: wrapper.connect,
+              onOpenSettings: () => Navigator.pushNamed(context, '/settings'),
+            )
+          : _buildConnectedLayout(context, wrapper),
+    );
+  }
+
+  Widget _buildConnectedLayout(
+      BuildContext context, AppServiceWrapper wrapper) {
+    return ControllerPage(
+      resizeToAvoidBottomInset: false,
+      body: Column(
+        children: [
+          ConnectionHeader(
+            connectionStatus: wrapper.connectionStatus,
+            connect: wrapper.connect,
+            cancelSearch: wrapper.cancelSearch,
+            disconnect: wrapper.disconnect,
+            turnOffPc: wrapper.turnOffPc,
+          ),
+          const SizedBox(height: 24),
+          _buildBody(context, wrapper),
+        ],
+      ),
+      stackedBody: wrapper.connectionStatus == ServerConnector.CONNECTED
+          ? const Positioned.fill(
+              child: ShortcutsSheet(),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildBody(BuildContext context, AppServiceWrapper wrapper) {
+    if (wrapper.connectionStatus == ServerConnector.SEARCHING) {
+      final appColors = Theme.of(context).extension<AppColors>()!;
+      return Expanded(
+        child: Center(
+          child: CircularProgressIndicator.adaptive(
+            backgroundColor: appColors.text,
+          ),
+        ),
+      );
+    }
+    final bottomInset =
+        (MediaQuery.of(context).size.height * 0.12).clamp(80.0, 112.0);
+
+    return Expanded(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomInset.toDouble()),
+        child: Column(
           children: [
-            ConnectionHeader(
-              connectionStatus: wrapper.connectionStatus,
-              connect: wrapper.connect,
-              cancelSearch: wrapper.cancelSearch,
-              disconnect: wrapper.disconnect,
-              turnOffPc: wrapper.turnOffPc,
+            MousePad(fullscreen: false, sensitivity: sensitivity),
+            const SizedBox(height: 28),
+            CommandBtns(
+              sensitivity: sensitivity,
+              onSensitivityChanged: _updateSensitivity,
             ),
-            const SizedBox(
-              height: 23,
-            ),
-
-            // PAGE BODY
-            () {
-              // NOT CONNECTED
-              if (wrapper.connectionStatus == ServerConnector.NOT_CONNECTED) {
-                return Expanded(
-                  child: Center(
-                      child: Image.asset("assets/images/NoConnection.png")),
-                );
-
-                // LOOKING
-              } else if (wrapper.connectionStatus ==
-                  ServerConnector.SEARCHING) {
-                final appColors = Theme.of(context).extension<AppColors>()!;
-                return Expanded(
-                  child: Center(
-                    child: CircularProgressIndicator.adaptive(
-                      backgroundColor: appColors.text,
-                    ),
-                  ),
-                );
-
-                // CONNECTED
-              } else {
-                return Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        MousePad(
-                          fullscreen: false,
-                          sensitivity: sensitivity,
-                        ),
-                        const SizedBox(height: 15),
-                        CommandBtns(
-                            sensitivity: sensitivity,
-                            onSensitivityChanged: _updateSensitivity,
-                            onShowShortcutsSheet: () {
-                              setState(() {
-                                showShortcutsScrollableSheet = true;
-                              });
-                            }),
-                      ],
-                    ),
-                  ),
-                );
-              }
-            }()
-            // BODY
+            const Spacer(),
           ],
         ),
-        stackedBody:
-            // SCROLABLE SHORTCUTS
-            Visibility(
-                visible: showShortcutsScrollableSheet,
-                child: Positioned(
-                  bottom: 0,
-                  right: 0,
-                  left: 0,
-                  // Propagates changes to widgets in the tree
-                  child: ShortcutsSheet(
-                    isVisible: showShortcutsScrollableSheet,
-                    closeScrollableSheets: () {
-                      setState(() {
-                        showShortcutsScrollableSheet = false;
-                      });
-                    },
-                  ),
-                )),
       ),
     );
   }
