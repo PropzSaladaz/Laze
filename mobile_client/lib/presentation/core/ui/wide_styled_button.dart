@@ -65,13 +65,17 @@ class WideStyledButton extends StatelessWidget {
         )
         :
         TextButton(
-          onPressed: onPressed, 
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+          ),
           child: Text(
             text!,  // assert non-null - if icon is null then we must have text
             style: TextStyle(
               color: textColor,
               fontSize: fontSize,
               fontWeight: fontWeight,
+              fontFamily: 'NunitoSans',
             ),
           )
         ),
