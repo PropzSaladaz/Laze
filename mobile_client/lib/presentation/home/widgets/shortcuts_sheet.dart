@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:laze/data/services/input.dart';
 import 'package:laze/domain/models/shortcut/shortcut.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
-import 'package:laze/presentation/core/ui/cta_button.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/home/view_models/home_viewmodel.dart';
 import 'package:laze/presentation/home/widgets/shortcut_icon.dart';
@@ -19,8 +18,12 @@ class ShortcutsSheet extends StatefulWidget {
 }
 
 class _ShortcutsSheetState extends State<ShortcutsSheet> {
+  static const double _collapsedSheetSize = 0.15;
+  static const double _expandedSheetSize = 0.6;
+  static const double _expansionThreshold = 0.18;
+
   late final DraggableScrollableController _controller;
-  double _currentSheetSize = 0.15;
+  bool _isExpanded = false;
 
   @override
   void initState() {
@@ -40,18 +43,20 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
       builder: (context, viewModel, child) {
         return NotificationListener<DraggableScrollableNotification>(
           onNotification: (notification) {
-            if (_currentSheetSize != notification.extent) {
+            final shouldExpand = notification.extent > _expansionThreshold;
+            if (_isExpanded != shouldExpand) {
               setState(() {
-                _currentSheetSize = notification.extent;
+                _isExpanded = shouldExpand;
               });
             }
             return false;
           },
           child: DraggableScrollableSheet(
             controller: _controller,
-            initialChildSize: 0.15,
-            minChildSize: 0.15,
-            maxChildSize: 0.6,
+            initialChildSize: _collapsedSheetSize,
+            minChildSize: _collapsedSheetSize,
+            maxChildSize: _expandedSheetSize,
+            snap: true,
             builder: (context, scrollController) {
               return _buildShortcutsSheet(
                 context,
@@ -72,7 +77,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
   ) {
     final appColors = Theme.of(context).extension<AppColors>()!;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final isExpanded = _currentSheetSize > 0.18;
+    final isExpanded = _isExpanded;
 
     return Container(
       decoration: BoxDecoration(
@@ -126,11 +131,12 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
             ),
             color: appColors.bg,
           ),
-          child: CustomScrollView(
+          child: ListView(
             controller: scrollController,
-            slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.zero,
+            children: [
+              Padding(
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
                 child: Column(
                   children: [
@@ -185,84 +191,100 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                   ],
                 ),
               ),
-            ),
-            if (isExpanded)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    'Shortcuts',
-                    style: TextStyle(
-                      fontSize: 25,
-                      color: appColors.text,
-                    ),
+              if (isExpanded)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(48, 4, 48, 0),
+                  child: CustomPaint(
+                    painter: _DashedLinePainter(color: appColors.divider),
+                    child: const SizedBox(height: 1, width: double.infinity),
                   ),
                 ),
-              ),
-            if (isExpanded && viewModel.loadShortcuts.running)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            if (isExpanded &&
-                !viewModel.loadShortcuts.running &&
-                viewModel.loadShortcuts.error)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text(
-                    'Failed to load shortcuts.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: appColors.textMuted),
-                  ),
-                ),
-              ),
-            if (isExpanded &&
-                !viewModel.loadShortcuts.running &&
-                !viewModel.loadShortcuts.error)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 15,
-                    mainAxisSpacing: 15,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final shortcut = viewModel.shortcuts[index];
-                      return GestureDetector(
-                        onLongPressStart: (details) {
-                          _showOptionsMenu(
-                            context,
-                            viewModel,
-                            details.globalPosition,
-                            shortcut,
-                          );
-                        },
-                        child: ShortcutIcon(shortcut: shortcut),
+              if (isExpanded)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 18, 20, 20 + bottomPadding),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final listHeight =
+                          constraints.maxHeight.isFinite && constraints.maxHeight > 0
+                          ? constraints.maxHeight
+                          : MediaQuery.of(context).size.height * 0.22;
+
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            height: listHeight,
+                            child: _buildShortcutsContent(context, viewModel),
+                          ),
+                          // Temporarily disabled to isolate sheet jank
+                          // const SizedBox(height: 28),
+                          // CtaButton(
+                          //   icon: Icons.add,
+                          //   onPressed: _openShortcutsEditPage,
+                          // ),
+                        ],
                       );
                     },
-                    childCount: viewModel.shortcuts.length,
                   ),
                 ),
-              ),
-            if (isExpanded)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomPadding),
-                  child: CtaButton(
-                    text: 'Add Shortcut',
-                    onPressed: () {
-                      _openShortcutsEditPage();
-                    },
-                  ),
-                ),
-              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildShortcutsContent(
+    BuildContext context,
+    HomeViewModel viewModel,
+  ) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
+
+    if (viewModel.loadShortcuts.running) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (viewModel.loadShortcuts.error) {
+      return Center(
+        child: Text(
+          'Failed to load shortcuts.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: appColors.textMuted),
+        ),
+      );
+    }
+
+    if (viewModel.shortcuts.isEmpty) {
+      return Center(
+        child: Text(
+          'No shortcuts yet.',
+          style: TextStyle(color: appColors.textMuted),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      primary: false,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        crossAxisSpacing: 15,
+        mainAxisSpacing: 15,
+      ),
+      itemCount: viewModel.shortcuts.length,
+      itemBuilder: (context, index) {
+        final shortcut = viewModel.shortcuts[index];
+        return GestureDetector(
+          onLongPressStart: (details) {
+            _showOptionsMenu(
+              context,
+              viewModel,
+              details.globalPosition,
+              shortcut,
+            );
+          },
+          child: ShortcutIcon(shortcut: shortcut),
+        );
+      },
     );
   }
 
@@ -320,4 +342,30 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
       ),
     );
   }
+}
+
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+
+  const _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+
+    const dashWidth = 6.0;
+    const dashGap = 5.0;
+    double x = 0;
+    final y = size.height / 2;
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, y), Offset((x + dashWidth).clamp(0, size.width), y), paint);
+      x += dashWidth + dashGap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedLinePainter oldDelegate) => oldDelegate.color != color;
 }

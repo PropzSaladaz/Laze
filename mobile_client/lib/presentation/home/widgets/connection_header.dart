@@ -100,31 +100,6 @@ class ConnectionHeader extends StatelessWidget {
                       blurRadius: 12,
                     ),
                     BoxShadow(
-                      color: Color.fromRGBO(255, 255, 255, 0.18),
-                      offset: Offset(-31, -14),
-                      blurRadius: 14,
-                    ),
-                    BoxShadow(
-                      color: Color.fromRGBO(255, 255, 255, 0.01),
-                      offset: Offset(-49, -22),
-                      blurRadius: 15,
-                    ),
-                    BoxShadow(
-                      color: Color.fromRGBO(95, 95, 95, 0.012),
-                      offset: Offset(36, 4),
-                      blurRadius: 10,
-                    ),
-                    BoxShadow(
-                      color: Color.fromRGBO(95, 95, 95, 0.01),
-                      offset: Offset(23, 3),
-                      blurRadius: 9,
-                    ),
-                    BoxShadow(
-                      color: Color.fromRGBO(95, 95, 95, 0.05),
-                      offset: Offset(13, 1),
-                      blurRadius: 8,
-                    ),
-                    BoxShadow(
                       color: Color.fromRGBO(95, 95, 95, 0.09),
                       offset: Offset(6, 1),
                       blurRadius: 6,
