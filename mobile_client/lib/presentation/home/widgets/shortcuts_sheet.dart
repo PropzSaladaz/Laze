@@ -80,38 +80,38 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     final isExpanded = _isExpanded;
 
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.only(
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.only(
           topLeft: Radius.circular(82),
           topRight: Radius.circular(82),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: appColors.border.withValues(alpha: 0.01),
-            offset: const Offset(0, -19),
-            blurRadius: 5,
-          ),
-          BoxShadow(
-            color: appColors.border.withValues(alpha: 0.07),
-            offset: const Offset(0, -12),
-            blurRadius: 5,
-          ),
-          BoxShadow(
-            color: appColors.border.withValues(alpha: 0.23),
-            offset: const Offset(0, -7),
-            blurRadius: 4,
-          ),
-          BoxShadow(
-            color: appColors.border.withValues(alpha: 0.38),
-            offset: const Offset(0, -3),
-            blurRadius: 3,
-          ),
-          BoxShadow(
-            color: appColors.border.withValues(alpha: 0.44),
-            offset: const Offset(0, -1),
-            blurRadius: 2,
-          ),
-        ],
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: appColors.border.withValues(alpha: 0.01),
+        //     offset: const Offset(0, -19),
+        //     blurRadius: 5,
+        //   ),
+        //   BoxShadow(
+        //     color: appColors.border.withValues(alpha: 0.07),
+        //     offset: const Offset(0, -12),
+        //     blurRadius: 5,
+        //   ),
+        //   BoxShadow(
+        //     color: appColors.border.withValues(alpha: 0.23),
+        //     offset: const Offset(0, -7),
+        //     blurRadius: 4,
+        //   ),
+        //   BoxShadow(
+        //     color: appColors.border.withValues(alpha: 0.38),
+        //     offset: const Offset(0, -3),
+        //     blurRadius: 3,
+        //   ),
+        //   BoxShadow(
+        //     color: appColors.border.withValues(alpha: 0.44),
+        //     offset: const Offset(0, -1),
+        //     blurRadius: 2,
+        //   ),
+        // ],
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
@@ -119,6 +119,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
           topRight: Radius.circular(82),
         ),
         child: Container(
+          // child: Container(
           decoration: BoxDecoration(
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(82),
@@ -204,8 +205,8 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                   padding: EdgeInsets.fromLTRB(20, 18, 20, 20 + bottomPadding),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final listHeight =
-                          constraints.maxHeight.isFinite && constraints.maxHeight > 0
+                      final listHeight = constraints.maxHeight.isFinite &&
+                              constraints.maxHeight > 0
                           ? constraints.maxHeight
                           : MediaQuery.of(context).size.height * 0.22;
 
@@ -361,11 +362,13 @@ class _DashedLinePainter extends CustomPainter {
     double x = 0;
     final y = size.height / 2;
     while (x < size.width) {
-      canvas.drawLine(Offset(x, y), Offset((x + dashWidth).clamp(0, size.width), y), paint);
+      canvas.drawLine(
+          Offset(x, y), Offset((x + dashWidth).clamp(0, size.width), y), paint);
       x += dashWidth + dashGap;
     }
   }
 
   @override
-  bool shouldRepaint(_DashedLinePainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(_DashedLinePainter oldDelegate) =>
+      oldDelegate.color != color;
 }
