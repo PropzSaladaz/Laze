@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:laze/data/services/input.dart';
 import 'package:laze/domain/models/shortcut/shortcut.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
+import 'package:laze/presentation/core/ui/cta_button.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/home/view_models/home_viewmodel.dart';
 import 'package:laze/presentation/home/widgets/shortcut_icon.dart';
@@ -217,12 +218,11 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                             height: listHeight,
                             child: _buildShortcutsContent(context, viewModel),
                           ),
-                          // Temporarily disabled to isolate sheet jank
-                          // const SizedBox(height: 28),
-                          // CtaButton(
-                          //   icon: Icons.add,
-                          //   onPressed: _openShortcutsEditPage,
-                          // ),
+                          const SizedBox(height: 28),
+                          CtaButton(
+                            icon: Icons.add,
+                            onPressed: _openShortcutsEditPage,
+                          ),
                         ],
                       );
                     },
