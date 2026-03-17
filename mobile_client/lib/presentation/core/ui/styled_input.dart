@@ -10,6 +10,7 @@ class StyledInput extends StatelessWidget {
   final String? prefixText;
 
   final TextEditingController? controller;
+  final bool showCounter;
 
   const StyledInput({
     super.key,
@@ -18,6 +19,7 @@ class StyledInput extends StatelessWidget {
     this.hintText,
     this.prefixText,
     this.controller,
+    this.showCounter = false,
   });
 
   @override
@@ -41,8 +43,13 @@ class StyledInput extends StatelessWidget {
         ),
         fillColor: appColors.surface_2,
         prefixText: prefixText,
+        prefixStyle: TextStyle(
+          color: appColors.textMuted,
+          fontWeight: FontWeight.w400,
+        ),
         hintText: hintText,
         border: InputBorder.none,
+        counterText: showCounter ? null : '',
         hintStyle: TextStyle(
           color: appColors.textMuted,
           fontWeight: FontWeight.w300,
