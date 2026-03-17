@@ -26,12 +26,23 @@ class ShortcutInputRow extends StatefulWidget {
 class _ShortcutInputRowState extends State<ShortcutInputRow> {
   late TextEditingController _controller;
 
-  late String shortcutName = widget.initShortcutName ?? "";
-
   @override
   void initState() {
-    _controller = TextEditingController(text: shortcutName);
     super.initState();
+    _controller = TextEditingController(text: widget.initShortcutName ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant ShortcutInputRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextName = widget.initShortcutName ?? '';
+    if (nextName != _controller.text) {
+      _controller.value = _controller.value.copyWith(
+        text: nextName,
+        selection: TextSelection.collapsed(offset: nextName.length),
+        composing: TextRange.empty,
+      );
+    }
   }
 
   @override
@@ -43,46 +54,55 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: FractionallySizedBox(
-            alignment: Alignment.center,
-            widthFactor: 0.7,
+    const buttonHeight = 76.0;
+    const buttonWidth = 116.0;
+
+    return Container(
+      height: buttonHeight,
+      decoration: BoxDecoration(
+        color: appColors.border,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: appColors.text, width: 1),
+      ),
+      child: Row(
+        children: [
+          Expanded(
             child: TextField(
               controller: _controller,
-              cursorColor: appColors.textMuted,
-              style: const TextStyle(
-                fontSize: 39,
+              cursorColor: appColors.text,
+              maxLength: 64,
+              style: TextStyle(
+                color: appColors.text,
+                fontSize: 30,
                 fontWeight: FontWeight.w600,
               ),
-              decoration: const InputDecoration(
-                hintText: "Shortcut Name",
+              decoration: InputDecoration(
+                hintText: 'Shortcut Name...',
                 hintStyle: TextStyle(
+                  color: appColors.textMuted,
                   fontWeight: FontWeight.w300,
-                  fontSize: 32,
+                  fontSize: 26,
+                ),
+                border: InputBorder.none,
+                counterText: '',
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 18,
                 ),
               ),
               onChanged: widget.onNameChanged,
             ),
           ),
-        ),
-
-        /// ---- TAP TO CHANGE------
-        Column(
-          children: [
-            StyledButton(
-              icon: widget.initIcon,
-              onPressed: () => _openIconPicker(context),
-            ),
-            Text(
-              "Tap to change",
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        )
-      ],
+          StyledButton(
+            width: buttonWidth,
+            height: buttonHeight,
+            margin: EdgeInsets.zero,
+            iconSize: 30,
+            icon: widget.initIcon,
+            onPressed: () => _openIconPicker(context),
+          ),
+        ],
+      ),
     );
   }
 
@@ -90,9 +110,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
     showDialog(
       context: context,
       builder: (context) => IconPicker(
-        initialIcon: widget.initIcon, 
-        onIconSelected: widget.onIconSelected
-      ),
+          initialIcon: widget.initIcon, onIconSelected: widget.onIconSelected),
     );
   }
 }

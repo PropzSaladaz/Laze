@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:laze/core/os_config.dart';
 import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/core/themes/app_shadows.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
-import 'package:laze/presentation/core/ui/wide_styled_button.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
+import 'package:laze/presentation/core/ui/cta_button.dart';
 import 'package:laze/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
 import 'package:laze/presentation/new_shortcut/widgets/shortcut_input_row.dart';
 import 'package:laze/presentation/new_shortcut/widgets/terminal_command.dart';
@@ -17,116 +18,172 @@ class AddCustomShortcut extends StatelessWidget {
   Widget build(BuildContext context) {
     final shortcutVM = context.watch<AddCustomShortcutViewModel>();
     final appColors = Theme.of(context).extension<AppColors>()!;
-    final textTheme = Theme.of(context).textTheme;
+    final scale = Theme.of(context).extension<DesignScale>()!;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final isSaving = shortcutVM.saveShortcut.running;
 
     return ControllerPage(
       body: LayoutBuilder(
-        builder: (context, constraints) { 
-          return SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
+        builder: (context, constraints) {
+          return SizedBox(
+            height: constraints.maxHeight,
+            child: Padding(
+              padding: EdgeInsets.only(top: scale.spaceLg),
               child: Column(
                 children: [
                   Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Column(
+                    child: SingleChildScrollView(
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.fromLTRB(
+                          scale.spaceXl,
+                          scale.spaceXl,
+                          scale.spaceXl,
+                          scale.spaceXl,
+                        ),
+                        decoration: BoxDecoration(
+                          color: appColors.bg,
+                          borderRadius: BorderRadius.circular(36),
+                          border: Border.all(
+                            color: appColors.surface_1,
+                            width: 2,
+                          ),
+                          boxShadow: AppShadows.raisedControl,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 20.0),
-              
                             ShortcutInputRow(
-                                initShortcutName: shortcutVM.name,
-                                initIcon: shortcutVM.icon,
-                                onNameChanged: shortcutVM.setName,
-                                onIconSelected: shortcutVM.setIcon),
-              
-                            const SizedBox(height: 40.0),
-              
-                            Text(
-                              "Type the commands to run in the host machine's terminal",
-                              style: textTheme.titleSmall,
+                              initShortcutName: shortcutVM.name,
+                              initIcon: shortcutVM.icon,
+                              onNameChanged: shortcutVM.setName,
+                              onIconSelected: shortcutVM.setIcon,
                             ),
-              
-                            const SizedBox(height: 20.0),
-              
-                            // add input box for all supported OSes
-                            for (var os in SUPPORTED_OSES)
+                            SizedBox(height: scale.spaceXl),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: scale.spaceLg,
+                              ),
+                              child: Container(
+                                height: 1,
+                                color: appColors.divider,
+                              ),
+                            ),
+                            SizedBox(height: scale.spaceXl),
+                            Text(
+                              "Type the commands to run in the host machine:",
+                              style: TextStyle(
+                                color: appColors.textMuted,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: scale.spaceLg),
+                            for (final os in SUPPORTED_OSES)
                               TerminalCommandInput(
-                                  operativeSystemName: os.name,
-                                  initCommand: shortcutVM.commands.containsKey(os.name)
-                                      ? shortcutVM.commands[os.name]
-                                      : "",
-                                  onCommandUpdated: (newCommand) {
-                                    shortcutVM.setCommand(os.name, newCommand);
-                                  })
+                                operativeSystemName: os.name,
+                                initCommand: shortcutVM.commands.containsKey(
+                                  os.name,
+                                )
+                                    ? shortcutVM.commands[os.name]
+                                    : '',
+                                onCommandUpdated: (newCommand) {
+                                  shortcutVM.setCommand(os.name, newCommand);
+                                },
+                              ),
+                            SizedBox(height: scale.spaceMd),
+                            _FlatTestButton(
+                              onPressed: () {
+                                ServerConnector.sendInput(
+                                  Input.runCommand(shortcutVM.commands),
+                                );
+                              },
+                            ),
                           ],
                         ),
-              
-                        const SizedBox(height: 20.0),
-              
-                        // TEST COMMAND
-                        WideStyledButton(
-                          backgroundColor: appColors.surface_2,
-                          onPressed: () => {
-                            ServerConnector.sendInput(Input.runCommand(shortcutVM.commands))
-                          },
-                          text:  "Test Command",
-                          // textColor: ColorConstants.darkText,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-              
+                  SizedBox(height: scale.spaceXl),
                   Row(
                     children: [
-                      _expandedFractionalButton(
-                          text: "CANCEL",
-                          backgroundColor: appColors.muted,
-                          onPressed: () => Navigator.of(context).pop(),
-                      ),
-              
-                      _expandedFractionalButton(
-                          text: shortcutVM.isNew 
-                            ? "CREATE"
-                            : "SAVE",
-                          backgroundColor: appColors.primary,
+                      Expanded(
+                        child: CtaButton(
+                          text: 'CANCEL',
+                          widthFactor: 0.92,
+                          fontSize: 26,
+                          backgroundColor: appColors.bg,
+                          foregroundColor: appColors.onPrimary,
+                          borderColor: appColors.surface_1,
                           onPressed: () {
-                            shortcutVM.saveShortcut.execute();
-                            Navigator.of(context).pop();
+                            if (!isSaving) {
+                              Navigator.of(context).pop();
+                            }
                           },
+                        ),
+                      ),
+                      SizedBox(width: scale.spaceMd),
+                      Expanded(
+                        child: CtaButton(
+                          text: isSaving
+                              ? 'SAVING'
+                              : (shortcutVM.isNew ? 'CREATE' : 'SAVE'),
+                          widthFactor: 0.92,
+                          fontSize: 26,
+                          onPressed: () async {
+                            if (isSaving) {
+                              return;
+                            }
+                            await shortcutVM.saveShortcut.execute();
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),
+                  SizedBox(height: scale.spaceLg + bottomPadding),
                 ],
               ),
             ),
-          )
-        );
-        }
+          );
+        },
       ),
     );
   }
+}
 
-  Widget _expandedFractionalButton({
-    Color? backgroundColor,
-    required void Function() onPressed,
-    String? text 
-  }) {
-    return Expanded(
-      child: FractionallySizedBox(
-        widthFactor: 0.8,
-        child: WideStyledButton(
-          backgroundColor: backgroundColor,
-          onPressed: onPressed,
-          text: text,
-          // textColor: ColorConstants.darkText,
-          fontSize: 20,
-          fontWeight: FontWeight.w900,
+class _FlatTestButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _FlatTestButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: appColors.border,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: appColors.divider, width: 1),
+      ),
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+          shape: const StadiumBorder(),
+        ),
+        child: Text(
+          'TEST',
+          style: TextStyle(
+            color: appColors.textMuted,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            fontFamily: 'NunitoSans',
+          ),
         ),
       ),
     );
