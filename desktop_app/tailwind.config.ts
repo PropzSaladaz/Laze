@@ -52,6 +52,7 @@ const config: Config = {
       boxShadow: {
         low: '0 1px 2px 0 var(--color-shadow-low)',
         high: '0 10px 15px -3px var(--color-shadow-high), 0 4px 6px -4px var(--color-shadow-high)',
+        neumorphic: 'var(--shadow-neumorphic)',
       },
     },
   },
