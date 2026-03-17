@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/app_shadows.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 typedef Callback = void Function();
@@ -47,14 +48,6 @@ class _StyledLongButtonState extends State<StyledLongButton> {
   static const _minHoldMs = 150;
   static const _pressDownDuration = Duration(milliseconds: 60);
   static const _releaseUpDuration = Duration(milliseconds: 200);
-
-  static const _shadows = [
-    BoxShadow(color: Color.fromRGBO(255, 255, 255, 0.64), offset: Offset(-2, -1), blurRadius: 5),
-    BoxShadow(color: Color.fromRGBO(255, 255, 255, 0.57), offset: Offset(-8, -3), blurRadius: 9),
-    BoxShadow(color: Color.fromRGBO(255, 255, 255, 0.38), offset: Offset(-18, -8), blurRadius: 12),
-    BoxShadow(color: Color.fromRGBO(95, 95, 95, 0.09), offset: Offset(6, 1), blurRadius: 6),
-    BoxShadow(color: Color.fromRGBO(95, 95, 95, 0.1), offset: Offset(1, 0), blurRadius: 3),
-  ];
 
   @override
   void dispose() {
@@ -258,7 +251,7 @@ class _StyledLongButtonState extends State<StyledLongButton> {
         shape: BoxShape.rectangle,
         color: appColors.bg,
         borderRadius: BorderRadius.circular(50),
-        boxShadow: _shadows,
+        boxShadow: AppShadows.raisedControl,
       ),
       child: _buildLayout(context, appColors),
     );

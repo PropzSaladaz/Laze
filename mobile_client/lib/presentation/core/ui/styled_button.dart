@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/app_shadows.dart';
 import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
@@ -10,12 +11,20 @@ class StyledButton extends StatefulWidget {
   final IconData icon;
   final Callback onPressed;
   final bool isClicked;
+  final double? width;
+  final double? height;
+  final double? iconSize;
+  final EdgeInsetsGeometry margin;
 
   const StyledButton({
     super.key,
     required this.icon,
     required this.onPressed,
     this.isClicked = false,
+    this.width,
+    this.height,
+    this.iconSize,
+    this.margin = const EdgeInsets.all(10),
   });
 
   @override
@@ -30,14 +39,6 @@ class _StyledButtonState extends State<StyledButton> {
   static const _minHoldMs = 150;
   static const _pressDownDuration = Duration(milliseconds: 60);
   static const _releaseUpDuration = Duration(milliseconds: 200);
-
-  static const _shadows = [
-    BoxShadow(color: Color.fromRGBO(255, 255, 255, 0.84), offset: Offset(-2, -1), blurRadius: 5),
-    BoxShadow(color: Color.fromRGBO(255, 255, 255, 0.77), offset: Offset(-8, -3), blurRadius: 9),
-    BoxShadow(color: Color.fromRGBO(255, 255, 255, 0.68), offset: Offset(-18, -8), blurRadius: 12),
-    BoxShadow(color: Color.fromRGBO(95, 95, 95, 0.09), offset: Offset(6, 1), blurRadius: 6),
-    BoxShadow(color: Color.fromRGBO(95, 95, 95, 0.1), offset: Offset(1, 0), blurRadius: 3),
-  ];
 
   @override
   void dispose() {
@@ -74,20 +75,23 @@ class _StyledButtonState extends State<StyledButton> {
       onPointerCancel: (_) => setState(() => _isPressed = false),
       child: AnimatedContainer(
         duration: _isPressed ? _pressDownDuration : _releaseUpDuration,
-        margin: const EdgeInsets.all(10),
+        width: widget.width,
+        height: widget.height,
+        margin: widget.margin,
         decoration: BoxDecoration(
           color: widget.isClicked ? appColors.primary : appColors.bg,
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: widget.isClicked ? appColors.primary : appColors.border,
             width: 6,
           ),
-          boxShadow: flat ? null : _shadows,
+          boxShadow: flat ? null : AppShadows.raisedControl,
         ),
         child: IconButton(
           onPressed: widget.onPressed,
           icon: Icon(widget.icon),
-          iconSize: Dimens.icon.medium,
+          padding: EdgeInsets.zero,
+          iconSize: widget.iconSize ?? Dimens.icon.medium,
           color: widget.isClicked ? appColors.onPrimary : appColors.textMuted,
         ),
       ),
