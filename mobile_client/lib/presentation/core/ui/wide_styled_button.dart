@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/app_shadows.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 typedef Callback = void Function();
@@ -14,8 +15,6 @@ class WideStyledButton extends StatelessWidget {
 
   final Callback onPressed;
 
-
-
   const WideStyledButton({
     super.key,
     this.icon,
@@ -26,11 +25,8 @@ class WideStyledButton extends StatelessWidget {
     this.fontWeight,
     this.backgroundColor,
     required this.onPressed,
-  }) : assert(
-    (icon == null && text != null) ||
-    (icon != null && text == null),
-    "Either Icon is set, or text + tetColor is set, but not both"
-  );
+  }) : assert((icon == null && text != null) || (icon != null && text == null),
+            "Either Icon is set, or text + tetColor is set, but not both");
 
   @override
   Widget build(BuildContext context) {
@@ -41,44 +37,30 @@ class WideStyledButton extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(30.0)),
         color: backgroundColor,
-        boxShadow: [
-          BoxShadow(
-            color: appColors.shadowLow.withValues(alpha: 0.2),
-            spreadRadius: 3,
-            blurRadius: 6,
-            offset: const Offset(3, 2),
-          ),
-          BoxShadow(
-            color: appColors.shadowHigh,
-            spreadRadius: 4,
-            blurRadius: 7,
-            offset: const Offset(-5, -2),
-          ),
-        ],
+        boxShadow: AppShadows.raisedPanel(appColors),
       ),
-      child: icon != null ? 
-        IconButton(
-          onPressed: onPressed,
-          icon: Icon(icon),
-          iconSize: 60,
-          color: iconColor,
-        )
-        :
-        TextButton(
-          onPressed: onPressed,
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-          ),
-          child: Text(
-            text!,  // assert non-null - if icon is null then we must have text
-            style: TextStyle(
-              color: textColor,
-              fontSize: fontSize,
-              fontWeight: fontWeight,
-              fontFamily: 'NunitoSans',
-            ),
-          )
-        ),
+      child: icon != null
+          ? IconButton(
+              onPressed: onPressed,
+              icon: Icon(icon),
+              iconSize: 60,
+              color: iconColor,
+            )
+          : TextButton(
+              onPressed: onPressed,
+              style: TextButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+              ),
+              child: Text(
+                text!, // assert non-null - if icon is null then we must have text
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: fontSize,
+                  fontWeight: fontWeight,
+                  fontFamily: 'NunitoSans',
+                ),
+              )),
     );
   }
 }

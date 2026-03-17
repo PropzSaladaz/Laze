@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/app_shadows.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/services/server_connector.dart';
@@ -58,7 +59,8 @@ class ConnectionHeader extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: appColors.success,
                         shape: BoxShape.circle,
-                        border: Border.all(color: appColors.onSuccess, width: 3),
+                        border:
+                            Border.all(color: appColors.onSuccess, width: 3),
                       ),
                     ),
                   ],
@@ -83,33 +85,7 @@ class ConnectionHeader extends StatelessWidget {
                   color: appColors.error,
                   border: Border.all(color: appColors.onError, width: 6),
                   borderRadius: BorderRadius.circular(999),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color.fromRGBO(255, 255, 255, 0.64),
-                      offset: Offset(-2, -1),
-                      blurRadius: 5,
-                    ),
-                    BoxShadow(
-                      color: Color.fromRGBO(255, 255, 255, 0.57),
-                      offset: Offset(-8, -3),
-                      blurRadius: 9,
-                    ),
-                    BoxShadow(
-                      color: Color.fromRGBO(255, 255, 255, 0.38),
-                      offset: Offset(-18, -8),
-                      blurRadius: 12,
-                    ),
-                    BoxShadow(
-                      color: Color.fromRGBO(95, 95, 95, 0.09),
-                      offset: Offset(6, 1),
-                      blurRadius: 6,
-                    ),
-                    BoxShadow(
-                      color: Color.fromRGBO(95, 95, 95, 0.1),
-                      offset: Offset(1, 0),
-                      blurRadius: 3,
-                    ),
-                  ],
+                  boxShadow: AppShadows.raisedControl,
                 ),
                 child: IconButton(
                   onPressed: () => _handlePrimaryAction(context),

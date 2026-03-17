@@ -1,43 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/app_shadows.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 class CtaButton extends StatelessWidget {
   final String? text;
   final IconData? icon;
   final VoidCallback onPressed;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  final Color? borderColor;
+  final double widthFactor;
+  final double fontSize;
 
   const CtaButton({
     super.key,
     this.text,
     this.icon,
     required this.onPressed,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.borderColor,
+    this.widthFactor = 0.75,
+    this.fontSize = 38,
   }) : assert(
-    (text != null) != (icon != null),
-    'Provide either text or icon, not both',
-  );
+          (text != null) != (icon != null),
+          'Provide either text or icon, not both',
+        );
 
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
+    final resolvedBackground = backgroundColor ?? appColors.primary;
+    final resolvedForeground = foregroundColor ?? appColors.surface_1;
+    final resolvedBorder = borderColor ?? appColors.surface_1;
 
     final decoration = BoxDecoration(
-      color: appColors.primary,
+      color: resolvedBackground,
       borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: appColors.surface_1, width: 1),
-      boxShadow: const [
-        BoxShadow(color: Color.fromRGBO(255, 255, 255, 0.64), offset: Offset(-2,  -1), blurRadius: 5),
-        BoxShadow(color: Color.fromRGBO(255, 255, 255, 0.57), offset: Offset(-8,  -3), blurRadius: 9),
-        BoxShadow(color: Color.fromRGBO(255, 255, 255, 0.38), offset: Offset(-18, -8), blurRadius: 12),
-        BoxShadow(color: Color.fromRGBO(95, 95, 95, 0.09),  offset: Offset(6,   1), blurRadius: 6),
-        BoxShadow(color: Color.fromRGBO(95, 95, 95, 0.1),   offset: Offset(1,   0), blurRadius: 3),
-      ],
+      border: Border.all(color: resolvedBorder, width: 1),
+      boxShadow: AppShadows.raisedControl,
     );
 
     if (icon != null) {
       return Align(
         alignment: Alignment.center,
         child: FractionallySizedBox(
-          widthFactor: 0.75,
+          widthFactor: widthFactor,
           child: Container(
             decoration: decoration,
             child: TextButton(
@@ -46,7 +54,7 @@ class CtaButton extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 26),
                 shape: const StadiumBorder(),
               ),
-              child: Icon(icon, color: appColors.surface_1, size: 32),
+              child: Icon(icon, color: resolvedForeground, size: 32),
             ),
           ),
         ),
@@ -56,7 +64,7 @@ class CtaButton extends StatelessWidget {
     return Align(
       alignment: Alignment.center,
       child: FractionallySizedBox(
-        widthFactor: 0.75,
+        widthFactor: widthFactor,
         child: Container(
           decoration: decoration,
           child: TextButton(
@@ -68,8 +76,8 @@ class CtaButton extends StatelessWidget {
             child: Text(
               text!,
               style: TextStyle(
-                color: appColors.surface_1,
-                fontSize: 38,
+                color: resolvedForeground,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w900,
                 fontFamily: 'NunitoSans',
               ),
