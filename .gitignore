@@ -40,9 +40,6 @@ mobile_client/ios/Pods/
 mobile_client/ios/.symlinks/
 mobile_client/ios/Podfile.lock
 
-# Generated Flutter files
-mobile_client/lib/presentation/core/themes/generated_theme.dart
-
 # --- Next.js / Node (Desktop App) ---
 desktop_app/node_modules/
 desktop_app/.next/
