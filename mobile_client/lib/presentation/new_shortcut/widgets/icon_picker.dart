@@ -47,7 +47,9 @@ class _IconPickerState extends State<IconPicker> {
                   widthFactor: 1,
                   child: Text(
                     "Choose an Icon",
-                    style: Theme.of(context).textTheme.headlineLarge,
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      color: appColors.textMuted,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 )),
