@@ -1,15 +1,12 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:laze/presentation/core/themes/app_shadows.dart';
 import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
-
-typedef Callback = void Function();
+import 'package:laze/presentation/core/ui/press_animation_mixin.dart';
 
 class StyledButton extends StatefulWidget {
   final IconData icon;
-  final Callback onPressed;
+  final VoidCallback onPressed;
   final bool isClicked;
   final double? width;
   final double? height;
@@ -31,50 +28,19 @@ class StyledButton extends StatefulWidget {
   State<StyledButton> createState() => _StyledButtonState();
 }
 
-class _StyledButtonState extends State<StyledButton> {
-  bool _isPressed = false;
-  DateTime? _pressedAt;
-  Timer? _releaseTimer;
-
-  static const _minHoldMs = 150;
-  static const _pressDownDuration = Duration(milliseconds: 60);
-  static const _releaseUpDuration = Duration(milliseconds: 200);
-
-  @override
-  void dispose() {
-    _releaseTimer?.cancel();
-    super.dispose();
-  }
-
-  void _onPointerDown() {
-    _releaseTimer?.cancel();
-    _pressedAt = DateTime.now();
-    setState(() => _isPressed = true);
-  }
-
-  void _onPointerUp() {
-    final elapsed = DateTime.now().difference(_pressedAt!).inMilliseconds;
-    final delay = _minHoldMs - elapsed;
-    if (delay > 0) {
-      _releaseTimer = Timer(Duration(milliseconds: delay), () {
-        if (mounted) setState(() => _isPressed = false);
-      });
-    } else {
-      setState(() => _isPressed = false);
-    }
-  }
-
+class _StyledButtonState extends State<StyledButton>
+    with PressAnimationMixin<StyledButton> {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
-    final flat = _isPressed || widget.isClicked;
+    final flat = isPressed || widget.isClicked;
 
     return Listener(
-      onPointerDown: (_) => _onPointerDown(),
-      onPointerUp: (_) => _onPointerUp(),
-      onPointerCancel: (_) => setState(() => _isPressed = false),
+      onPointerDown: (_) => handlePointerDown(),
+      onPointerUp: (_) => handlePointerUp(),
+      onPointerCancel: (_) => handlePointerCancel(),
       child: AnimatedContainer(
-        duration: _isPressed ? _pressDownDuration : _releaseUpDuration,
+        duration: isPressed ? pressDownDuration : pressUpDuration,
         width: widget.width,
         height: widget.height,
         margin: widget.margin,
@@ -82,7 +48,7 @@ class _StyledButtonState extends State<StyledButton> {
           color: widget.isClicked ? appColors.primary : appColors.bg,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: widget.isClicked ? appColors.primary : appColors.border,
+            color: appColors.border,
             width: 6,
           ),
           boxShadow: flat ? null : AppShadows.raisedControl,
@@ -92,7 +58,7 @@ class _StyledButtonState extends State<StyledButton> {
           icon: Icon(widget.icon),
           padding: EdgeInsets.zero,
           iconSize: widget.iconSize ?? Dimens.icon.medium,
-          color: widget.isClicked ? appColors.onPrimary : appColors.textMuted,
+          color: widget.isClicked ? appColors.textInverse : appColors.textMuted,
         ),
       ),
     );
