@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/presentation/home/view_models/home_viewmodel.dart';
-import 'package:laze/services/server_connector.dart';
 import 'package:laze/services/app_service_wrapper.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/home/widgets/connection_header.dart';
+import 'package:laze/services/app_connection_status.dart';
 import 'package:laze/presentation/home/widgets/not_connected_screen.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/home/widgets/mousepad.dart';
@@ -24,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int sensitivity = 5; // Default sensitivity
   late final HomeViewModel _viewModel;
+  final ValueNotifier<String> _feedbackNotifier = ValueNotifier('...');
 
   @override
   void initState() {
@@ -40,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _feedbackNotifier.dispose();
     _viewModel.dispose();
     super.dispose();
   }
@@ -69,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return ChangeNotifierProvider<HomeViewModel>.value(
       value: _viewModel,
-      child: wrapper.connectionStatus == ServerConnector.NOT_CONNECTED
+      child: wrapper.connectionStatus == AppConnectionStatus.notConnected
           ? NotConnectedScreen(
               onConnect: wrapper.connect,
               onOpenSettings: () => Navigator.pushNamed(context, '/settings'),
@@ -95,16 +97,16 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildBody(context, wrapper),
         ],
       ),
-      stackedBody: wrapper.connectionStatus == ServerConnector.CONNECTED
-          ? const Positioned.fill(
-              child: ShortcutsSheet(),
+      stackedBody: wrapper.connectionStatus == AppConnectionStatus.connected
+          ? Positioned.fill(
+              child: ShortcutsSheet(feedbackNotifier: _feedbackNotifier),
             )
           : null,
     );
   }
 
   Widget _buildBody(BuildContext context, AppServiceWrapper wrapper) {
-    if (wrapper.connectionStatus == ServerConnector.SEARCHING) {
+    if (wrapper.connectionStatus == AppConnectionStatus.searching) {
       final appColors = Theme.of(context).extension<AppColors>()!;
       return Expanded(
         child: Center(
@@ -127,6 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
             CommandBtns(
               sensitivity: sensitivity,
               onSensitivityChanged: _updateSensitivity,
+              feedbackNotifier: _feedbackNotifier,
             ),
             const Spacer(),
           ],

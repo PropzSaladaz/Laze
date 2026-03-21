@@ -16,11 +16,13 @@ final class _CommandControlSizes {
 class CommandBtns extends StatelessWidget {
   final int sensitivity;
   final ValueChanged<int> onSensitivityChanged;
+  final ValueNotifier<String>? feedbackNotifier;
 
   const CommandBtns({
     super.key,
     required this.sensitivity,
     required this.onSensitivityChanged,
+    this.feedbackNotifier,
   });
 
   @override
@@ -36,9 +38,11 @@ class CommandBtns extends StatelessWidget {
             iconDown: Icons.keyboard_arrow_down_rounded,
             onPressedUp: () {
               ServerConnector.sendInput(Input.volumeUp());
+              feedbackNotifier?.value = 'VOL ▲';
             },
             onPressedDown: () {
               ServerConnector.sendInput(Input.volumeDown());
+              feedbackNotifier?.value = 'VOL ▼';
             },
             description: 'VOL',
             vertical: true,
@@ -47,19 +51,22 @@ class CommandBtns extends StatelessWidget {
             iconSize: _CommandControlSizes.sideButtonIconSize,
             descriptionFontSize: _CommandControlSizes.sideButtonLabelSize,
           ),
-          const KeyboardButton(
+          KeyboardButton(
             width: _CommandControlSizes.centerPanelWidth,
             height: _CommandControlSizes.centerPanelHeight,
+            feedbackNotifier: feedbackNotifier,
           ),
           StyledLongButton(
             iconUp: Icons.keyboard_arrow_up_rounded,
             iconDown: Icons.keyboard_arrow_down_rounded,
             onPressedUp: () {
               onSensitivityChanged(sensitivity + 1);
+              feedbackNotifier?.value = 'SEN: ${sensitivity + 1}';
             },
             onPressedDown: () {
               if (sensitivity > 1) {
                 onSensitivityChanged(sensitivity - 1);
+                feedbackNotifier?.value = 'SEN: ${sensitivity - 1}';
               }
             },
             description: 'SEN',

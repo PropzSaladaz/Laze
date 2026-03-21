@@ -12,7 +12,9 @@ import 'package:laze/services/server_connector.dart';
 import 'package:provider/provider.dart';
 
 class ShortcutsSheet extends StatefulWidget {
-  const ShortcutsSheet({super.key});
+  final ValueNotifier<String>? feedbackNotifier;
+
+  const ShortcutsSheet({super.key, this.feedbackNotifier});
 
   @override
   State<ShortcutsSheet> createState() => _ShortcutsSheetState();
@@ -160,30 +162,35 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                             icon: Icons.volume_off,
                             onPressed: () {
                               ServerConnector.sendInput(Input.mute());
+                              widget.feedbackNotifier?.value = 'Muted';
                             },
                           ),
                           StyledButton(
                             icon: Icons.skip_previous,
                             onPressed: () {
                               ServerConnector.sendInput(Input.previousTab());
+                              widget.feedbackNotifier?.value = 'Prev Tab';
                             },
                           ),
                           StyledButton(
                             icon: Icons.pause,
                             onPressed: () {
                               ServerConnector.sendInput(Input.pause());
+                              widget.feedbackNotifier?.value = 'Paused';
                             },
                           ),
                           StyledButton(
                             icon: Icons.skip_next,
                             onPressed: () {
                               ServerConnector.sendInput(Input.nextTab());
+                              widget.feedbackNotifier?.value = 'Next Tab';
                             },
                           ),
                           StyledButton(
                             icon: Icons.close,
                             onPressed: () {
                               ServerConnector.sendInput(Input.closeTab());
+                              widget.feedbackNotifier?.value = 'Tab Closed';
                             },
                           ),
                         ],
@@ -283,7 +290,10 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
               shortcut,
             );
           },
-          child: ShortcutIcon(shortcut: shortcut),
+          child: ShortcutIcon(
+                shortcut: shortcut,
+                feedbackNotifier: widget.feedbackNotifier,
+              ),
         );
       },
     );
