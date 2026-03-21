@@ -158,6 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               children: [
                                 Expanded(
                                   child: SingleChildScrollView(
+                                    clipBehavior: Clip.none,
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -175,9 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                               color: appColors.divider,
                                               width: 1,
                                             ),
-                                            boxShadow: AppShadows.surfaceCard(
-                                              appColors,
-                                            ),
+                                            boxShadow: AppShadows.raisedControl,
                                           ),
                                           child: Column(
                                             crossAxisAlignment:
