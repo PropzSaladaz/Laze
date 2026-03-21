@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:laze/data/dto/server_event.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/data/services/input.dart';
+import 'package:laze/services/app_connection_status.dart';
 import 'package:laze/services/server_connector.dart';
 import 'package:laze/services/volume_service.dart';
 
@@ -9,7 +10,7 @@ class AppServiceWrapper extends ChangeNotifier {
   final VolumeService _volumeService = VolumeService();
   final DeviceSettingsRepository _deviceSettings;
 
-  String connectionStatus = ServerConnector.NOT_CONNECTED;
+  AppConnectionStatus connectionStatus = AppConnectionStatus.notConnected;
   String? errorMessage;
 
   bool _isInit = false;
@@ -34,12 +35,12 @@ class AppServiceWrapper extends ChangeNotifier {
     _volumeService.start(ServerConnector.sendInput);
   }
 
-  void _setConnectionState(String state) {
+  void _setConnectionState(AppConnectionStatus state) {
     connectionStatus = state;
     notifyListeners();
   }
 
-  String _getConnectionState() {
+  AppConnectionStatus _getConnectionState() {
     return connectionStatus;
   }
 
@@ -50,7 +51,7 @@ class AppServiceWrapper extends ChangeNotifier {
 
   void _onServerEvent(ServerEvent event) {
     _volumeService.setDisconnected();
-    connectionStatus = ServerConnector.NOT_CONNECTED;
+    connectionStatus = AppConnectionStatus.notConnected;
     errorMessage = event.description;
     notifyListeners();
   }
@@ -61,33 +62,33 @@ class AppServiceWrapper extends ChangeNotifier {
   }
 
   Future<bool> connect() async {
-    _setConnectionState(ServerConnector.SEARCHING);
+    _setConnectionState(AppConnectionStatus.searching);
     final success = await ServerConnector.findServer();
     if (success) {
       _volumeService.setConnected();
-      _setConnectionState(ServerConnector.CONNECTED);
+      _setConnectionState(AppConnectionStatus.connected);
     } else {
-      _setConnectionState(ServerConnector.NOT_CONNECTED);
+      _setConnectionState(AppConnectionStatus.notConnected);
     }
     return success;
   }
 
   void cancelSearch() {
-    _setConnectionState(ServerConnector.NOT_CONNECTED);
+    _setConnectionState(AppConnectionStatus.notConnected);
   }
 
   void disconnect() {
     _volumeService.setDisconnected();
     ServerConnector.sendInput(Input.disconnect());
     ServerConnector.disconnect();
-    _setConnectionState(ServerConnector.NOT_CONNECTED);
+    _setConnectionState(AppConnectionStatus.notConnected);
   }
 
   void turnOffPc() {
     _volumeService.setDisconnected();
     ServerConnector.sendInput(Input.shutdown());
     ServerConnector.disconnect();
-    _setConnectionState(ServerConnector.NOT_CONNECTED);
+    _setConnectionState(AppConnectionStatus.notConnected);
   }
 
   @override
