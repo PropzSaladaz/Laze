@@ -82,11 +82,18 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final isExpanded = _isExpanded;
 
+    final borderColor = appColors.bg.computeLuminance() > 0.5
+        ? Colors.white
+        : appColors.surface_3;
+
     return Container(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(82),
           topRight: Radius.circular(82),
+        ),
+        border: Border(
+          top: BorderSide(color: borderColor, width: 3),
         ),
         // boxShadow: [
         //   BoxShadow(
@@ -127,11 +134,6 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(82),
               topRight: Radius.circular(82),
-            ),
-            border: Border(
-              left: BorderSide(color: appColors.textInverse, width: 3),
-              top: BorderSide(color: appColors.textInverse, width: 3),
-              right: BorderSide(color: appColors.textInverse, width: 3),
             ),
             color: appColors.bg,
           ),

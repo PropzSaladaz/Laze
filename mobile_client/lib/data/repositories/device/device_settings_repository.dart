@@ -102,6 +102,43 @@ class DeviceSettingsRepository {
     _log.info('Device sensitivity set to: $value');
   }
 
+  /// Get whether scroll direction is reversed (natural = false)
+  Future<bool> getReverseScroll() async {
+    if (!_initialized) await init();
+    return _box.get('reverse_scroll') == 'true';
+  }
+
+  /// Set scroll direction
+  Future<void> setReverseScroll(bool value) async {
+    if (!_initialized) await init();
+    await _box.put('reverse_scroll', value.toString());
+  }
+
+  /// Get haptic feedback enabled (default true)
+  Future<bool> getHapticFeedback() async {
+    if (!_initialized) await init();
+    final value = _box.get('haptic_feedback');
+    return value == null || value == 'true';
+  }
+
+  /// Set haptic feedback enabled
+  Future<void> setHapticFeedback(bool value) async {
+    if (!_initialized) await init();
+    await _box.put('haptic_feedback', value.toString());
+  }
+
+  /// Get the saved theme option string (e.g. 'system', 'light', 'dark', 'black')
+  Future<String?> getThemeOption() async {
+    if (!_initialized) await init();
+    return _box.get('theme_option');
+  }
+
+  /// Persist the theme option string
+  Future<void> setThemeOption(String value) async {
+    if (!_initialized) await init();
+    await _box.put('theme_option', value);
+  }
+
   /// Clear all device settings
   Future<void> clear() async {
     if (!_initialized) return;

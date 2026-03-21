@@ -2,33 +2,63 @@ import 'package:flutter/material.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 abstract final class AppShadows {
-  static const List<BoxShadow> raisedControl = [
-    BoxShadow(
-      color: Color.fromRGBO(255, 255, 255, 0.84),
-      offset: Offset(-2, -1),
-      blurRadius: 5,
-    ),
-    BoxShadow(
-      color: Color.fromRGBO(255, 255, 255, 0.77),
-      offset: Offset(-8, -3),
-      blurRadius: 9,
-    ),
-    BoxShadow(
-      color: Color.fromRGBO(255, 255, 255, 0.68),
-      offset: Offset(-18, -8),
-      blurRadius: 12,
-    ),
-    BoxShadow(
-      color: Color.fromRGBO(95, 95, 95, 0.09),
-      offset: Offset(6, 1),
-      blurRadius: 6,
-    ),
-    BoxShadow(
-      color: Color.fromRGBO(95, 95, 95, 0.1),
-      offset: Offset(1, 0),
-      blurRadius: 3,
-    ),
-  ];
+  static List<BoxShadow> raisedControl(AppColors appColors) {
+    final isLight = appColors.bg.computeLuminance() > 0.5;
+
+    if (isLight) {
+      return [
+        const BoxShadow(
+          color: Color.fromRGBO(255, 255, 255, 0.84),
+          offset: Offset(-2, -1),
+          blurRadius: 5,
+        ),
+        const BoxShadow(
+          color: Color.fromRGBO(255, 255, 255, 0.77),
+          offset: Offset(-8, -3),
+          blurRadius: 9,
+        ),
+        const BoxShadow(
+          color: Color.fromRGBO(255, 255, 255, 0.68),
+          offset: Offset(-18, -8),
+          blurRadius: 12,
+        ),
+        BoxShadow(
+          color: appColors.shadowLow.withValues(alpha: 0.09),
+          offset: const Offset(6, 1),
+          blurRadius: 6,
+        ),
+        BoxShadow(
+          color: appColors.shadowLow.withValues(alpha: 0.10),
+          offset: const Offset(1, 0),
+          blurRadius: 3,
+        ),
+      ];
+    }
+
+    // Dark / black themes: subtle surface highlight + drop shadow only.
+    return [
+      BoxShadow(
+        color: appColors.surface_3.withValues(alpha: 0.8),
+        offset: const Offset(-2, -1),
+        blurRadius: 5,
+      ),
+      BoxShadow(
+        color: appColors.surface_3.withValues(alpha: 0.5),
+        offset: const Offset(-8, -3),
+        blurRadius: 9,
+      ),
+      BoxShadow(
+        color: appColors.shadowLow.withValues(alpha: 0.35),
+        offset: const Offset(6, 1),
+        blurRadius: 6,
+      ),
+      BoxShadow(
+        color: appColors.shadowLow.withValues(alpha: 0.25),
+        offset: const Offset(1, 0),
+        blurRadius: 3,
+      ),
+    ];
+  }
 
   static List<BoxShadow> raisedPanel(AppColors appColors) => [
         BoxShadow(

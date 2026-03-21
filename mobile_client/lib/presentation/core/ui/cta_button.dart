@@ -47,7 +47,7 @@ class _CtaButtonState extends State<CtaButton>
       color: resolvedBackground,
       borderRadius: BorderRadius.circular(999),
       border: Border.all(color: resolvedBorder, width: widget.borderWidth),
-      boxShadow: isPressed ? null : AppShadows.raisedControl,
+      boxShadow: isPressed ? null : AppShadows.raisedControl(appColors),
     );
 
     Widget content;

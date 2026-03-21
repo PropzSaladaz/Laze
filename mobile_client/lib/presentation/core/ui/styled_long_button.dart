@@ -251,7 +251,7 @@ class _StyledLongButtonState extends State<StyledLongButton> {
         shape: BoxShape.rectangle,
         color: appColors.bg,
         borderRadius: BorderRadius.circular(50),
-        boxShadow: AppShadows.raisedControl,
+        boxShadow: AppShadows.raisedControl(appColors),
       ),
       child: _buildLayout(context, appColors),
     );
