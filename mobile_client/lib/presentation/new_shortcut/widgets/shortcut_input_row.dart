@@ -54,7 +54,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
-    const buttonHeight = 76.0;
+    const buttonHeight = 64.0;
     const buttonWidth = 116.0;
 
     return Container(
@@ -62,7 +62,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
       decoration: BoxDecoration(
         color: appColors.border,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: appColors.text, width: 1),
+        border: Border.all(color: appColors.border, width: 1),
       ),
       child: Row(
         children: [
@@ -72,7 +72,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
               cursorColor: appColors.text,
               maxLength: 64,
               style: TextStyle(
-                color: appColors.text,
+                color: appColors.textMuted,
                 fontSize: 30,
                 fontWeight: FontWeight.w600,
               ),
@@ -87,7 +87,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
                 counterText: '',
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 24,
-                  vertical: 18,
+                  vertical: 12,
                 ),
               ),
               onChanged: widget.onNameChanged,

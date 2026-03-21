@@ -61,10 +61,10 @@ class _TerminalCommandInputState extends State<TerminalCommandInput> {
           Container(
             decoration: BoxDecoration(
               color: appColors.surface_1,
-              borderRadius: const BorderRadius.all(Radius.circular(25.0)),
+              borderRadius: const BorderRadius.all(Radius.circular(16.0)),
               border: Border.all(color: appColors.divider, width: 1),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
             child: StyledInput(
               controller: _controller,
               prefixText: widget.prefixText ?? '\$ ',

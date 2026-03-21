@@ -30,9 +30,9 @@ class StyledInput extends StatelessWidget {
       controller: controller,
       style: TextStyle(
         fontFamily: 'monospace',
-        color: appColors.text,
+        color: appColors.textMuted,
       ),
-      cursorColor: appColors.text,
+      cursorColor: appColors.textMuted,
       onChanged: onInputUpdated,
       maxLength: 256,
       decoration: InputDecoration(

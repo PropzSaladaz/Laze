@@ -23,6 +23,7 @@ class AddCustomShortcut extends StatelessWidget {
     final isSaving = shortcutVM.saveShortcut.running;
 
     return ControllerPage(
+      resizeToAvoidBottomInset: false,
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SizedBox(
@@ -33,6 +34,7 @@ class AddCustomShortcut extends StatelessWidget {
                 children: [
                   Expanded(
                     child: SingleChildScrollView(
+                      clipBehavior: Clip.none,
                       child: Container(
                         width: double.infinity,
                         padding: EdgeInsets.fromLTRB(
@@ -78,7 +80,7 @@ class AddCustomShortcut extends StatelessWidget {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            SizedBox(height: scale.spaceLg),
+                            SizedBox(height: scale.spaceXl),
                             for (final os in SUPPORTED_OSES)
                               TerminalCommandInput(
                                 operativeSystemName: os.name,
@@ -91,7 +93,7 @@ class AddCustomShortcut extends StatelessWidget {
                                   shortcutVM.setCommand(os.name, newCommand);
                                 },
                               ),
-                            SizedBox(height: scale.spaceMd),
+                            SizedBox(height: scale.spaceXl),
                             _FlatTestButton(
                               onPressed: () {
                                 ServerConnector.sendInput(
@@ -111,9 +113,10 @@ class AddCustomShortcut extends StatelessWidget {
                         child: CtaButton(
                           text: 'CANCEL',
                           widthFactor: 0.92,
+                          borderWidth: 4,
                           fontSize: 26,
                           backgroundColor: appColors.bg,
-                          foregroundColor: appColors.onPrimary,
+                          foregroundColor: appColors.textMuted,
                           borderColor: appColors.surface_1,
                           onPressed: () {
                             if (!isSaving) {
@@ -173,8 +176,9 @@ class _FlatTestButton extends StatelessWidget {
       child: TextButton(
         onPressed: onPressed,
         style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
           shape: const StadiumBorder(),
+          overlayColor: appColors.text,
         ),
         child: Text(
           'TEST',
