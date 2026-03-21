@@ -12,6 +12,7 @@ class ConnectionHeader extends StatelessWidget {
   final Callback cancelSearch;
   final Callback disconnect;
   final Callback turnOffPc;
+  final Callback? onOpenSettings;
 
   const ConnectionHeader({
     super.key,
@@ -20,6 +21,7 @@ class ConnectionHeader extends StatelessWidget {
     required this.cancelSearch,
     required this.disconnect,
     required this.turnOffPc,
+    this.onOpenSettings,
   });
 
   @override
@@ -73,7 +75,11 @@ class ConnectionHeader extends StatelessWidget {
             children: [
               StyledButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/settings');
+                  if (onOpenSettings != null) {
+                    onOpenSettings!();
+                  } else {
+                    Navigator.pushNamed(context, '/settings');
+                  }
                 },
                 icon: Icons.settings,
               ),
@@ -85,7 +91,7 @@ class ConnectionHeader extends StatelessWidget {
                   color: appColors.error,
                   border: Border.all(color: appColors.onError, width: 6),
                   borderRadius: BorderRadius.circular(999),
-                  boxShadow: AppShadows.raisedControl,
+                  boxShadow: AppShadows.raisedControl(appColors),
                 ),
                 child: IconButton(
                   onPressed: () => _handlePrimaryAction(context),

@@ -50,7 +50,7 @@ class AddCustomShortcut extends StatelessWidget {
                             color: appColors.surface_1,
                             width: 2,
                           ),
-                          boxShadow: AppShadows.raisedControl,
+                          boxShadow: AppShadows.raisedControl(appColors),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

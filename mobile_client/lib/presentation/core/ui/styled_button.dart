@@ -51,7 +51,7 @@ class _StyledButtonState extends State<StyledButton>
             color: appColors.border,
             width: 6,
           ),
-          boxShadow: flat ? null : AppShadows.raisedControl,
+          boxShadow: flat ? null : AppShadows.raisedControl(appColors),
         ),
         child: IconButton(
           onPressed: widget.onPressed,

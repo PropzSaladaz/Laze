@@ -9,6 +9,7 @@ import 'package:laze/presentation/home/widgets/home_screen.dart';
 import 'package:laze/presentation/settings/settings_screen.dart';
 import 'package:laze/presentation/core/themes/app_theme.dart';
 import 'package:laze/services/app_service_wrapper.dart';
+import 'package:laze/services/theme_notifier.dart';
 import 'package:provider/provider.dart';
 
 void setupLogging() {
@@ -32,6 +33,9 @@ void main() async {
 
   // Await for all repository services
   final repositoryService = await RepositoryService.initializeLocal();
+  final themeNotifier = await ThemeNotifier.create(
+    repositoryService.deviceSettingsRepository,
+  );
 
   runApp(
     MultiProvider(
@@ -42,8 +46,9 @@ void main() async {
             deviceSettings: Provider.of<DeviceSettingsRepository>(context, listen: false),
           ),
         ),
+        ChangeNotifierProvider<ThemeNotifier>.value(value: themeNotifier),
       ],
-      child: const MyApp()
+      child: const MyApp(),
     ),
   );
 }
@@ -51,15 +56,15 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     debugPaintSizeEnabled = false;
+    final themeNotifier = context.watch<ThemeNotifier>();
     return MaterialApp(
       title: 'Flutter Demo',
       theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      darkTheme: themeNotifier.darkTheme,
+      themeMode: themeNotifier.themeMode,
       debugShowCheckedModeBanner: false,
       home: const HomeScreen(),
       routes: {

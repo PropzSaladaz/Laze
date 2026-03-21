@@ -22,21 +22,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int sensitivity = 5; // Default sensitivity
+  int sensitivity = 5;
   late final HomeViewModel _viewModel;
   final ValueNotifier<String> _feedbackNotifier = ValueNotifier('...');
 
   @override
   void initState() {
     super.initState();
-    final deviceSettings =
-        Provider.of<DeviceSettingsRepository>(context, listen: false);
-    _loadSensitivity(deviceSettings);
-
     _viewModel = HomeViewModel(
       shortcutsRepository:
           Provider.of<ShortcutsRepository>(context, listen: false),
     );
+    _loadSettings();
   }
 
   @override
@@ -46,13 +43,14 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _loadSensitivity(DeviceSettingsRepository settings) async {
-    final savedSensitivity = await settings.getSensitivity();
-    if (mounted) {
-      setState(() {
-        sensitivity = savedSensitivity;
-      });
-    }
+  Future<void> _loadSettings() async {
+    final deviceSettings =
+        Provider.of<DeviceSettingsRepository>(context, listen: false);
+    final newSensitivity = await deviceSettings.getSensitivity();
+    if (!mounted) return;
+    setState(() {
+      sensitivity = newSensitivity;
+    });
   }
 
   void _updateSensitivity(int newSensitivity) {
@@ -74,7 +72,8 @@ class _HomeScreenState extends State<HomeScreen> {
       child: wrapper.connectionStatus == AppConnectionStatus.notConnected
           ? NotConnectedScreen(
               onConnect: wrapper.connect,
-              onOpenSettings: () => Navigator.pushNamed(context, '/settings'),
+              onOpenSettings: () =>
+                  Navigator.pushNamed(context, '/settings').then((_) => _loadSettings()),
             )
           : _buildConnectedLayout(context, wrapper),
     );
@@ -92,6 +91,8 @@ class _HomeScreenState extends State<HomeScreen> {
             cancelSearch: wrapper.cancelSearch,
             disconnect: wrapper.disconnect,
             turnOffPc: wrapper.turnOffPc,
+            onOpenSettings: () =>
+                Navigator.pushNamed(context, '/settings').then((_) => _loadSettings()),
           ),
           const SizedBox(height: 24),
           _buildBody(context, wrapper),
@@ -124,7 +125,10 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: EdgeInsets.only(bottom: bottomInset.toDouble()),
         child: Column(
           children: [
-            MousePad(fullscreen: false, sensitivity: sensitivity),
+            MousePad(
+              fullscreen: false,
+              sensitivity: sensitivity,
+            ),
             const SizedBox(height: 28),
             CommandBtns(
               sensitivity: sensitivity,
