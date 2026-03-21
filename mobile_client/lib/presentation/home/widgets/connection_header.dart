@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:laze/presentation/core/themes/app_shadows.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
-import 'package:laze/services/server_connector.dart';
+import 'package:laze/services/app_connection_status.dart';
 
 typedef Callback = void Function();
 
 class ConnectionHeader extends StatelessWidget {
-  final String connectionStatus;
+  final AppConnectionStatus connectionStatus;
   final Callback connect;
   final Callback cancelSearch;
   final Callback disconnect;
@@ -44,14 +44,14 @@ class ConnectionHeader extends StatelessWidget {
               child: Row(
                 children: [
                   Text(
-                    connectionStatus,
+                    connectionStatus.label,
                     style: TextStyle(
                       color: appColors.textMuted,
                       fontSize: 30,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  if (connectionStatus == ServerConnector.CONNECTED) ...[
+                  if (connectionStatus == AppConnectionStatus.connected) ...[
                     const SizedBox(width: 8),
                     Container(
                       width: 17,
@@ -90,7 +90,7 @@ class ConnectionHeader extends StatelessWidget {
                 child: IconButton(
                   onPressed: () => _handlePrimaryAction(context),
                   icon: Icon(
-                    connectionStatus == ServerConnector.SEARCHING
+                    connectionStatus == AppConnectionStatus.searching
                         ? Icons.cancel
                         : Icons.power_settings_new,
                     color: appColors.textInverse,
@@ -107,7 +107,7 @@ class ConnectionHeader extends StatelessWidget {
   }
 
   void _handlePrimaryAction(BuildContext context) {
-    if (connectionStatus == ServerConnector.CONNECTED) {
+    if (connectionStatus == AppConnectionStatus.connected) {
       showDialog(
         context: context,
         builder: (dialogContext) => _disconnectPopup(dialogContext),
@@ -115,7 +115,7 @@ class ConnectionHeader extends StatelessWidget {
       return;
     }
 
-    if (connectionStatus == ServerConnector.SEARCHING) {
+    if (connectionStatus == AppConnectionStatus.searching) {
       cancelSearch();
       return;
     }
