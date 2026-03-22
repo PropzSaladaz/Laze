@@ -14,9 +14,9 @@ mixin PressAnimationMixin<T extends StatefulWidget> on State<T> {
   DateTime? _pressedAt;
   Timer? _releaseTimer;
 
-  static const int _minHoldMs = 150;
-  Duration get pressDownDuration => const Duration(milliseconds: 60);
-  Duration get pressUpDuration => const Duration(milliseconds: 200);
+  static const int _minHoldMs = 90;
+  Duration get pressDownDuration => const Duration(milliseconds: 45);
+  Duration get pressUpDuration => const Duration(milliseconds: 110);
 
   bool get isPressed => _isPressed;
 
