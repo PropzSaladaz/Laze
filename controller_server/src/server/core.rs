@@ -1,7 +1,11 @@
 use std::{
     io::Write,
     net::{SocketAddr, TcpStream},
-    sync::{mpsc::channel, Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc::channel,
+        Arc, Mutex,
+    },
     thread,
     time::Duration,
 };
@@ -152,7 +156,8 @@ pub struct Server<A: Application> {
 
     /// Indicates whether the server is currently listening to client requests.
     /// If false, the server will only accept requests from the server controller (tauri app).
-    listening_to_clients: bool,
+    /// Shared with the UDP input listener so it can gate motion dispatch on server state.
+    listening_to_clients: Arc<AtomicBool>,
 
     /// Indicates whether the server is currently terminating.
     terminate_signal: bool,
@@ -195,8 +200,13 @@ impl<A: Application + 'static> Server<A> {
         let app_arc = Arc::new(Mutex::new(app));
         let app_for_udp = Arc::clone(&app_arc);
 
+        // Shared flag: true while the server is accepting clients, false when stopped.
+        // Passed to the UDP listener so motion input is suppressed after StopServer.
+        let listening_flag = Arc::new(AtomicBool::new(false));
+        let listening_for_udp = Arc::clone(&listening_flag);
+
         // Start UDP input listener for mouse move and scroll
-        let udp_input_handle = match start_udp_input_listener(app_for_udp) {
+        let udp_input_handle = match start_udp_input_listener(app_for_udp, listening_for_udp) {
             Ok(handle) => {
                 Self::static_log_info(&format!(
                     "UDP input listener started on port {} (motion input)",
@@ -219,7 +229,7 @@ impl<A: Application + 'static> Server<A> {
                 clients,
                 config,
                 app: app_arc,
-                listening_to_clients: false,
+                listening_to_clients: listening_flag,
                 terminate_signal: false,
                 udp_input_port,
             }));
@@ -342,7 +352,7 @@ impl<A: Application + 'static> Server<A> {
         Self::static_log_info(&format!("{label} Received client connection"));
         let mut lock = server.lock().unwrap();
 
-        if lock.listening_to_clients {
+        if lock.listening_to_clients.load(Ordering::SeqCst) {
             Self::static_log_debug(&format!(
                 "{label} Received connection from address: {:?}",
                 addr
@@ -388,12 +398,12 @@ impl<A: Application + 'static> Server<A> {
         match req {
             ServerRequest::InitServer => {
                 // send response to the server
-                lock.listening_to_clients = true;
+                lock.listening_to_clients.store(true, Ordering::SeqCst);
                 Ok(ServerResponse::ServerStarted(ServerStarted {}))
             }
             ServerRequest::StopServer => {
                 // Stop accepting clients but keep threads alive for restart
-                lock.listening_to_clients = false;
+                lock.listening_to_clients.store(false, Ordering::SeqCst);
                 lock.clients.clear();
                 Ok(ServerResponse::ServerStopped(ServerStopped {}))
             }
