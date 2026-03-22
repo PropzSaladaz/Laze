@@ -1,56 +1,67 @@
 import 'package:flutter/material.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/themes/app_shadows.dart';
 import 'package:laze/presentation/core/themes/dimensions.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
+import 'package:laze/presentation/core/ui/press_animation_mixin.dart';
 
-typedef Callback = void Function();
-
-class StyledButton extends StatelessWidget {
+class StyledButton extends StatefulWidget {
   final IconData icon;
-  final Callback onPressed;
+  final VoidCallback onPressed;
   final bool isClicked;
+  final double? width;
+  final double? height;
+  final double? iconSize;
+  final EdgeInsetsGeometry margin;
+  final bool showShadow;
 
   const StyledButton({
     super.key,
     required this.icon,
     required this.onPressed,
     this.isClicked = false,
+    this.width,
+    this.height,
+    this.iconSize,
+    this.margin = const EdgeInsets.all(10),
+    this.showShadow = true,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final customColors = Theme.of(context).extension<CustomColors>();
-    final colorScheme = Theme.of(context).colorScheme;
+  State<StyledButton> createState() => _StyledButtonState();
+}
 
-    return Container(
-      margin: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isClicked ? Colors.blue : Theme.of(context).colorScheme.primary,
-        shape: BoxShape.circle,
-        // color: ColorConstants.background,
-        boxShadow: [
-          BoxShadow(
-            color:
-                customColors!.shadowColorDark.withOpacity(0.2), // Shadow color
-            spreadRadius: 2, // Spread radius
-            blurRadius: 7, // Blur radius
-            offset: const Offset(5, 2), // Offset (horizontal, vertical)
+class _StyledButtonState extends State<StyledButton>
+    with PressAnimationMixin<StyledButton> {
+  @override
+  Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
+    final flat = isPressed || widget.isClicked || !widget.showShadow;
+
+    return Listener(
+      onPointerDown: (_) => handlePointerDown(),
+      onPointerUp: (_) => handlePointerUp(),
+      onPointerCancel: (_) => handlePointerCancel(),
+      child: AnimatedContainer(
+        duration: isPressed ? pressDownDuration : pressUpDuration,
+        width: widget.width,
+        height: widget.height,
+        margin: widget.margin,
+        decoration: BoxDecoration(
+          color: widget.isClicked ? appColors.primary : appColors.bg,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: appColors.border,
+            width: 6,
           ),
-          BoxShadow(
-            color:
-                customColors.shadowColorBright.withOpacity(1), // Shadow color
-            spreadRadius: 4, // Spread radius
-            blurRadius: 7, // Blur radius
-            offset: const Offset(-5, -2), // Offset (horizontal, vertical)
-          ),
-        ],
-      ),
-      child: IconButton(
-        onPressed: onPressed,
-        icon: Icon(icon),
-        iconSize: Dimens.icon.large,
-        color: isClicked 
-        ? colorScheme.primary
-        : colorScheme.onPrimary,
+          boxShadow: flat ? null : AppShadows.raisedControl(appColors),
+        ),
+        child: IconButton(
+          onPressed: widget.onPressed,
+          icon: Icon(widget.icon),
+          padding: EdgeInsets.zero,
+          iconSize: widget.iconSize ?? Dimens.icon.medium,
+          color: widget.isClicked ? appColors.textInverse : appColors.textMuted,
+        ),
       ),
     );
   }

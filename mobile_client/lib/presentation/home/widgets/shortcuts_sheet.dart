@@ -1,241 +1,328 @@
 import 'package:flutter/material.dart';
+import 'package:laze/data/services/input.dart';
 import 'package:laze/domain/models/shortcut/shortcut.dart';
-import 'package:laze/presentation/core/ui/wide_styled_button.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
+import 'package:laze/presentation/core/ui/cta_button.dart';
+import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/home/view_models/home_viewmodel.dart';
+import 'package:laze/presentation/home/widgets/shortcut_icon.dart';
 import 'package:laze/presentation/new_shortcut/view_models/add_custom_shortcut_viewmodel.dart';
 import 'package:laze/presentation/new_shortcut/widgets/add_custom_shortcut.dart';
-import 'package:laze/presentation/home/widgets/shortcut_icon.dart';
+import 'package:laze/services/server_connector.dart';
 import 'package:provider/provider.dart';
 
 class ShortcutsSheet extends StatefulWidget {
-  final void Function() closeScrollableSheets;
-  final bool isVisible;
+  final ValueNotifier<String>? feedbackNotifier;
 
-  const ShortcutsSheet({
-    super.key,
-    required this.closeScrollableSheets,
-    required this.isVisible,
-  });
+  const ShortcutsSheet({super.key, this.feedbackNotifier});
 
   @override
   State<ShortcutsSheet> createState() => _ShortcutsSheetState();
 }
 
 class _ShortcutsSheetState extends State<ShortcutsSheet> {
-  late DraggableScrollableController _controller;
-  final double _closeThreshold = 0.2;
-  final double _defaultOpenSize = 0.4;
+  static const double _collapsedSheetSize = 0.15;
+  static const double _expandedSheetSize = 0.6;
+  static const double _expansionThreshold = 0.18;
 
-  // animation times
-  final _openAnimationTime = const Duration(milliseconds: 500);
-
-  bool _sheetIsFullyOpen = false;
-  bool _isClosingAnimation = false;
-
-  // Track sheet size for button visibility
-  double _currentSheetSize = 0.0;
+  late final DraggableScrollableController _controller;
+  bool _isExpanded = false;
 
   @override
   void initState() {
     super.initState();
     _controller = DraggableScrollableController();
-    _controller.addListener(_onScroll);
-
-    // animate sheet open next frame
-    WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onScroll);
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<HomeViewModel>(builder: (context, viewModel, child) {
-
-      // still fetching shortcuts - loading icon
-      if (viewModel.loadShortcuts.running) {
-        return const Center(child: CircularProgressIndicator());
-      }
-
-      // error fetching shortcuts - show error message
-      if (viewModel.loadShortcuts.error) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(
-                  viewModel.loadShortcuts.result!.asError.error.toString())));
-        });
-        return const SizedBox.shrink();
-      }
-
-      // shortcuts loaded - show shortcuts sheet
-      return _buildShortcutsSheet(context, viewModel);
-    });
+    return Consumer<HomeViewModel>(
+      builder: (context, viewModel, child) {
+        return NotificationListener<DraggableScrollableNotification>(
+          onNotification: (notification) {
+            final shouldExpand = notification.extent > _expansionThreshold;
+            if (_isExpanded != shouldExpand) {
+              setState(() {
+                _isExpanded = shouldExpand;
+              });
+            }
+            return false;
+          },
+          child: DraggableScrollableSheet(
+            controller: _controller,
+            initialChildSize: _collapsedSheetSize,
+            minChildSize: _collapsedSheetSize,
+            maxChildSize: _expandedSheetSize,
+            snap: true,
+            builder: (context, scrollController) {
+              return _buildShortcutsSheet(
+                context,
+                viewModel,
+                scrollController,
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 
-  Widget _buildShortcutsSheet(BuildContext context, HomeViewModel viewModel) {
-    final customColors = Theme.of(context).extension<CustomColors>();
+  Widget _buildShortcutsSheet(
+    BuildContext context,
+    HomeViewModel viewModel,
+    ScrollController scrollController,
+  ) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    
-    return SizedBox(
-      height: MediaQuery.of(context).size.height,
-      child: NotificationListener<DraggableScrollableNotification>(
-        onNotification: (notification) {
-          setState(() {
-            _currentSheetSize = notification.extent;
-          });
-          return false;
-        },
-        child: DraggableScrollableSheet(
-          controller: _controller,
-          initialChildSize: 0.0,
-          minChildSize: 0,
-          maxChildSize: 0.6,
-          builder: (context, scrollController) {
-            return ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(30.0),
-                topRight: Radius.circular(30.0),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(30.0),
-                    topRight: Radius.circular(30.0),
-                  ),
-                  border: Border.all(
-                    width: 3.0,
-                    color: customColors!.border,
-                  ),
-                  color: Theme.of(context).colorScheme.surface,
-                ),
-                child: Stack(
+    final isExpanded = _isExpanded;
+
+    final borderColor = appColors.bg.computeLuminance() > 0.5
+        ? Colors.white
+        : appColors.surface_3;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(82),
+          topRight: Radius.circular(82),
+        ),
+        border: Border(
+          top: BorderSide(color: borderColor, width: 3),
+        ),
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: appColors.border.withValues(alpha: 0.01),
+        //     offset: const Offset(0, -19),
+        //     blurRadius: 5,
+        //   ),
+        //   BoxShadow(
+        //     color: appColors.border.withValues(alpha: 0.07),
+        //     offset: const Offset(0, -12),
+        //     blurRadius: 5,
+        //   ),
+        //   BoxShadow(
+        //     color: appColors.border.withValues(alpha: 0.23),
+        //     offset: const Offset(0, -7),
+        //     blurRadius: 4,
+        //   ),
+        //   BoxShadow(
+        //     color: appColors.border.withValues(alpha: 0.38),
+        //     offset: const Offset(0, -3),
+        //     blurRadius: 3,
+        //   ),
+        //   BoxShadow(
+        //     color: appColors.border.withValues(alpha: 0.44),
+        //     offset: const Offset(0, -1),
+        //     blurRadius: 2,
+        //   ),
+        // ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(82),
+          topRight: Radius.circular(82),
+        ),
+        child: Container(
+          // child: Container(
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(82),
+              topRight: Radius.circular(82),
+            ),
+            color: appColors.bg,
+          ),
+          child: ListView(
+            controller: scrollController,
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.zero,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+                child: Column(
                   children: [
-                    // Main content
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: 20.0,
-                          right: 20.0,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-
-                            // Render header if sheet is large enough
-                            if (_currentSheetSize > 0.08) 
-                              const SizedBox(
-                                height: 60,
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  child: Text(
-                                    "Shortcuts",
-                                    style: TextStyle(fontSize: 25.0),
-                                  ),
-                                ),
-                              ),
-                            
-                            
-                            Expanded(
-                              child: GridView(
-                                controller: scrollController,
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 4,
-                                  crossAxisSpacing: 15.0,
-                                  mainAxisSpacing: 15.0,
-                                ),
-                                children: viewModel.shortcuts.map((shortcut) {
-                                  return GestureDetector(
-                                    onLongPressStart: (details) {
-                                      _showOptionsMenu(context, viewModel,
-                                          details.globalPosition, shortcut);
-                                    },
-                                    child: ShortcutIcon(shortcut: shortcut),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ],
-                        ),
+                    Container(
+                      width: 110,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: appColors.divider,
+                        borderRadius: BorderRadius.circular(999),
                       ),
-
-                    // ADD BUTTON - inside sheet, shown only when sheet is open enough
-                    if (_currentSheetSize > 0.1)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 20.0 + bottomPadding,
-                        child: FractionallySizedBox(
-                          widthFactor: 0.8,
-                          alignment: Alignment.center,
-                          child: Center(
-                            child: WideStyledButton(
-                              icon: Icons.add,
-                              onPressed: () {
-                                _openShortcutsEditPage(context: context);
-                              },
-                              iconColor:
-                                  Theme.of(context).colorScheme.onSecondary,
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.secondary,
-                            ),
+                    ),
+                    const SizedBox(height: 14),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          StyledButton(
+                            icon: Icons.volume_off,
+                            onPressed: () {
+                              ServerConnector.sendInput(Input.mute());
+                              widget.feedbackNotifier?.value = 'Muted';
+                            },
                           ),
-                        ),
+                          StyledButton(
+                            icon: Icons.skip_previous,
+                            onPressed: () {
+                              ServerConnector.sendInput(Input.previousTab());
+                              widget.feedbackNotifier?.value = 'Prev Tab';
+                            },
+                          ),
+                          StyledButton(
+                            icon: Icons.pause,
+                            onPressed: () {
+                              ServerConnector.sendInput(Input.pause());
+                              widget.feedbackNotifier?.value = 'Paused';
+                            },
+                          ),
+                          StyledButton(
+                            icon: Icons.skip_next,
+                            onPressed: () {
+                              ServerConnector.sendInput(Input.nextTab());
+                              widget.feedbackNotifier?.value = 'Next Tab';
+                            },
+                          ),
+                          StyledButton(
+                            icon: Icons.close,
+                            onPressed: () {
+                              ServerConnector.sendInput(Input.closeTab());
+                              widget.feedbackNotifier?.value = 'Tab Closed';
+                            },
+                          ),
+                        ],
                       ),
+                    ),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
-            );
-          },
+              if (isExpanded)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(48, 4, 48, 0),
+                  child: CustomPaint(
+                    painter: _DashedLinePainter(color: appColors.divider),
+                    child: const SizedBox(height: 1, width: double.infinity),
+                  ),
+                ),
+              if (isExpanded)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 18, 20, 20 + bottomPadding),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final contentHeight = constraints.maxHeight.isFinite &&
+                              constraints.maxHeight > 0
+                          ? constraints.maxHeight
+                          : (MediaQuery.of(context).size.height * 0.34)
+                              .clamp(240.0, 360.0);
+
+                      return SizedBox(
+                        height: contentHeight,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: _buildShortcutsContent(context, viewModel),
+                            ),
+                            const SizedBox(height: 36),
+                            CtaButton(
+                              icon: Icons.add,
+                              onPressed: _openShortcutsEditPage,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // animate when slide down
-  void _onScroll() {
-    // Check constraints to start the animation
-    // 1. Sheet is open
-    // 2. Sheet size is less than the closing threshold
-    // 3. Closing animation isn't on yet
-    if (_sheetIsFullyOpen &&
-        _controller.size <= _closeThreshold &&
-        !_isClosingAnimation) {
-      setState(() {
-        _isClosingAnimation = true;
-      });
+  Widget _buildShortcutsContent(
+    BuildContext context,
+    HomeViewModel viewModel,
+  ) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
 
-      _controller
-          .animateTo(0,
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeInOut)
-          .then((_) => widget.closeScrollableSheets());
+    if (viewModel.loadShortcuts.running) {
+      return const Center(child: CircularProgressIndicator());
     }
+
+    if (viewModel.loadShortcuts.error) {
+      return Center(
+        child: Text(
+          'Failed to load shortcuts.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: appColors.textMuted),
+        ),
+      );
+    }
+
+    if (viewModel.shortcuts.isEmpty) {
+      return Center(
+        child: Text(
+          'No shortcuts yet.',
+          style: TextStyle(color: appColors.textMuted),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final crossAxisCount = width >= 520
+            ? 5
+            : width >= 420
+                ? 4
+                : width >= 320
+                    ? 3
+                    : 2;
+        final spacing = width >= 420 ? 10.0 : 8.0;
+
+        return GridView.builder(
+          primary: false,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+          ),
+          itemCount: viewModel.shortcuts.length,
+          itemBuilder: (context, index) {
+            final shortcut = viewModel.shortcuts[index];
+            return GestureDetector(
+              onLongPressStart: (details) {
+                _showOptionsMenu(
+                  context,
+                  viewModel,
+                  details.globalPosition,
+                  shortcut,
+                );
+              },
+              child: ShortcutIcon(
+                shortcut: shortcut,
+                feedbackNotifier: widget.feedbackNotifier,
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
-  void _onOpen() {
-    // This check is needed since the DraggableScrollableController is only attached
-    // after the DraggableScrollableSheet is built into the widget tree.
-    if (_controller.isAttached) {
-      _controller
-          .animateTo(_defaultOpenSize,
-              duration: _openAnimationTime, curve: Curves.easeInOut)
-          .then((_) {
-        _sheetIsFullyOpen = true;
-      });
-    } else {
-      // try again next frame
-      WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
-    }
-  }
-
-  void _showOptionsMenu(BuildContext context, HomeViewModel viewModel,
-      Offset position, Shortcut shortcut) async {
+  void _showOptionsMenu(
+    BuildContext context,
+    HomeViewModel viewModel,
+    Offset position,
+    Shortcut shortcut,
+  ) async {
     final result = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
@@ -244,7 +331,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
         position.dx,
         position.dy,
       ),
-      elevation: 20.0,
+      elevation: 20,
       items: [
         const PopupMenuItem<String>(
           value: 'edit',
@@ -257,24 +344,59 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
       ],
     );
 
+    if (!mounted) {
+      return;
+    }
+
     if (result == 'edit') {
-      _openShortcutsEditPage(context: context, shortcut: shortcut);
+      _openShortcutsEditPage(shortcut: shortcut);
     } else if (result == 'delete') {
       await viewModel.deleteShortcut.execute(shortcut);
     }
   }
 
-  void _openShortcutsEditPage(
-      {required BuildContext context, Shortcut? shortcut}) {
+  void _openShortcutsEditPage({Shortcut? shortcut}) {
     final model = context.read<HomeViewModel>();
 
     Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (_) => ChangeNotifierProvider(
-                  create: (_) => AddCustomShortcutViewModel(
-                      homeViewModel: model, shortcut: shortcut),
-                  child: const AddCustomShortcut(),
-                )));
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => AddCustomShortcutViewModel(
+            homeViewModel: model,
+            shortcut: shortcut,
+          ),
+          child: const AddCustomShortcut(),
+        ),
+      ),
+    );
   }
+}
+
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+
+  const _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+
+    const dashWidth = 6.0;
+    const dashGap = 5.0;
+    double x = 0;
+    final y = size.height / 2;
+    while (x < size.width) {
+      canvas.drawLine(
+          Offset(x, y), Offset((x + dashWidth).clamp(0, size.width), y), paint);
+      x += dashWidth + dashGap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedLinePainter oldDelegate) =>
+      oldDelegate.color != color;
 }

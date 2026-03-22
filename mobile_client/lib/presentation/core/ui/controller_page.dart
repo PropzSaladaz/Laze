@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 
 class ControllerPage extends StatelessWidget {
   final Widget body;
@@ -16,25 +16,42 @@ class ControllerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: resizeToAvoidBottomInset != null ? resizeToAvoidBottomInset! : true,
+      resizeToAvoidBottomInset:
+          resizeToAvoidBottomInset != null ? resizeToAvoidBottomInset! : true,
       appBar: AppBar(
         // backgroundColor: ColorConstants.background,
         toolbarHeight: 0,
       ),
-      body: Center(
-        child: Stack( // for scrollable shortcuts
-          children: [
-            // MAIN PAGE
-            Container(
-              padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 24, vertical: 24),
-              alignment: Alignment.topCenter,
-              child: body,
-            ),
-            if (stackedBody != null) stackedBody!,
-          ]
-        )
-      )
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: constraints.maxHeight,
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        padding: EdgeInsetsDirectional.symmetric(
+                          horizontal: Dimens.padding.screenHorizontal,
+                          vertical: Dimens.padding.screenVertical,
+                        ),
+                        alignment: Alignment.topCenter,
+                        child: body,
+                      ),
+                      if (stackedBody != null) stackedBody!,
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

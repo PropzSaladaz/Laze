@@ -12,11 +12,12 @@ import 'package:laze/data/dto/client_info_request.dart';
 import 'package:laze/data/dto/server_event.dart';
 import 'package:laze/data/repositories/server/server_cache_repository.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
+import 'package:laze/services/app_connection_status.dart';
 import 'package:laze/services/connection_status.dart';
 import 'package:laze/services/udp_discovery.dart';
 
-typedef CallbackSetStatus = void Function(String connectionStatus);
-typedef CallbackGetStatus = String Function();
+typedef CallbackSetStatus = void Function(AppConnectionStatus connectionStatus);
+typedef CallbackGetStatus = AppConnectionStatus Function();
 typedef CallbackOnError = void Function(String errorMessage);
 typedef CallbackOnServerEvent = void Function(ServerEvent event);
 
@@ -26,9 +27,6 @@ class ServerConnector {
   // for the specific server OS
   static late String _serverOS;
 
-  static const String NOT_CONNECTED = "NOT CONNECTED";
-  static const String CONNECTED = "CONNECTED";
-  static const String SEARCHING = "SEARCHING...";
 
   static const serverPort = 7878;
   // specifies the amount of tries in a row done
@@ -81,7 +79,7 @@ class ServerConnector {
   }
 
   static void disconnect() {
-    setConnectionStatus(NOT_CONNECTED);
+    setConnectionStatus(AppConnectionStatus.notConnected);
     // Cancel the event listener subscription
     _serverEventSubscription?.cancel();
     _serverEventSubscription = null;
@@ -132,11 +130,11 @@ class ServerConnector {
       String message = "You must be connected to a Wi-Fi network to search for servers.";
       _log.warning(message);
       onError(message);
-      setConnectionStatus(NOT_CONNECTED);
+      setConnectionStatus(AppConnectionStatus.notConnected);
       return false;
     }
 
-    setConnectionStatus(SEARCHING);
+    setConnectionStatus(AppConnectionStatus.searching);
 
     // Initialize cache
     await _initCache();
@@ -148,8 +146,8 @@ class ServerConnector {
     }
 
     // Check if user cancelled
-    if (getConnectionStatus() != SEARCHING) {
-      setConnectionStatus(NOT_CONNECTED);
+    if (getConnectionStatus() != AppConnectionStatus.searching) {
+      setConnectionStatus(AppConnectionStatus.notConnected);
       return false;
     }
 
@@ -160,8 +158,8 @@ class ServerConnector {
     }
 
     // Check if user cancelled
-    if (getConnectionStatus() != SEARCHING) {
-      setConnectionStatus(NOT_CONNECTED);
+    if (getConnectionStatus() != AppConnectionStatus.searching) {
+      setConnectionStatus(AppConnectionStatus.notConnected);
       return false;
     }
 
@@ -186,7 +184,7 @@ class ServerConnector {
       final result = await _tryDirectConnection(cached.ip, cached.port);
       if (result) {
         _log.info("Connected to cached server: ${cached.ip}");
-        setConnectionStatus(CONNECTED);
+        setConnectionStatus(AppConnectionStatus.connected);
         return true;
       }
     }
@@ -208,7 +206,7 @@ class ServerConnector {
     
     final connected = await _tryDirectConnection(result.ip, result.port);
     if (connected) {
-      setConnectionStatus(CONNECTED);
+      setConnectionStatus(AppConnectionStatus.connected);
       return true;
     }
 
@@ -281,8 +279,8 @@ class ServerConnector {
 
       for (int i = 0; i < totalLocalIpSuffixes; i++) {
         // if status has been changed - return right away & cancel further searching
-        if (getConnectionStatus() != SEARCHING) {
-          setConnectionStatus(NOT_CONNECTED);
+        if (getConnectionStatus() != AppConnectionStatus.searching) {
+          setConnectionStatus(AppConnectionStatus.notConnected);
           return false;
         }
 
@@ -298,12 +296,12 @@ class ServerConnector {
           switch (status) {
             case ConnectionEstablished():
               // halt search
-              setConnectionStatus(CONNECTED);
+              setConnectionStatus(AppConnectionStatus.connected);
               return true;
             case ConnectionRejectedByServer(reason: var r):
               _log.warning("Connection rejected by server. Reason: $r");
               // halt search
-              setConnectionStatus(NOT_CONNECTED);
+              setConnectionStatus(AppConnectionStatus.notConnected);
               return false;
             default:
               // any other type -> continue searching
@@ -313,7 +311,7 @@ class ServerConnector {
       }
     }
 
-    setConnectionStatus(NOT_CONNECTED);
+    setConnectionStatus(AppConnectionStatus.notConnected);
     return false;
   }
 
@@ -492,7 +490,7 @@ class ServerConnector {
       onDone: () {
         _log.info("Server connection closed");
         // Connection was closed by server
-        setConnectionStatus(NOT_CONNECTED);
+        setConnectionStatus(AppConnectionStatus.notConnected);
       },
       cancelOnError: false,
     );

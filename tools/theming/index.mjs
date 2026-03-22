@@ -4,7 +4,7 @@ import { generateNext } from './gen_next.mjs';
 import { generateFlutter } from './gen_flutter.mjs';
 
 const input = process.argv[2];
-const targetNext = 'desktop_app/app/src/theme';
+const targetNext = 'desktop_app/app';
 const targetFlutter = 'mobile_client/lib/presentation/core/themes';
 
 if (!input) {
@@ -14,6 +14,6 @@ if (!input) {
 
 const tokens = readTokens(input);
 generateNext(tokens, targetNext, input);
-// generateFlutter(tokens, targetFlutter, input);
+generateFlutter(tokens, targetFlutter, input);
 
 console.log('✅ All artifacts generated.');

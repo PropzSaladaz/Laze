@@ -91,64 +91,6 @@ double? _lerpDouble(num? a, num? b, double t) {
   a ??= 0.0; b ??= 0.0;
   return a * (1.0 - t) + b * t;
 }
-
-class AppTheme {
-  static ThemeData light = ThemeData(
-    brightness: Brightness.light,
-    colorScheme: ColorScheme(
-      brightness: Brightness.light,
-      primary: ${anyColorToFlutter(mapLight[scheme.primary])},
-      onPrimary: ${anyColorToFlutter(mapLight[scheme.onPrimary])},
-      secondary: ${anyColorToFlutter(mapLight[scheme.secondary])},
-      onSecondary: ${anyColorToFlutter(mapLight[scheme.onSecondary])},
-      background: ${anyColorToFlutter(mapLight[scheme.background])},
-      onBackground: ${anyColorToFlutter(mapLight[scheme.onBackground])},
-      surface: ${anyColorToFlutter(mapLight[scheme.surface])},
-      onSurface: ${anyColorToFlutter(mapLight[scheme.onSurface])},
-      error: ${anyColorToFlutter(mapLight[scheme.error])},
-      onError: ${anyColorToFlutter(mapLight[scheme.onError])},
-      surfaceVariant: ${anyColorToFlutter(mapLight[scheme.surfaceVariant])},
-      outline: ${anyColorToFlutter(mapLight[scheme.outline])},
-    ),
-    extensions: [
-      AppColors(
-${flat.map(t => `        ${camel(t.name)}: ${anyColorToFlutter(mapLight[t.name])},`).join('\n')}
-      ),
-      DesignScale(
-${Object.entries(space).map(([k,v]) => `        space${camelCap(k)}: ${Number(v)}.0,`).join('\n')}
-${Object.entries(radius).map(([k,v]) => `        radius${camelCap(k)}: ${Number(v)}.0,`).join('\n')}
-      ),
-    ],
-  );
-
-  static ThemeData dark = ThemeData(
-    brightness: Brightness.dark,
-    colorScheme: ColorScheme(
-      brightness: Brightness.dark,
-      primary: ${anyColorToFlutter(mapDark[scheme.primary])},
-      onPrimary: ${anyColorToFlutter(mapDark[scheme.onPrimary])},
-      secondary: ${anyColorToFlutter(mapDark[scheme.secondary])},
-      onSecondary: ${anyColorToFlutter(mapDark[scheme.onSecondary])},
-      background: ${anyColorToFlutter(mapDark[scheme.background])},
-      onBackground: ${anyColorToFlutter(mapDark[scheme.onBackground])},
-      surface: ${anyColorToFlutter(mapDark[scheme.surface])},
-      onSurface: ${anyColorToFlutter(mapDark[scheme.onSurface])},
-      error: ${anyColorToFlutter(mapDark[scheme.error])},
-      onError: ${anyColorToFlutter(mapDark[scheme.onError])},
-      surfaceVariant: ${anyColorToFlutter(mapDark[scheme.surfaceVariant])},
-      outline: ${anyColorToFlutter(mapDark[scheme.outline])},
-    ),
-    extensions: [
-      AppColors(
-${flat.map(t => `        ${camel(t.name)}: ${anyColorToFlutter(mapDark[t.name])},`).join('\n')}
-      ),
-      DesignScale(
-${Object.entries(space).map(([k,v]) => `        space${camelCap(k)}: ${Number(v)}.0,`).join('\n')}
-${Object.entries(radius).map(([k,v]) => `        radius${camelCap(k)}: ${Number(v)}.0,`).join('\n')}
-      ),
-    ],
-  );
-}
 `;
 
   ensureDir(outDir);

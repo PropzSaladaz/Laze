@@ -1,7 +1,7 @@
 // tools/next/gen_next.mjs
 import fs from 'fs';
 import path from 'path';
-import { readTokens, ensureDir, flattenColorTokens, anyColorToCss, banner } from './utils.mjs';
+import { ensureDir, flattenColorTokens, anyColorToCss, banner } from './utils.mjs';
 
 export function generateNext(tokens, outDir, srcName = 'tokens.json') {
   const { color = {}, space = {}, radius = {} } = tokens;
@@ -135,4 +135,3 @@ ${aliasLines.join('\n')}
   fs.writeFileSync(path.join(target, 'tailwind.preset.cjs'), tailwindPreset, 'utf8');
   fs.writeFileSync(path.join(target, 'tailwind.aliases.css'), aliasesCss, 'utf8');
 }
-
