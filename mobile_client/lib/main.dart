@@ -65,6 +65,8 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: themeNotifier.darkTheme,
       themeMode: themeNotifier.themeMode,
+      themeAnimationDuration: const Duration(milliseconds: 10),
+      themeAnimationCurve: Curves.easeOutCubic,
       debugShowCheckedModeBanner: false,
       home: const HomeScreen(),
       routes: {

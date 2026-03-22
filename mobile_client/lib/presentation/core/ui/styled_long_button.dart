@@ -45,9 +45,9 @@ class _StyledLongButtonState extends State<StyledLongButton> {
   Timer? _releaseUpTimer;
   Timer? _releaseDownTimer;
 
-  static const _minHoldMs = 150;
-  static const _pressDownDuration = Duration(milliseconds: 60);
-  static const _releaseUpDuration = Duration(milliseconds: 200);
+  static const _minHoldMs = 90;
+  static const _pressDownDuration = Duration(milliseconds: 45);
+  static const _releaseUpDuration = Duration(milliseconds: 110);
 
   @override
   void dispose() {

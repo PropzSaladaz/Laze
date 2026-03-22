@@ -17,20 +17,10 @@ abstract final class AppShadows {
           offset: Offset(-8, -3),
           blurRadius: 9,
         ),
-        const BoxShadow(
-          color: Color.fromRGBO(255, 255, 255, 0.68),
-          offset: Offset(-18, -8),
-          blurRadius: 12,
-        ),
         BoxShadow(
           color: appColors.shadowLow.withValues(alpha: 0.09),
           offset: const Offset(6, 1),
           blurRadius: 6,
-        ),
-        BoxShadow(
-          color: appColors.shadowLow.withValues(alpha: 0.10),
-          offset: const Offset(1, 0),
-          blurRadius: 3,
         ),
       ];
     }
@@ -51,11 +41,6 @@ abstract final class AppShadows {
         color: appColors.shadowLow.withValues(alpha: 0.35),
         offset: const Offset(6, 1),
         blurRadius: 6,
-      ),
-      BoxShadow(
-        color: appColors.shadowLow.withValues(alpha: 0.25),
-        offset: const Offset(1, 0),
-        blurRadius: 3,
       ),
     ];
   }
