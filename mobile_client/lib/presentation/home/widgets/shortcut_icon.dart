@@ -8,11 +8,13 @@ import 'package:laze/services/server_connector.dart';
 class ShortcutIcon extends StatelessWidget {
   final Shortcut shortcut;
   final ValueNotifier<String>? feedbackNotifier;
+  final bool showShadow;
 
   const ShortcutIcon({
     super.key,
     required this.shortcut,
     this.feedbackNotifier,
+    this.showShadow = true,
   });
 
   @override
@@ -23,6 +25,7 @@ class ShortcutIcon extends StatelessWidget {
       children: [
         StyledButton(
           icon: shortcut.icon,
+          showShadow: showShadow,
           onPressed: () {
             ServerConnector.sendInput(Input.runCommand(shortcut.commands));
             feedbackNotifier?.value = shortcut.name;
@@ -30,6 +33,9 @@ class ShortcutIcon extends StatelessWidget {
         ),
         Text(
           shortcut.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(color: appColors.textMuted),
         ),
       ],

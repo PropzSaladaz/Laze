@@ -12,6 +12,7 @@ class StyledButton extends StatefulWidget {
   final double? height;
   final double? iconSize;
   final EdgeInsetsGeometry margin;
+  final bool showShadow;
 
   const StyledButton({
     super.key,
@@ -22,6 +23,7 @@ class StyledButton extends StatefulWidget {
     this.height,
     this.iconSize,
     this.margin = const EdgeInsets.all(10),
+    this.showShadow = true,
   });
 
   @override
@@ -33,7 +35,7 @@ class _StyledButtonState extends State<StyledButton>
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
-    final flat = isPressed || widget.isClicked;
+    final flat = isPressed || widget.isClicked || !widget.showShadow;
 
     return Listener(
       onPointerDown: (_) => handlePointerDown(),

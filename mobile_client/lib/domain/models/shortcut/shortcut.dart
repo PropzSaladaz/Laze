@@ -6,6 +6,8 @@ import 'package:uuid/uuid.dart';
 // part 'shortcut.g.dart';
 
 class Shortcut {
+    static const int maxNameLength = 18;
+
     final String _id;
     final IconData icon;
     final String name;
@@ -13,16 +15,22 @@ class Shortcut {
 
     Shortcut({
       required this.icon,
-      required this.name,
+      required String name,
       required this.commands,
-    }) : _id = const Uuid().v4();
+    })  : name = normalizeName(name),
+          _id = const Uuid().v4();
 
     Shortcut.withId({
       required String id,
       required this.icon,
-      required this.name,
+      required String name,
       required this.commands,
-    }) : _id = id;
+    })  : name = normalizeName(name),
+          _id = id;
 
     String get id => _id;
+
+    static String normalizeName(String value) {
+      return value.characters.take(maxNameLength).toString();
+    }
 }
