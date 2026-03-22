@@ -11,16 +11,18 @@
 .title {
     font-size: 20px;
     font-weight: 500;
-    color: var(--color-text);
+    color: #7a7a7a;
     margin: 0 0 8px 0;
     text-align: center;
+    width: min(100%, 640px);
 }
 
 .subtitle {
     font-size: 16px;
-    color: var(--color-text-muted);
+    color: #8a8a8a;
     margin: 0 0 32px 0;
     text-align: center;
+    width: min(100%, 640px);
 }
 
 .startButton {
@@ -59,9 +61,10 @@
 
 .hint {
     font-size: 14px;
-    color: var(--color-text-muted);
+    color: #8a8a8a;
     margin-top: 16px;
     text-align: center;
+    width: min(100%, 640px);
 }
 
 .errorMessage {
@@ -72,7 +75,7 @@
     padding: var(--space-md) var(--space-lg);
     border-radius: var(--radius-sm);
     margin-bottom: 24px;
-    max-width: 300px;
+    max-width: 640px;
     text-align: center;
     word-break: break-word;
 }
