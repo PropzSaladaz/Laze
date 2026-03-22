@@ -9,40 +9,63 @@ The Mobile Virtual Device system allows a mobile phone to act as a remote input 
 ## System Components
 
 ### 1. Mobile Client (Flutter)
-- **Responsibility**: Captures touch gestures and sensor data, converts them into command packets, and sends them to the server.
-- **Discovery**: Uses UDP broadcast to find the server.
-- **Protocol**: TCP for reliable command transmission (mouse moves, clicks, scrolling).
+
+- **Responsibility**: Captures touch gestures, converts them into command packets, and sends them to the server. Keeps all user settings state locally on the device.
+- **Discovery**: UDP broadcast on port 7877 to auto-detect the server on LAN.
+- **Protocol**: TCP for reliable command transmission (mouse moves, clicks, scrolling, keyboard).
 
 ### 2. Controller Server (Rust)
-- **Responsibility**: Listens for connections, parses incoming commands, and simulates input events.
-- **Concurrency**: Spawns a dedicated thread for each connected client.
+
+- **Responsibility**: Main backend server. Listens for connections, parses incoming commands, and simulates input events.
+- **Concurrency**: Spawns a dedicated thread per connected client.
+- **Discovery**: UDP listener on port 7877 responds to mobile broadcast with server IP and port.
 - **Input Simulation**: Uses `enigo` to interact with X11/Xorg.
-- **State**: Manages connected clients and broadcasts status updates to the Desktop App.
+- **State**: Manages connected clients and broadcasts status updates to the Desktop App via `tokio::sync::broadcast`.
 
 ### 3. Desktop App (Tauri)
-- **Responsibility**: Provides a GUI for the user to start/stop the server and view connected devices.
-- **Backend**: Acts as a wrapper around the Rust `controller_server` library.
+
+- **Responsibility**: GUI for starting/stopping the server and viewing connected devices.
+- **Backend**: Wraps the Rust `controller_server` library via Tauri IPC.
 - **Frontend**: React/Next.js UI for status display.
 
 ## Network Protocol
 
-### Handshake (Port 7878)
-1. **Client** connects to Server TCP port 7878.
-2. **Server** accepts and assigns a dedicated ephemeral port (e.g., 7879).
-3. **Server** sends `HandshakeResponse` (JSON) containing the new port and OS info.
-4. **Client** disconnects and reconnects to the new dedicated port.
+### Discovery (UDP Port 7877)
 
-### Command Format
-Packets are sent as raw bytes or structured JSON/Protobuf (depending on implementation version).
-- **Mouse Move**: `[type: 1, dx: i16, dy: i16]`
-- **Click**: `[type: 2, button: u8]`
-- **Scroll**: `[type: 3, amount: i16]`
+1. **Client** broadcasts `DISCOVER_MOBILE_CONTROLLER` on the LAN.
+2. **Server** responds with `MOBILE_CONTROLLER:<ip>:<port>`.
+3. **Client** connects to the returned address.
+
+### Handshake (TCP Port 7878)
+
+1. **Client** connects to Server TCP port 7878.
+2. **Server** accepts, registers a new client in the pool, and opens a dedicated port (e.g., 7879).
+3. **Server** sends `NewClientResponse` (JSON) with the dedicated port and OS type.
+4. **Client** reconnects to the dedicated port and sends a `{ device_name }` JSON message.
+
+### Command Loop (TCP Port 7879+)
+
+Commands are sent as raw bytes:
+
+| Command | Format |
+|---------|--------|
+| Mouse Move | `[type: 1, dx: i16, dy: i16]` |
+| Click | `[type: 2, button: u8]` |
+| Scroll | `[type: 3, amount: i16]` |
 
 ## Data Flow
 
-1. **Touch Event**: User drags finger on phone screen.
-2. **Translation**: Flutter app calculates delta (dx, dy).
-3. **Transmission**: Delta sent via TCP socket to dedicated server thread.
-4. **Processing**: Server thread decodes packet.
-5. **Execution**: Server calls `enigo.mouse_move_relative(dx, dy)`.
-6. **OS Action**: Cursor moves on screen.
+```mermaid
+sequenceDiagram
+    participant U as User (finger)
+    participant App as Mobile App
+    participant C as Client Thread
+    participant MC as MobileController
+    participant OS as OS / X11
+
+    U->>App: drag finger (touch event)
+    App->>App: calculate delta (dx, dy)
+    App->>C: TCP bytes [type=1, dx, dy]
+    C->>MC: dispatch_to_device(bytes)
+    MC->>OS: enigo.mouse_move_relative(dx, dy)
+```

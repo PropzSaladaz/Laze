@@ -8,10 +8,12 @@ part 'new_client_response.g.dart';
 class NewClientResponse {
   final int port;
   final String server_os;
+  final int udp_port;
 
   NewClientResponse({
     required this.port,
-    required this.server_os,  
+    required this.server_os,
+    required this.udp_port,
   });
 
   factory NewClientResponse.fromJson(Map<String, dynamic> json) =>
