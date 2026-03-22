@@ -10,7 +10,7 @@ NewClientResponse _$NewClientResponseFromJson(Map<String, dynamic> json) =>
     NewClientResponse(
       port: (json['port'] as num).toInt(),
       server_os: json['server_os'] as String,
-      udp_port: (json['udp_port'] as num).toInt(),
+      udp_port: (json['udp_port'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$NewClientResponseToJson(NewClientResponse instance) =>

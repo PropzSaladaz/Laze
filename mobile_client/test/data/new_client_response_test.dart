@@ -8,52 +8,80 @@ void main() {
         port: 7879,
         server_os: 'linux',
       );
-      
+
       expect(response.port, equals(7879));
       expect(response.server_os, equals('linux'));
+      expect(response.udp_port, equals(0));
+    });
+
+    test('creates instance with udp_port', () {
+      final response = NewClientResponse(
+        port: 7879,
+        server_os: 'linux',
+        udp_port: 7876,
+      );
+
+      expect(response.udp_port, equals(7876));
     });
 
     test('fromJson deserializes correctly', () {
       final json = {
         'port': 8080,
         'server_os': 'windows',
+        'udp_port': 7876,
       };
-      
+
       final response = NewClientResponse.fromJson(json);
-      
+
       expect(response.port, equals(8080));
       expect(response.server_os, equals('windows'));
+      expect(response.udp_port, equals(7876));
+    });
+
+    test('fromJson defaults udp_port to 0 when missing', () {
+      final json = {
+        'port': 8080,
+        'server_os': 'windows',
+      };
+
+      final response = NewClientResponse.fromJson(json);
+
+      expect(response.udp_port, equals(0));
     });
 
     test('toJson serializes correctly', () {
       final response = NewClientResponse(
         port: 9000,
         server_os: 'macos',
+        udp_port: 7876,
       );
-      
+
       final json = response.toJson();
-      
+
       expect(json['port'], equals(9000));
       expect(json['server_os'], equals('macos'));
+      expect(json['udp_port'], equals(7876));
     });
 
     test('round-trip serialization preserves data', () {
       final original = NewClientResponse(
         port: 7878,
         server_os: 'linux',
+        udp_port: 7876,
       );
-      
+
       final json = original.toJson();
       final deserialized = NewClientResponse.fromJson(json);
-      
+
       expect(deserialized.port, equals(original.port));
       expect(deserialized.server_os, equals(original.server_os));
+      expect(deserialized.udp_port, equals(original.udp_port));
     });
 
     test('handles different port numbers', () {
       final response1 = NewClientResponse(port: 1024, server_os: 'linux');
       final response2 = NewClientResponse(port: 65535, server_os: 'linux');
-      
+
       expect(response1.port, equals(1024));
       expect(response2.port, equals(65535));
     });
@@ -62,7 +90,7 @@ void main() {
       final linuxResponse = NewClientResponse(port: 8000, server_os: 'linux');
       final windowsResponse = NewClientResponse(port: 8000, server_os: 'windows');
       final macosResponse = NewClientResponse(port: 8000, server_os: 'macos');
-      
+
       expect(linuxResponse.server_os, equals('linux'));
       expect(windowsResponse.server_os, equals('windows'));
       expect(macosResponse.server_os, equals('macos'));

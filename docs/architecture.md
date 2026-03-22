@@ -49,9 +49,9 @@ Commands are sent as raw bytes:
 
 | Command | Format |
 |---------|--------|
-| Mouse Move | `[type: 1, dx: i16, dy: i16]` |
-| Click | `[type: 2, button: u8]` |
-| Scroll | `[type: 3, amount: i16]` |
+| Scroll | `[type: 2, amount: i8]` |
+| Mouse Move | `[type: 3, dx: i8, dy: i8]` |
+| Click | `[type: 4, button: u8]` |
 
 ## Data Flow
 
@@ -65,7 +65,7 @@ sequenceDiagram
 
     U->>App: drag finger (touch event)
     App->>App: calculate delta (dx, dy)
-    App->>C: TCP bytes [type=1, dx, dy]
+    App->>C: TCP bytes [type=3, dx, dy]
     C->>MC: dispatch_to_device(bytes)
     MC->>OS: enigo.mouse_move_relative(dx, dy)
 ```

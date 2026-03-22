@@ -61,6 +61,7 @@ impl UdpInputHandle {
 /// Stale or out-of-order packets are dropped via per-source sequence tracking.
 pub fn start_udp_input_listener<A: Application + 'static>(
     app: Arc<Mutex<A>>,
+    listening: Arc<AtomicBool>,
 ) -> Result<UdpInputHandle, std::io::Error> {
     let socket = UdpSocket::bind(SocketAddr::new(
         IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
@@ -72,7 +73,7 @@ pub fn start_udp_input_listener<A: Application + 'static>(
     let shutdown_clone = Arc::clone(&shutdown_signal);
 
     let thread_handle = thread::spawn(move || {
-        UdpInputListener::run(socket, app, shutdown_clone);
+        UdpInputListener::run(socket, app, shutdown_clone, listening);
     });
 
     UdpInputListener::static_log_info(&format!(
@@ -93,6 +94,7 @@ impl UdpInputListener {
         socket: UdpSocket,
         app: Arc<Mutex<A>>,
         shutdown_signal: Arc<AtomicBool>,
+        listening: Arc<AtomicBool>,
     ) {
         let mut buf = [0u8; MAX_PACKET_SIZE];
         // Per-source sequence tracking: drops stale/out-of-order packets
@@ -123,6 +125,18 @@ impl UdpInputListener {
                         continue;
                     }
 
+                    // Validate exact payload length: Scroll=[2,amount] (2 bytes),
+                    // MouseMove=[3,dx,dy] (3 bytes). Reject short packets (would panic
+                    // on decode) and long ones (trailing bytes execute extra actions).
+                    let expected_len: usize = if action_bytes[0] == 2 { 2 } else { 3 };
+                    if action_bytes.len() != expected_len {
+                        Self::static_log_debug(&format!(
+                            "Rejected malformed UDP packet (type={}, len={}, expected={}) from {}",
+                            action_bytes[0], action_bytes.len(), expected_len, src_addr
+                        ));
+                        continue;
+                    }
+
                     // Sequence check — drop stale/duplicate packets
                     // u32::MAX as initial value ensures the very first packet always passes
                     let stored = last_seq.entry(src_addr).or_insert(u32::MAX);
@@ -134,6 +148,11 @@ impl UdpInputListener {
                         continue;
                     }
                     *stored = seq;
+
+                    // Drop motion input while the server is stopped
+                    if !listening.load(Ordering::SeqCst) {
+                        continue;
+                    }
 
                     // Dispatch through the existing Application path — no changes needed there
                     app.lock().unwrap().dispatch_to_device(action_bytes);

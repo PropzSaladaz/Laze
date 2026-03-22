@@ -13,7 +13,7 @@ class NewClientResponse {
   NewClientResponse({
     required this.port,
     required this.server_os,
-    required this.udp_port,
+    this.udp_port = 0,
   });
 
   factory NewClientResponse.fromJson(Map<String, dynamic> json) =>
