@@ -1,9 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:laze/data/services/input.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
-import 'dart:math' as math;
+import 'package:laze/presentation/core/themes/generated_theme.dart';
+import 'package:laze/presentation/core/ui/dashed_border.dart';
 
 import '../../../services/server_connector.dart';
 
@@ -19,6 +20,30 @@ class MousePad extends StatefulWidget {
 
   @override
   State<MousePad> createState() => _MousePadState();
+}
+
+class _FullscreenMousePadPage extends StatelessWidget {
+  final int sensitivity;
+
+  const _FullscreenMousePadPage({required this.sensitivity});
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
+
+    return Scaffold(
+      backgroundColor: appColors.bg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: MousePad(
+            fullscreen: true,
+            sensitivity: sensitivity,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _MousePadState extends State<MousePad> {
@@ -278,129 +303,143 @@ class _MousePadState extends State<MousePad> {
 
   @override
   Widget build(BuildContext context) {
-    final customColors = Theme.of(context).extension<CustomColors>();
+    final appColors = Theme.of(context).extension<AppColors>()!;
     const rotationAngle = -90 * math.pi / 180;
-    Size screenSize = MediaQuery.of(context).size;
-    double scrollHeight =
-        widget.fullscreen ? screenSize.height : 0.40 * screenSize.height;
-    return Stack(
-      children: [
-        // MousePad - wrapped in Listener for raw pointer events
-        Listener(
-          onPointerDown: _onPointerDown,
-          onPointerMove: _onPointerMove,
-          onPointerUp: _onPointerUp,
-          child: GestureDetector(
-            onTap: _handleMouseClick,
-            // scale gestures handle mouse move and scroll
-            onScaleStart: _handleScaleStart,
-            onScaleUpdate: _handleScaleUpdate,
-            onScaleEnd: _handleScaleEnd,
-            child: Stack(
-              children: [
-                // main mousepad
-                Container(
-                  width: double.infinity,
-                  height: widget.fullscreen
-                      ? double.infinity
-                      : 0.4 * screenSize.height,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    border: Border.all(
-                      color: customColors!.border,
-                      width: 3,
-                    ),
+    final screenSize = MediaQuery.of(context).size;
+    final borderRadius = BorderRadius.circular(25);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : screenSize.height;
+        final padHeight =
+            widget.fullscreen ? availableHeight : 0.40 * screenSize.height;
+        final scrollHeight = widget.fullscreen ? availableHeight : padHeight;
+
+        return SizedBox(
+          height: padHeight,
+          child: Stack(
+            children: [
+              Listener(
+                onPointerDown: _onPointerDown,
+                onPointerMove: _onPointerMove,
+                onPointerUp: _onPointerUp,
+                child: GestureDetector(
+                  onTap: _handleMouseClick,
+                  // scale gestures handle mouse move and scroll
+                  onScaleStart: _handleScaleStart,
+                  onScaleUpdate: _handleScaleUpdate,
+                  onScaleEnd: _handleScaleEnd,
+                  child: Stack(
+                    children: [
+                      CustomPaint(
+                        foregroundPainter: DashedBorderPainter(
+                          color: appColors.textMuted,
+                          strokeWidth: 1,
+                          dashLength: 6,
+                          dashGap: 6,
+                          borderRadius: 25,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: borderRadius,
+                          child: Container(
+                            width: double.infinity,
+                            height: padHeight,
+                            decoration: BoxDecoration(
+                              color: appColors.surface_1,
+                              borderRadius: borderRadius,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (!widget.fullscreen)
+                        Positioned(
+                          left: -50,
+                          top: 110,
+                          child: Transform.rotate(
+                            angle: rotationAngle,
+                            child: Text(
+                              'MOUSEPAD',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w400,
+                                fontSize: 40,
+                                color: appColors.textMuted,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                if (!widget.fullscreen)
-                  Positioned(
-                    left: -65,
-                    top: 105,
-                    child: Transform.rotate(
-                      angle: rotationAngle,
-                      child: const Text(
-                        "MOUSEPAD",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w400,
-                          fontSize: 40,
-                          // color: ColorConstants.mousepadText,
+              ),
+              Positioned(
+                right: widget.fullscreen ? 25 : 10,
+                child: GestureDetector(
+                  onPanUpdate: (details) {
+                    _handleMouseScroll(details);
+                  },
+                  child: Stack(
+                    children: [
+                      SizedBox(
+                        width: 60,
+                        height: scrollHeight,
+                        child: Padding(
+                          padding: const EdgeInsets.all(2),
+                          child: FractionallySizedBox(
+                            heightFactor: widget.fullscreen ? 0.85 : 0.93,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                color: appColors.border,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                // mousepad text
-              ],
-            ),
-          ),
-        ),
-
-        // Scroll
-        Positioned(
-          right: widget.fullscreen ? 25 : 10,
-          child: GestureDetector(
-            onPanUpdate: (details) {
-              _handleMouseScroll(details);
-            },
-            child: Stack(
-              children: [
-                Container(
-                  width: 60,
-                  height: scrollHeight,
-                  padding: const EdgeInsets.all(2),
-                  child: FractionallySizedBox(
-                    heightFactor: widget.fullscreen ? 0.85 : 0.93,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: customColors.border,
-                      ),
-                    ),
+                      if (!widget.fullscreen)
+                        Positioned(
+                          bottom: 70,
+                          right: -25,
+                          child: Transform.rotate(
+                            angle: rotationAngle,
+                            child: Text(
+                              'SCROLL',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 36,
+                                color: appColors.textMuted,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                if (!widget.fullscreen)
-                  Positioned(
-                    bottom: 70,
-                    right: -27,
-                    child: Transform.rotate(
-                      angle: rotationAngle,
-                      child: const Text(
-                        "SCROLL",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 30,
-                          // color: ColorConstants.scrollText
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+              ),
+              Positioned(
+                left: 0,
+                bottom: 0,
+                child: IconButton(
+                  icon: const Icon(Icons.fullscreen),
+                  color: appColors.textMuted,
+                  iconSize: 64,
+                  onPressed: () {
+                    widget.fullscreen
+                        ? Navigator.of(context).pop()
+                        : Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => _FullscreenMousePadPage(
+                                sensitivity: widget.sensitivity,
+                              ),
+                            ),
+                          );
+                  },
+                ),
+              ),
+            ],
           ),
-        ),
-
-        // full screen button
-        Positioned(
-          left: 0,
-          bottom: 0,
-          child: IconButton(
-            icon: const Icon(Icons.fullscreen),
-            // color: ColorConstants.border,
-            iconSize: 64,
-            onPressed: () {
-              widget.fullscreen
-                  ? Navigator.of(context).pop()
-                  : Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => MousePad(
-                          fullscreen: true,
-                          sensitivity: widget.sensitivity,
-                        ),
-                      ),
-                    );
-            },
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

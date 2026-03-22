@@ -1,133 +1,255 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/app_shadows.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
-import 'package:laze/services/server_connector.dart';
-import 'package:laze/presentation/core/themes/colors.dart';
+import 'package:laze/services/app_connection_status.dart';
 
 typedef Callback = void Function();
 
-class ConnectionHeader extends StatefulWidget {
-  final String connectionStatus;
+class ConnectionHeader extends StatelessWidget {
+  final AppConnectionStatus connectionStatus;
   final Callback connect;
   final Callback cancelSearch;
   final Callback disconnect;
   final Callback turnOffPc;
+  final Callback? onOpenSettings;
 
-  const ConnectionHeader(
-      {super.key,
-      required this.connectionStatus,
-      required this.connect,
-      required this.cancelSearch,
-      required this.disconnect,
-      required this.turnOffPc});
+  const ConnectionHeader({
+    super.key,
+    required this.connectionStatus,
+    required this.connect,
+    required this.cancelSearch,
+    required this.disconnect,
+    required this.turnOffPc,
+    this.onOpenSettings,
+  });
 
-  @override
-  State<ConnectionHeader> createState() => _ConnectionHeaderState();
-}
-
-class _ConnectionHeaderState extends State<ConnectionHeader> {
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            widget.connectionStatus,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimary,
-              fontSize: 35,
-              fontWeight: FontWeight.w500,
-            ),
+    final appColors = Theme.of(context).extension<AppColors>()!;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 460;
+        final statusFontSize = isCompact ? 24.0 : 30.0;
+
+        final statusBanner = Container(
+          height: 68,
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          decoration: BoxDecoration(
+            color: appColors.border,
+            border: Border.all(color: appColors.divider, width: 1),
+            borderRadius: BorderRadius.circular(999),
           ),
-          Row(
+          child: Row(
             children: [
-              // Settings button
-              StyledButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/settings');
-                },
-                icon: Icons.settings,
+              Expanded(
+                child: Text(
+                  connectionStatus.label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: appColors.textMuted,
+                    fontSize: statusFontSize,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
-              const SizedBox(width: 10),
-              // Connection button
-              () {
-                // CONNECTED -> button used to disconnect
-                if (widget.connectionStatus == ServerConnector.CONNECTED) {
-                  return StyledButton(
-                    onPressed: () {
-                      showDialog(
-                          context: context,
-                          builder: (BuildContext context) => _disconnectPopup(context));
-                    },
-                    icon: Icons.power_settings_new,
-                  );
-                } else if (widget.connectionStatus == ServerConnector.SEARCHING) {
-                  return StyledButton(
-                    onPressed: widget.cancelSearch,
-                    icon: Icons.cancel,
-                  );
-                } else {
-                  // NOT CONNECTED -> button used to connect
-                  return StyledButton(
-                    onPressed: widget.connect,
-                    icon: Icons.screen_search_desktop_outlined,
-                  );
-                }
-              }()
+              if (connectionStatus == AppConnectionStatus.connected) ...[
+                const SizedBox(width: 8),
+                Container(
+                  width: 17,
+                  height: 17,
+                  decoration: BoxDecoration(
+                    color: appColors.success,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: appColors.onSuccess, width: 3),
+                  ),
+                ),
+              ],
             ],
-          )
-        ],
-      ),
+          ),
+        );
+
+        final actionButtons = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StyledButton(
+              onPressed: () {
+                if (onOpenSettings != null) {
+                  onOpenSettings!();
+                } else {
+                  Navigator.pushNamed(context, '/settings');
+                }
+              },
+              icon: Icons.settings,
+            ),
+            const SizedBox(width: 10),
+            Container(
+              width: 84,
+              height: 60,
+              decoration: BoxDecoration(
+                color: appColors.error,
+                border: Border.all(color: appColors.onError, width: 6),
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: AppShadows.raisedControl(appColors),
+              ),
+              child: IconButton(
+                onPressed: () => _handlePrimaryAction(context),
+                icon: Icon(
+                  connectionStatus == AppConnectionStatus.searching
+                      ? Icons.cancel
+                      : Icons.power_settings_new,
+                  color: appColors.textInverse,
+                ),
+                iconSize: 35,
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        );
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: isCompact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    statusBanner,
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: actionButtons,
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: statusBanner),
+                    const SizedBox(width: 12),
+                    actionButtons,
+                  ],
+                ),
+        );
+      },
     );
   }
 
-  Widget _disconnectPopup(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme; 
+  void _handlePrimaryAction(BuildContext context) {
+    if (connectionStatus == AppConnectionStatus.connected) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => _disconnectPopup(dialogContext),
+      );
+      return;
+    }
 
-    return AlertDialog(
+    if (connectionStatus == AppConnectionStatus.searching) {
+      cancelSearch();
+      return;
+    }
+
+    connect();
+  }
+
+  Widget _disconnectPopup(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
+
+    return Dialog(
       alignment: Alignment.center,
-      backgroundColor: colorScheme.secondary,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      // backgroundColor: ColorConstants.background,
-      title: const Text(
-        "Disconnect",
-        style: TextStyle(
-          // color: ColorConstants.darkPrimary
-        )),
-      actions: [
-        TextButton(
-          style: ButtonStyle(
-            backgroundColor: WidgetStatePropertyAll(colorScheme.onSecondary),
-          ),
-          onPressed: () {
-            widget.disconnect();
-            Navigator.of(context).pop();
-          },
-          child: Text(
-            "Disconnect",
-            style: TextStyle(
-              color: colorScheme.surface
-            ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      backgroundColor: appColors.surface_1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Disconnect',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: appColors.text,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Choose whether to disconnect from the computer or shut it down.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: appColors.textMuted,
+                  fontSize: 15,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll(appColors.muted),
+                        padding: const WidgetStatePropertyAll(
+                          EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        shape: WidgetStatePropertyAll(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        disconnect();
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(
+                        'Disconnect',
+                        style: TextStyle(
+                          color: appColors.text,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextButton(
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll(appColors.error),
+                        padding: const WidgetStatePropertyAll(
+                          EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        shape: WidgetStatePropertyAll(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        turnOffPc();
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(
+                        'Turn OFF PC',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: appColors.onError,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        TextButton(
-          style: ButtonStyle(
-            backgroundColor: WidgetStatePropertyAll(colorScheme.error)
-          ),
-          onPressed: () {
-            widget.turnOffPc();
-            Navigator.of(context).pop();
-          },
-          child: Text(
-            "Turn OFF PC",
-            style: TextStyle(
-              color: colorScheme.onPrimary,
-            ),
-          ),
-        )
-      ],
+      ),
     );
   }
 }

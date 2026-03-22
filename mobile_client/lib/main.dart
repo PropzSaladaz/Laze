@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:laze/config/dependencies.dart';
 import 'package:laze/data/repositories/shortcut/models/shortcut_data.dart';
-import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/presentation/home/widgets/home_screen.dart';
 import 'package:laze/presentation/settings/settings_screen.dart';
-import 'package:laze/presentation/core/themes/theme.dart';
+import 'package:laze/presentation/core/themes/app_theme.dart';
 import 'package:laze/services/app_service_wrapper.dart';
+import 'package:laze/services/theme_notifier.dart';
 import 'package:provider/provider.dart';
 
 void setupLogging() {
@@ -34,6 +33,9 @@ void main() async {
 
   // Await for all repository services
   final repositoryService = await RepositoryService.initializeLocal();
+  final themeNotifier = await ThemeNotifier.create(
+    repositoryService.deviceSettingsRepository,
+  );
 
   runApp(
     MultiProvider(
@@ -44,8 +46,9 @@ void main() async {
             deviceSettings: Provider.of<DeviceSettingsRepository>(context, listen: false),
           ),
         ),
+        ChangeNotifierProvider<ThemeNotifier>.value(value: themeNotifier),
       ],
-      child: const MyApp()
+      child: const MyApp(),
     ),
   );
 }
@@ -53,15 +56,17 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     debugPaintSizeEnabled = false;
+    final themeNotifier = context.watch<ThemeNotifier>();
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      theme: AppTheme.light,
+      darkTheme: themeNotifier.darkTheme,
+      themeMode: themeNotifier.themeMode,
+      themeAnimationDuration: const Duration(milliseconds: 10),
+      themeAnimationCurve: Curves.easeOutCubic,
       debugShowCheckedModeBanner: false,
       home: const HomeScreen(),
       routes: {

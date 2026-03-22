@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laze/presentation/core/themes/dimensions.dart';
+import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 
 class IconPicker extends StatefulWidget {
@@ -27,66 +28,80 @@ class _IconPickerState extends State<IconPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final appColors = Theme.of(context).extension<AppColors>()!;
 
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 10
-      ) ,
-      child: Padding(
-        padding: EdgeInsets.all(Dimens.padding.vertical),
-        child: Column(
-          children: [
-            Row(
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final crossAxisCount = width >= 520
+              ? 5
+              : width >= 420
+                  ? 4
+                  : width >= 320
+                      ? 3
+                      : 2;
+          final titleFontSize = width < 360 ? 24.0 : 32.0;
+
+          return Padding(
+            padding: EdgeInsets.all(Dimens.padding.vertical),
+            child: Column(
               children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "Choose an Icon",
+                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                          color: appColors.textMuted,
+                          fontSize: titleFontSize,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Icon(
+                        Icons.close,
+                        size: Dimens.icon.medium,
+                        color: appColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 Expanded(
-                    child: FractionallySizedBox(
-                  alignment: Alignment.centerRight,
-                  widthFactor: 1,
-                  child: Text(
-                    "Choose an Icon",
-                    style: Theme.of(context).textTheme.headlineLarge,
-                    textAlign: TextAlign.center,
+                  child: GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 7,
+                      mainAxisSpacing: 7,
+                    ),
+                    itemCount: _iconList.length,
+                    itemBuilder: (context, index) {
+                      final icon = _iconList[index];
+                      final isSelected = _selectedIcon == icon;
+
+                      return StyledButton(
+                        icon: icon,
+                        showShadow: false,
+                        onPressed: () {
+                          widget.onIconSelected(icon);
+                          Navigator.of(context).pop();
+                        },
+                        isClicked: isSelected,
+                      );
+                    },
                   ),
-                )),
-                InkWell(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Icon(
-                    Icons.close,
-                    size: Dimens.icon.medium,
-                    color: colorScheme.onSecondary,
-                  ),
-                )
+                ),
               ],
             ),
-            const SizedBox(
-              height: 16,
-            ),
-            Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    crossAxisSpacing: 7,
-                    mainAxisSpacing: 7),
-                itemCount: _iconList.length,
-                itemBuilder: (context, index) {
-                  final icon = _iconList[index];
-                  final isSelected = _selectedIcon == icon;
-
-                  return StyledButton(
-                    icon: icon,
-                    onPressed: () {
-                      widget.onIconSelected(icon);
-                      Navigator.of(context).pop();
-                    },
-                    isClicked: isSelected,
-                  );
-                },
-              ),
-            )
-          ],
-        ),
+          );
+        },
       ),
     );
   }
