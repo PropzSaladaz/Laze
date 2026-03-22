@@ -1,7 +1,11 @@
 use std::{
     io::Write,
     net::{SocketAddr, TcpStream},
-    sync::{mpsc::channel, Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc::channel,
+        Arc, Mutex,
+    },
     thread,
     time::Duration,
 };
@@ -22,6 +26,7 @@ use super::{
         ServerTerminated,
     },
     discovery::{start_discovery_listener, DiscoveryHandle},
+    udp_input::{start_udp_input_listener, UdpInputHandle, UDP_INPUT_PORT},
     utils,
 };
 
@@ -46,13 +51,15 @@ impl ServerConfig {
     }
 }
 
-/// Data sent to a brand new client specifying both:
-/// 1) The new port to which the client should connect.
-/// 2) The server's OS type
+/// Data sent to a brand new client specifying:
+/// 1) The dedicated TCP port to connect to.
+/// 2) The server's OS type.
+/// 3) The UDP port for motion input (mouse move / scroll). 0 means UDP unavailable — use TCP.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewClientResponse {
     port: i32,
     server_os: String,
+    udp_port: u16,
 }
 
 #[derive(Debug, Clone)]
@@ -73,6 +80,7 @@ pub struct ServerHandler {
     event_pub: broadcast::Sender<ServerEvent>,
     command_sender: CommandSender,
     discovery_handle: Option<DiscoveryHandle>,
+    udp_input_handle: Option<UdpInputHandle>,
 }
 
 impl ServerHandler {
@@ -80,11 +88,13 @@ impl ServerHandler {
         event_pub: broadcast::Sender<ServerEvent>,
         command_sender: CommandSender,
         discovery_handle: Option<DiscoveryHandle>,
+        udp_input_handle: Option<UdpInputHandle>,
     ) -> Self {
         Self {
             event_pub,
             command_sender,
             discovery_handle,
+            udp_input_handle,
         }
     }
 
@@ -126,8 +136,10 @@ impl ServerHandler {
 /// Automatic cleanup when ServerHandler is dropped
 impl Drop for ServerHandler {
     fn drop(&mut self) {
-        // Automatically shutdown discovery when the handler is dropped
         if let Some(handle) = self.discovery_handle.take() {
+            handle.shutdown();
+        }
+        if let Some(handle) = self.udp_input_handle.take() {
             handle.shutdown();
         }
     }
@@ -144,10 +156,14 @@ pub struct Server<A: Application> {
 
     /// Indicates whether the server is currently listening to client requests.
     /// If false, the server will only accept requests from the server controller (tauri app).
-    listening_to_clients: bool,
+    /// Shared with the UDP input listener so it can gate motion dispatch on server state.
+    listening_to_clients: Arc<AtomicBool>,
 
     /// Indicates whether the server is currently terminating.
     terminate_signal: bool,
+
+    /// UDP port communicated to clients for motion input. 0 if UDP listener failed to start.
+    udp_input_port: u16,
 }
 
 impl<A: Application + 'static> Server<A> {
@@ -180,13 +196,42 @@ impl<A: Application + 'static> Server<A> {
         // will listen for commands from server controller and will parse them.
         let command_listener = CommandListener::new(send_to_client, receive_from_client);
 
+        // Create app Arc before the thread spawn so it can be shared with the UDP listener
+        let app_arc = Arc::new(Mutex::new(app));
+        let app_for_udp = Arc::clone(&app_arc);
+
+        // Shared flag: true while the server is accepting clients, false when stopped.
+        // Passed to the UDP listener so motion input is suppressed after StopServer.
+        let listening_flag = Arc::new(AtomicBool::new(false));
+        let listening_for_udp = Arc::clone(&listening_flag);
+
+        // Start UDP input listener for mouse move and scroll
+        let udp_input_handle = match start_udp_input_listener(app_for_udp, listening_for_udp) {
+            Ok(handle) => {
+                Self::static_log_info(&format!(
+                    "UDP input listener started on port {} (motion input)",
+                    UDP_INPUT_PORT
+                ));
+                Some(handle)
+            }
+            Err(e) => {
+                Self::static_log_warn(&format!(
+                    "Failed to start UDP input listener: {}. Motion input will use TCP.",
+                    e
+                ));
+                None
+            }
+        };
+        let udp_input_port = if udp_input_handle.is_some() { UDP_INPUT_PORT } else { 0 };
+
         thread::spawn(move || {
             let server = Arc::new(Mutex::new(Server {
                 clients,
                 config,
-                app: Arc::new(Mutex::new(app)),
-                listening_to_clients: false,
+                app: app_arc,
+                listening_to_clients: listening_flag,
                 terminate_signal: false,
+                udp_input_port,
             }));
 
             // set command listener callback for parsing server commands before starting command listener thread
@@ -233,6 +278,7 @@ impl<A: Application + 'static> Server<A> {
             event_pub,
             command_sender: CommandSender::new(send_to_server, receive_from_server),
             discovery_handle,
+            udp_input_handle,
         }
     }
 
@@ -306,7 +352,7 @@ impl<A: Application + 'static> Server<A> {
         Self::static_log_info(&format!("{label} Received client connection"));
         let mut lock = server.lock().unwrap();
 
-        if lock.listening_to_clients {
+        if lock.listening_to_clients.load(Ordering::SeqCst) {
             Self::static_log_debug(&format!(
                 "{label} Received connection from address: {:?}",
                 addr
@@ -328,7 +374,8 @@ impl<A: Application + 'static> Server<A> {
 
             let data = serde_json::to_vec(&NewClientResponse {
                 port,
-                server_os: std::env::consts::OS.to_owned(), // send the server OS to client
+                server_os: std::env::consts::OS.to_owned(),
+                udp_port: lock.udp_input_port,
             })
             .unwrap();
 
@@ -351,12 +398,12 @@ impl<A: Application + 'static> Server<A> {
         match req {
             ServerRequest::InitServer => {
                 // send response to the server
-                lock.listening_to_clients = true;
+                lock.listening_to_clients.store(true, Ordering::SeqCst);
                 Ok(ServerResponse::ServerStarted(ServerStarted {}))
             }
             ServerRequest::StopServer => {
                 // Stop accepting clients but keep threads alive for restart
-                lock.listening_to_clients = false;
+                lock.listening_to_clients.store(false, Ordering::SeqCst);
                 lock.clients.clear();
                 Ok(ServerResponse::ServerStopped(ServerStopped {}))
             }
@@ -448,7 +495,7 @@ mod tests {
         let (_resp_sender, resp_receiver) = channel();
 
         let command_sender = CommandSender::new(req_sender, resp_receiver);
-        let handler = ServerHandler::new(event_pub, command_sender, None);
+        let handler = ServerHandler::new(event_pub, command_sender, None, None);
 
         // Test subscribe_events returns a valid receiver
         let _receiver = handler.subscribe_events();

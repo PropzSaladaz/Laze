@@ -14,7 +14,7 @@ mobile-virtual-device/
 ├─ mobile_client/            # Flutter client for mobile devices
 │  └─ README.md
 ├─ docs/                     # Documentation (this folder)
-└─ design/                   # Design tokens and assets
+└─ design-tokens/            # Design tokens and assets
 ```
 
 ## Prerequisites
@@ -36,7 +36,7 @@ npm run tauri dev
 ```
 
 #### 1.1 [Optional] Start backend server directly
-You can also start the backend server directly without GUI:
+Instead of running the previous command, which opens both GUI and backend server, you can start the backend server directly without GUI:
 ```bash
 cd controller_server
 cargo run
@@ -74,6 +74,6 @@ flutter run
 
 ## Per-app documentation
 
-- Controller Server (Rust): [../controller_server/README.md](../controller_server/README.md)
-- Desktop App (Tauri): [../desktop_app/README.md](../desktop_app/README.md)
-- Mobile Client (Flutter): [../mobile_client/README.md](../mobile_client/README.md)
+- [Controller Server (Rust)](../controller_server/README.md)
+- [Desktop App (Tauri)](../desktop_app/README.md)
+- [Mobile Client (Flutter)](../mobile_client/README.md)
