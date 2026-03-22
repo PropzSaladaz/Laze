@@ -4,7 +4,6 @@ import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/core/ui/cta_button.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/core/ui/styled_input.dart';
-import 'package:laze/presentation/core/themes/app_shadows.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 import 'package:laze/services/theme_notifier.dart';
@@ -67,7 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await deviceSettings.setDeviceName(_deviceNameController.text.trim());
 
       if (mounted) {
-        _showSuccess('Device name saved successfully');
+        _showSuccess('Settings updated');
       }
     } catch (e) {
       if (mounted) {
@@ -113,36 +112,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Container(
-                  height: 68,
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  decoration: BoxDecoration(
-                    color: appColors.border,
-                    border: Border.all(color: appColors.divider, width: 1),
-                    borderRadius: BorderRadius.circular(scale.radiusPill),
-                  ),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'SETTINGS',
-                    style: TextStyle(
-                      color: appColors.textMuted,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w500,
-                    ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 460;
+              final titleBanner = Container(
+                height: 68,
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                decoration: BoxDecoration(
+                  color: appColors.border,
+                  border: Border.all(color: appColors.divider, width: 1),
+                  borderRadius: BorderRadius.circular(scale.radiusPill),
+                ),
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'SETTINGS',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: appColors.textMuted,
+                    fontSize: isCompact ? 24 : 30,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              StyledButton(
+              );
+              final closeButton = StyledButton(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: Icons.close,
-              ),
-            ],
+              );
+
+              return isCompact
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        titleBanner,
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: closeButton,
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(child: titleBanner),
+                        const SizedBox(width: 12),
+                        closeButton,
+                      ],
+                    );
+            },
           ),
           SizedBox(height: scale.spaceXl),
           if (_isLoading)
@@ -209,7 +227,6 @@ class _DeviceNameCard extends StatelessWidget {
         color: appColors.surface_1,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: appColors.divider, width: 1),
-        boxShadow: AppShadows.raisedControl(appColors),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,7 +318,6 @@ class _ThemeCard extends StatelessWidget {
         color: appColors.surface_1,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: appColors.divider, width: 1),
-        boxShadow: AppShadows.raisedControl(appColors),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,7 +378,7 @@ class _ThemeCard extends StatelessWidget {
                   child: GestureDetector(
                     onTap: () => themeNotifier.setOption(option),
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
+                      duration: const Duration(milliseconds: 100),
                       curve: Curves.easeOut,
                       height: 48,
                       decoration: BoxDecoration(
@@ -423,7 +439,6 @@ class _ControlsCard extends StatelessWidget {
         color: appColors.surface_1,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: appColors.divider, width: 1),
-        boxShadow: AppShadows.raisedControl(appColors),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,4 +536,3 @@ class _SettingLabel extends StatelessWidget {
     );
   }
 }
-
