@@ -130,7 +130,7 @@ class _MousePadState extends State<MousePad> {
       _accumulatedY -= sendY;
 
       var input = Input.mouseMove(move_x: sendX, move_y: sendY);
-      ServerConnector.sendInput(input);
+      ServerConnector.sendMotionInput(input);
     }
   }
 
@@ -147,7 +147,7 @@ class _MousePadState extends State<MousePad> {
 
     if (scrollAmount != 0) {
       _hasScrolledTwoFinger = true;
-      ServerConnector.sendInput(Input.scroll(amount: scrollAmount));
+      ServerConnector.sendMotionInput(Input.scroll(amount: scrollAmount));
       // Retain remainder
       _accumulatedScrollY -= scrollAmount;
     }
