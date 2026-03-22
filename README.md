@@ -54,8 +54,9 @@ Contrary to other apps out there, Laze is clean, modern, simple and feels right.
 <br>
 
 <p align="center">
-  <img src="design-tokens/readme-images/p2.jpg" width="49%" alt="Screenshot 2">
-  <img src="design-tokens/readme-images/p4.jpg" width="49%" alt="Screenshot 4">
+  <img src="design-tokens/readme-images/p1.jpg" width="32%" alt="Screenshot 1">
+  <img src="design-tokens/readme-images/p2.jpg" width="32%" alt="Screenshot 2">
+  <img src="design-tokens/readme-images/p3.jpg" width="32%" alt="Screenshot 3">
 </p>
 
 <p align="center">

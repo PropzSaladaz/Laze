@@ -1,15 +1,17 @@
-name: Rust Controller Server CI
+name: Rust CI
 
 on:
   push:
     branches: [ "main", "master" ]
     paths:
       - 'controller_server/**'
+      - 'desktop_app/src-tauri/**'
       - '.github/workflows/rust-ci.yml'
   pull_request:
     branches: [ "main", "master" ]
     paths:
       - 'controller_server/**'
+      - 'desktop_app/src-tauri/**'
       - '.github/workflows/rust-ci.yml'
 
 env:
@@ -29,7 +31,8 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libxdo-dev build-essential
+        sudo apt-get install -y libxdo-dev build-essential \
+          libwebkit2gtk-4.1-dev librsvg2-dev patchelf libayatana-appindicator3-dev
     
     - name: Setup Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -38,22 +41,58 @@ jobs:
         components: rustfmt, clippy
         # Built-in caching via Swatinem/rust-cache
     
-    - name: Build
+    - name: Build (debug)
       working-directory: ./controller_server
       run: cargo build --verbose
-    
+
+    - name: Build (release)
+      working-directory: ./controller_server
+      run: cargo build --release --verbose
+
     # Note: --lib runs only library unit tests, excluding integration tests
     # Tests marked #[ignore] require X11 display server and won't run in headless CI
     - name: Run tests
       working-directory: ./controller_server
       run: cargo test --verbose --lib
-    
+
     - name: Check formatting
       working-directory: ./controller_server
       continue-on-error: true
       run: cargo fmt --check
-    
+
     - name: Run clippy
       working-directory: ./controller_server
       continue-on-error: true
       run: cargo clippy -- -D warnings
+
+  # Verify the Tauri desktop app builds (release mode) so we catch
+  # breakage before tagging a release.
+  build-tauri:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxdo-dev build-essential \
+          libwebkit2gtk-4.1-dev librsvg2-dev patchelf libayatana-appindicator3-dev
+
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install frontend dependencies
+      working-directory: ./desktop_app
+      run: npm ci
+
+    - name: Build Tauri app (release)
+      working-directory: ./desktop_app
+      run: npx tauri build
