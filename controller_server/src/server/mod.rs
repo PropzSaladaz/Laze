@@ -1,6 +1,7 @@
 mod client_pool;
 mod command_listener;
 pub mod discovery;
+pub mod udp_input;
 mod utils;
 
 pub mod application;

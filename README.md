@@ -72,7 +72,7 @@ It all started with watching movies from bed. No TV subscription, just a laptop 
 
 **Laze** was built to solve exactly that—so you never have to leave the comfort of your bed (or couch, or hammock) to control your computer. It's the ultimate lazy solution for the ultimate lazy lifestyle.
 
-Sure, there are some apps that solve the desktop control via smartphone issue. The thing is - they either are cumbersome to use (require extrac config, extra steps to do simple things), or they are ugly. Or both.
+Sure, there are some apps that solve the desktop control via smartphone issue. The thing is - they either are cumbersome to use (require extra config, extra steps to do simple things), or they are ugly. Or both.
 
 So I decided to make a clean, modern & **simple** UI. Now I can open firefox on my favorite movie website with 1 swipe and 1 click! You can't make it any simpler!
 
@@ -173,13 +173,7 @@ The app will automatically discover your desktop on the same network.
 
 ## Documentation
 
-| Document | Description |
-|:---------|:------------|
-| [Desktop App](./desktop_app/README.md) | Tauri-based dashboard and server runner |
-| [Controller Server](./controller_server/README.md) | Core Rust library for input simulation |
-| [Mobile Client](./mobile_client/README.md) | Flutter mobile application |
-| [Icon Generation](./docs/ICONS.md) | How to generate app icons for all platforms |
-| [Design Tokens](./design-tokens/tokens/README.md) | Shared design system and color palette |
+Please see [the docs](./docs/README.md) for more information about the project. (for Devs)
 
 ---
 

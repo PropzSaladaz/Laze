@@ -36,6 +36,12 @@ class ServerConnector {
   static late Socket server;
   static Map<String, Future<TwoStepConnection>> connections = {};
 
+  // UDP socket for motion input (mouse move, scroll)
+  static RawDatagramSocket? _udpSocket;
+  static InternetAddress? _serverAddress;
+  static int _udpPort = 0;
+  static int _udpSeq = 0;
+
   // Subscription for server event listener
   static StreamSubscription<Uint8List>? _serverEventSubscription;
 
@@ -80,15 +86,56 @@ class ServerConnector {
 
   static void disconnect() {
     setConnectionStatus(AppConnectionStatus.notConnected);
-    // Cancel the event listener subscription
     _serverEventSubscription?.cancel();
     _serverEventSubscription = null;
+    _udpSocket?.close();
+    _udpSocket = null;
+    _serverAddress = null;
+    _udpPort = 0;
+    _udpSeq = 0;
     server.close();
     server.destroy();
   }
 
   static void sendInput(Uint8List bytes) {
     server.add(bytes);
+  }
+
+  /// Send motion input (mouse move or scroll) over UDP for lower latency.
+  /// Falls back to TCP if the UDP socket is not available.
+  static void sendMotionInput(Uint8List actionBytes) {
+    final socket = _udpSocket;
+    final addr = _serverAddress;
+    if (socket == null || addr == null || _udpPort == 0) {
+      sendInput(actionBytes);
+      return;
+    }
+    final packet = ByteData(4 + actionBytes.length);
+    packet.setUint32(0, _udpSeq, Endian.big);
+    for (int i = 0; i < actionBytes.length; i++) {
+      packet.setUint8(4 + i, actionBytes[i]);
+    }
+    _udpSeq = (_udpSeq + 1) & 0xFFFFFFFF;
+    socket.send(packet.buffer.asUint8List(), addr, _udpPort);
+  }
+
+  /// Initialize the UDP socket for motion input after a successful TCP connection.
+  /// If [udpPort] is 0, the server signalled that UDP is unavailable — stays on TCP.
+  static Future<void> _initUdpSocket(String ip, int udpPort) async {
+    _udpPort = udpPort;
+    _serverAddress = InternetAddress(ip);
+    if (udpPort == 0) {
+      _log.info('Server sent udp_port=0 — motion input will use TCP');
+      return;
+    }
+    try {
+      _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      _udpSeq = 0;
+      _log.info('UDP socket ready for motion input → $ip:$udpPort');
+    } catch (e) {
+      _log.warning('Failed to bind UDP socket: $e — motion input will use TCP');
+      _udpSocket = null;
+    }
   }
 
   /// Send device information to the server
@@ -250,6 +297,9 @@ class ServerConnector {
 
       server = dedicatedSocket;
       _serverOS = newClientResp.server_os;
+
+      // Initialize UDP socket for motion input
+      await _initUdpSocket(ip, newClientResp.udp_port);
 
       // Send device info as first message
       await _sendDeviceInfo();
@@ -431,7 +481,10 @@ class ServerConnector {
         _serverOS = resp.server_os;
         // !IMPORTANT! this is set to force all data to be sent in a different tcp packet
         server.setOption(SocketOption.tcpNoDelay, true);
-        
+
+        // Initialize UDP socket for motion input
+        await _initUdpSocket(ipAddress, resp.udp_port);
+
         // Send device info as first message
         await _sendDeviceInfo();
         

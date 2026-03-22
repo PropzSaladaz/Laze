@@ -18,3 +18,4 @@ Welcome to the Mobile Virtual Device documentation.
 - **[Controller Server](../controller_server/README.md)**: Rust backend details.
 - **[Desktop App](../desktop_app/README.md)**: Tauri UI details.
 - **[Mobile Client](../mobile_client/README.md)**: Flutter app details.
+- **[Icon Generation](./ICONS.md)**: How to generate app icons for all platforms.
