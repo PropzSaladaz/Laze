@@ -13,6 +13,7 @@ class CtaButton extends StatefulWidget {
   final double widthFactor;
   final double fontSize;
   final double borderWidth;
+  final bool showShadow;
 
   const CtaButton({
     super.key,
@@ -25,6 +26,7 @@ class CtaButton extends StatefulWidget {
     this.widthFactor = 0.75,
     this.fontSize = 38,
     this.borderWidth = 1,
+    this.showShadow = true,
   }) : assert(
           (text != null) != (icon != null),
           'Provide either text or icon, not both',
@@ -47,7 +49,9 @@ class _CtaButtonState extends State<CtaButton>
       color: resolvedBackground,
       borderRadius: BorderRadius.circular(999),
       border: Border.all(color: resolvedBorder, width: widget.borderWidth),
-      boxShadow: isPressed ? null : AppShadows.raisedControl(appColors),
+      boxShadow: isPressed || !widget.showShadow
+          ? null
+          : AppShadows.raisedControl(appColors),
     );
 
     Widget content;

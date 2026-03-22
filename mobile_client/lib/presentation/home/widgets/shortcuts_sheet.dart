@@ -215,24 +215,26 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                   padding: EdgeInsets.fromLTRB(20, 18, 20, 20 + bottomPadding),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final listHeight = constraints.maxHeight.isFinite &&
+                      final contentHeight = constraints.maxHeight.isFinite &&
                               constraints.maxHeight > 0
                           ? constraints.maxHeight
-                          : MediaQuery.of(context).size.height * 0.22;
+                          : (MediaQuery.of(context).size.height * 0.34)
+                              .clamp(240.0, 360.0);
 
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            height: listHeight,
-                            child: _buildShortcutsContent(context, viewModel),
-                          ),
-                          const SizedBox(height: 28),
-                          CtaButton(
-                            icon: Icons.add,
-                            onPressed: _openShortcutsEditPage,
-                          ),
-                        ],
+                      return SizedBox(
+                        height: contentHeight,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: _buildShortcutsContent(context, viewModel),
+                            ),
+                            const SizedBox(height: 36),
+                            CtaButton(
+                              icon: Icons.add,
+                              onPressed: _openShortcutsEditPage,
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -273,29 +275,43 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
       );
     }
 
-    return GridView.builder(
-      primary: false,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 15,
-        mainAxisSpacing: 15,
-      ),
-      itemCount: viewModel.shortcuts.length,
-      itemBuilder: (context, index) {
-        final shortcut = viewModel.shortcuts[index];
-        return GestureDetector(
-          onLongPressStart: (details) {
-            _showOptionsMenu(
-              context,
-              viewModel,
-              details.globalPosition,
-              shortcut,
-            );
-          },
-          child: ShortcutIcon(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final crossAxisCount = width >= 520
+            ? 5
+            : width >= 420
+                ? 4
+                : width >= 320
+                    ? 3
+                    : 2;
+        final spacing = width >= 420 ? 10.0 : 8.0;
+
+        return GridView.builder(
+          primary: false,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+          ),
+          itemCount: viewModel.shortcuts.length,
+          itemBuilder: (context, index) {
+            final shortcut = viewModel.shortcuts[index];
+            return GestureDetector(
+              onLongPressStart: (details) {
+                _showOptionsMenu(
+                  context,
+                  viewModel,
+                  details.globalPosition,
+                  shortcut,
+                );
+              },
+              child: ShortcutIcon(
                 shortcut: shortcut,
                 feedbackNotifier: widget.feedbackNotifier,
               ),
+            );
+          },
         );
       },
     );

@@ -19,8 +19,10 @@ class AddCustomShortcut extends StatelessWidget {
     final shortcutVM = context.watch<AddCustomShortcutViewModel>();
     final appColors = Theme.of(context).extension<AppColors>()!;
     final scale = Theme.of(context).extension<DesignScale>()!;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
     final isSaving = shortcutVM.saveShortcut.running;
+    const actionBarHeight = 92.0;
+    final actionBarSpacing = scale.spaceLg;
+    final scrollBottomInset = actionBarHeight + actionBarSpacing + scale.spaceXl;
 
     return ControllerPage(
       resizeToAvoidBottomInset: false,
@@ -28,13 +30,14 @@ class AddCustomShortcut extends StatelessWidget {
         builder: (context, constraints) {
           return SizedBox(
             height: constraints.maxHeight,
-            child: Padding(
-              padding: EdgeInsets.only(top: scale.spaceLg),
-              child: Column(
-                children: [
-                  Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: scale.spaceLg),
                     child: SingleChildScrollView(
                       clipBehavior: Clip.none,
+                      padding: EdgeInsets.only(bottom: scrollBottomInset),
                       child: Container(
                         width: double.infinity,
                         padding: EdgeInsets.fromLTRB(
@@ -106,49 +109,78 @@ class AddCustomShortcut extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SizedBox(height: scale.spaceXl),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: CtaButton(
-                          text: 'CANCEL',
-                          widthFactor: 0.92,
-                          borderWidth: 4,
-                          fontSize: 26,
-                          backgroundColor: appColors.bg,
-                          foregroundColor: appColors.textMuted,
-                          borderColor: appColors.surface_1,
-                          onPressed: () {
-                            if (!isSaving) {
-                              Navigator.of(context).pop();
-                            }
-                          },
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SizedBox(
+                    height: actionBarHeight,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: CtaButton(
+                            text: 'CANCEL',
+                            widthFactor: 0.92,
+                            borderWidth: 4,
+                            fontSize: 26,
+                            backgroundColor: appColors.bg,
+                            foregroundColor: appColors.textMuted,
+                            borderColor: appColors.surface_1,
+                            onPressed: () {
+                              if (!isSaving) {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                          ),
                         ),
-                      ),
-                      SizedBox(width: scale.spaceMd),
-                      Expanded(
-                        child: CtaButton(
-                          text: isSaving
-                              ? 'SAVING'
-                              : (shortcutVM.isNew ? 'CREATE' : 'SAVE'),
-                          widthFactor: 0.92,
-                          fontSize: 26,
-                          onPressed: () async {
-                            if (isSaving) {
-                              return;
-                            }
-                            await shortcutVM.saveShortcut.execute();
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
-                            }
-                          },
+                        SizedBox(width: scale.spaceMd),
+                        Expanded(
+                          child: CtaButton(
+                            text: isSaving
+                                ? 'SAVING'
+                                : (shortcutVM.isNew ? 'CREATE' : 'SAVE'),
+                            widthFactor: 0.92,
+                            fontSize: 26,
+                            onPressed: () async {
+                              if (isSaving) {
+                                return;
+                              }
+                              await shortcutVM.saveShortcut.execute();
+                              if (!context.mounted) {
+                                return;
+                              }
+                              if (shortcutVM.saveShortcut.completed) {
+                                Navigator.of(context).pop();
+                                return;
+                              }
+                              if (shortcutVM.saveShortcut.error) {
+                                final error = shortcutVM
+                                    .saveShortcut
+                                    .result
+                                    ?.asError
+                                    .error
+                                    .toString()
+                                    .replaceFirst('Exception: ', '');
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      error ??
+                                          'Failed to save shortcut.',
+                                    ),
+                                    backgroundColor: appColors.error,
+                                    duration: const Duration(seconds: 3),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  SizedBox(height: scale.spaceLg + bottomPadding),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },

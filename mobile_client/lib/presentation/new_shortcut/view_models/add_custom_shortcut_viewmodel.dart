@@ -1,7 +1,4 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
-import 'package:laze/data/repositories/shortcut/shortcut_repository.dart';
 import 'package:laze/domain/models/shortcut/shortcut.dart';
 import 'package:laze/presentation/home/view_models/home_viewmodel.dart';
 import 'package:laze/utils/async_command.dart';
@@ -48,7 +45,7 @@ class AddCustomShortcutViewModel extends ChangeNotifier {
   }
 
   void setName(String name) {
-    _name = name;
+    _name = name.characters.take(Shortcut.maxNameLength).toString();
     notifyListeners();
   }
 
@@ -58,6 +55,11 @@ class AddCustomShortcutViewModel extends ChangeNotifier {
   }
 
   Future<Result<void>> _saveShortcut() async {
+    if (!_hasAnyCommand()) {
+      return Result.error(
+        Exception('Add at least one command before saving.'),
+      );
+    }
     Shortcut shortcut;
     if (_isNew) {
       shortcut = Shortcut(
@@ -77,5 +79,9 @@ class AddCustomShortcutViewModel extends ChangeNotifier {
     await homeViewModel.saveShortcut.execute(shortcut);
     notifyListeners();
     return const Ok(null);
+  }
+
+  bool _hasAnyCommand() {
+    return _commands.values.any((command) => command.trim().isNotEmpty);
   }
 }
