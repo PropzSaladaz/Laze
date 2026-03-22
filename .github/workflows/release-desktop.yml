@@ -55,9 +55,12 @@ jobs:
             desktop_app/src-tauri
             controller_server
 
+      # npm ci respects the lockfile strictly, but platform-specific optional deps
+      # (e.g. @tauri-apps/cli-win32-x64-msvc) are only resolved for the OS that
+      # generated the lockfile. Using `npm install` ensures they're fetched.
       - name: Install frontend dependencies
         working-directory: desktop_app
-        run: npm ci
+        run: npm install
 
       - name: Build and Release Tauri app
         uses: tauri-apps/tauri-action@v0
