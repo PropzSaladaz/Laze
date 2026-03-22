@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:laze/config/dependencies.dart';
@@ -26,6 +27,11 @@ void main() async {
 
   // Hive needs WidgetsBinding to be initialized for platform channel access
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Lock to portrait by default — fullscreen mousepad unlocks rotation
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
   await Hive.initFlutter("shortcuts_data");
   // register Hive adapters
