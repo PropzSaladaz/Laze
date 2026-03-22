@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:laze/data/services/input.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/dashed_border.dart';
@@ -22,10 +23,34 @@ class MousePad extends StatefulWidget {
   State<MousePad> createState() => _MousePadState();
 }
 
-class _FullscreenMousePadPage extends StatelessWidget {
+class _FullscreenMousePadPage extends StatefulWidget {
   final int sensitivity;
 
   const _FullscreenMousePadPage({required this.sensitivity});
+
+  @override
+  State<_FullscreenMousePadPage> createState() =>
+      _FullscreenMousePadPageState();
+}
+
+class _FullscreenMousePadPageState extends State<_FullscreenMousePadPage> {
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +63,7 @@ class _FullscreenMousePadPage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           child: MousePad(
             fullscreen: true,
-            sensitivity: sensitivity,
+            sensitivity: widget.sensitivity,
           ),
         ),
       ),
