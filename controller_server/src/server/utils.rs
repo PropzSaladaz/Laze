@@ -1,13 +1,13 @@
 use std::net::TcpListener;
 
-use local_ip_address::local_ip;
-
-/// Creates a TcpListener using the local machine's IP address
+/// Creates a TcpListener bound on all IPv4 interfaces.
 ///
-/// Returns an error if no network is available or if binding fails.
+/// Binding to a single detected local IP is fragile on machines with multiple
+/// adapters (Wi-Fi, Ethernet, VPN, Hyper-V). Discovery already tells clients
+/// which concrete IP to use, so the listener should accept connections on any
+/// local interface.
 pub fn create_socket(port: usize) -> std::io::Result<TcpListener> {
-    let local_ip = local_ip()
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::NetworkUnreachable, e.to_string()))?;
-    log::debug!("Created new Sync socket: {local_ip}:{port}");
-    TcpListener::bind(format!("{local_ip}:{port}"))
+    let bind_addr = format!("0.0.0.0:{port}");
+    log::debug!("Created new Sync socket: {bind_addr}");
+    TcpListener::bind(bind_addr)
 }

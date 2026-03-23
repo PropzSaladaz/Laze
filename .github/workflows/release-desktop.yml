@@ -55,12 +55,16 @@ jobs:
             desktop_app/src-tauri
             controller_server
 
-      # npm ci respects the lockfile strictly, but platform-specific optional deps
-      # (e.g. @tauri-apps/cli-win32-x64-msvc) are only resolved for the OS that
-      # generated the lockfile. Using `npm install` ensures they're fetched.
       - name: Install frontend dependencies
         working-directory: desktop_app
         run: npm install
+
+      - name: Install Windows Tauri CLI binary
+        if: matrix.os == 'windows-latest'
+        working-directory: desktop_app
+        run: |
+          $cliVersion = node -p "require('./package-lock.json').packages['node_modules/@tauri-apps/cli'].version"
+          npm install --no-save "@tauri-apps/cli-win32-x64-msvc@$cliVersion"
 
       - name: Build and Release Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -68,6 +72,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: desktop_app
+          tauriScript: tauri
           tagName: ${{ github.ref_name }}
           releaseName: 'Laze Server ${{ github.ref_name }}'
           releaseBody: 'Release ${{ github.ref_name }} of Laze Server. See assets below for your system.'
