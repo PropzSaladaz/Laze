@@ -94,7 +94,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: desktop_app
-          tauriScript: npm run tauri --
+          tauriScript: npx tauri
           args: ${{ matrix.tauri_args }}
           tagName: ${{ github.event.inputs.version || github.ref_name }}
           releaseName: 'Laze Server ${{ github.event.inputs.version || github.ref_name }}'
