@@ -59,13 +59,30 @@ jobs:
         working-directory: desktop_app
         run: npm ci
 
-      - name: Install Windows Tauri CLI package
+      - name: Install Windows native npm packages
         if: matrix.os == 'windows-latest'
         working-directory: desktop_app
         shell: pwsh
         run: |
-          $cliVersion = node -p "require('./package-lock.json').packages['node_modules/@tauri-apps/cli'].version"
-          npm install --no-save "@tauri-apps/cli-win32-x64-msvc@$cliVersion"
+          $packages = @(
+            @{ Package = '@tauri-apps/cli'; Optional = '@tauri-apps/cli-win32-x64-msvc' },
+            @{ Package = 'lightningcss'; Optional = 'lightningcss-win32-x64-msvc' },
+            @{ Package = 'esbuild'; Optional = '@esbuild/win32-x64' },
+            @{ Package = 'next'; Optional = '@next/swc-win32-x64-msvc' },
+            @{ Package = 'sharp'; Optional = '@img/sharp-win32-x64' },
+            @{ Package = '@tailwindcss/oxide'; Optional = '@tailwindcss/oxide-win32-x64-msvc' }
+          )
+
+          $installs = @()
+          foreach ($entry in $packages) {
+            $version = node -p "require('./node_modules/$($entry.Package)/package.json').optionalDependencies['$($entry.Optional)']"
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($version)) {
+              throw "Unable to resolve optional dependency $($entry.Optional) from $($entry.Package)"
+            }
+            $installs += "$($entry.Optional)@$version"
+          }
+
+          npm install --no-save $installs
 
       - name: Build and Release Tauri app
         uses: tauri-apps/tauri-action@action-v0.6.0
