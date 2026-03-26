@@ -59,6 +59,14 @@ jobs:
         working-directory: desktop_app
         run: npm ci
 
+      - name: Install Windows Tauri CLI package
+        if: matrix.os == 'windows-latest'
+        working-directory: desktop_app
+        shell: pwsh
+        run: |
+          $cliVersion = node -p "require('./package-lock.json').packages['node_modules/@tauri-apps/cli'].version"
+          npm install --no-save "@tauri-apps/cli-win32-x64-msvc@$cliVersion"
+
       - name: Build and Release Tauri app
         uses: tauri-apps/tauri-action@action-v0.6.0
         env:
