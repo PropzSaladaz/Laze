@@ -99,5 +99,5 @@ jobs:
           tagName: ${{ github.event.inputs.version || github.ref_name }}
           releaseName: 'Laze Server ${{ github.event.inputs.version || github.ref_name }}'
           releaseBody: 'Release ${{ github.event.inputs.version || github.ref_name }} of Laze Server. See assets below for your system.'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
