@@ -50,17 +50,31 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   // (foreground, background, paused, etc.). On resume, if the connection was
   // dropped while the screen was locked (status notConnected but _wasConnected
   // is still true), kick off a reconnect — cached IPs make this nearly instant.
+  // On pause/inactive we proactively close the volume gate so that any volume
+  // events fired before the TCP drop is detected cannot reach a dead socket.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        _wasConnected &&
-        connectionStatus == AppConnectionStatus.notConnected) {
-      connect();
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        _volumeService.setDisconnected();
+      case AppLifecycleState.resumed:
+        if (_wasConnected &&
+            connectionStatus == AppConnectionStatus.notConnected) {
+          connect();
+        }
+      default:
+        break;
     }
   }
 
   void _setConnectionState(AppConnectionStatus state) {
     connectionStatus = state;
+    // Close the volume gate whenever we're not actively connected so that
+    // hardware-volume events cannot reach a closed/non-existent TCP socket.
+    if (state != AppConnectionStatus.connected) {
+      _volumeService.setDisconnected();
+    }
     notifyListeners();
   }
 

@@ -84,8 +84,10 @@ class ServerConnector {
     _deviceSettings = deviceSettings;
   }
 
-  static void disconnect() {
-    setConnectionStatus(AppConnectionStatus.notConnected);
+  /// Releases all socket resources without updating connection status.
+  /// Called both by [disconnect] and internally when the TCP stream closes
+  /// unexpectedly (screen lock, network drop, etc.).
+  static void _cleanupConnection() {
     _serverEventSubscription?.cancel();
     _serverEventSubscription = null;
     _udpSocket?.close();
@@ -93,8 +95,14 @@ class ServerConnector {
     _serverAddress = null;
     _udpPort = 0;
     _udpSeq = 0;
-    server.close();
-    server.destroy();
+    try {
+      server.destroy();
+    } catch (_) {}
+  }
+
+  static void disconnect() {
+    _cleanupConnection();
+    setConnectionStatus(AppConnectionStatus.notConnected);
   }
 
   static void sendInput(Uint8List bytes) {
@@ -122,6 +130,10 @@ class ServerConnector {
   /// Initialize the UDP socket for motion input after a successful TCP connection.
   /// If [udpPort] is 0, the server signalled that UDP is unavailable — stays on TCP.
   static Future<void> _initUdpSocket(String ip, int udpPort) async {
+    // Close any previously open UDP socket before binding a new one.
+    _udpSocket?.close();
+    _udpSocket = null;
+
     _udpPort = udpPort;
     _serverAddress = InternetAddress(ip);
     if (udpPort == 0) {
@@ -538,11 +550,13 @@ class ServerConnector {
       },
       onError: (error) {
         _log.severe("Error in server event listener: $error");
+        _cleanupConnection();
+        setConnectionStatus(AppConnectionStatus.notConnected);
         onError("Connection error: $error");
       },
       onDone: () {
         _log.info("Server connection closed");
-        // Connection was closed by server
+        _cleanupConnection();
         setConnectionStatus(AppConnectionStatus.notConnected);
       },
       cancelOnError: false,
