@@ -8,6 +8,7 @@ Thumbs.db
 *.swp
 .env
 .env*.local
+.codex
 
 # --- Rust (Server & General) ---
 **/target/
