@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="design-tokens/readme-images/github-banner.png" alt="Laze Banner" width="50%">
-</p>
-
 <h1 align="center">Laze</h1>
 <h3 align="center">Your Phone. Your Remote. Your Control.</h3>
 
