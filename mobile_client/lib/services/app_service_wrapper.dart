@@ -6,7 +6,12 @@ import 'package:laze/services/app_connection_status.dart';
 import 'package:laze/services/server_connector.dart';
 import 'package:laze/services/volume_service.dart';
 
-class AppServiceWrapper extends ChangeNotifier {
+/// Central service layer between the UI and the underlying connection/input
+/// services. Manages connection state, error messages, and volume input,
+/// and exposes actions (connect, disconnect, etc.) consumed by the UI via
+/// [ChangeNotifier]. Also observes app lifecycle events to auto-reconnect
+/// after the screen is unlocked.
+class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   final VolumeService _volumeService = VolumeService();
   final DeviceSettingsRepository _deviceSettings;
 
@@ -14,6 +19,10 @@ class AppServiceWrapper extends ChangeNotifier {
   String? errorMessage;
 
   bool _isInit = false;
+
+  // Tracks whether the user had an active connection — used to auto-reconnect
+  // when the app resumes after the screen was locked.
+  bool _wasConnected = false;
 
   AppServiceWrapper({required DeviceSettingsRepository deviceSettings})
       : _deviceSettings = deviceSettings {
@@ -24,6 +33,8 @@ class AppServiceWrapper extends ChangeNotifier {
     if (_isInit) return;
     _isInit = true;
 
+    WidgetsBinding.instance.addObserver(this);
+
     ServerConnector.init(
       _setConnectionState,
       _getConnectionState,
@@ -33,6 +44,19 @@ class AppServiceWrapper extends ChangeNotifier {
     );
 
     _volumeService.start(ServerConnector.sendInput);
+  }
+
+  // Triggered by the OS whenever the app transitions between lifecycle states
+  // (foreground, background, paused, etc.). On resume, if the connection was
+  // dropped while the screen was locked (status notConnected but _wasConnected
+  // is still true), kick off a reconnect — cached IPs make this nearly instant.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _wasConnected &&
+        connectionStatus == AppConnectionStatus.notConnected) {
+      connect();
+    }
   }
 
   void _setConnectionState(AppConnectionStatus state) {
@@ -50,6 +74,8 @@ class AppServiceWrapper extends ChangeNotifier {
   }
 
   void _onServerEvent(ServerEvent event) {
+    // Server intentionally ended the session — do not auto-reconnect.
+    _wasConnected = false;
     _volumeService.setDisconnected();
     connectionStatus = AppConnectionStatus.notConnected;
     errorMessage = event.description;
@@ -65,6 +91,7 @@ class AppServiceWrapper extends ChangeNotifier {
     _setConnectionState(AppConnectionStatus.searching);
     final success = await ServerConnector.findServer();
     if (success) {
+      _wasConnected = true;
       _volumeService.setConnected();
       _setConnectionState(AppConnectionStatus.connected);
     } else {
@@ -78,6 +105,8 @@ class AppServiceWrapper extends ChangeNotifier {
   }
 
   void disconnect() {
+    // User explicitly disconnected — do not auto-reconnect.
+    _wasConnected = false;
     _volumeService.setDisconnected();
     ServerConnector.sendInput(Input.disconnect());
     ServerConnector.disconnect();
@@ -85,6 +114,8 @@ class AppServiceWrapper extends ChangeNotifier {
   }
 
   void turnOffPc() {
+    // User explicitly shut down — do not auto-reconnect.
+    _wasConnected = false;
     _volumeService.setDisconnected();
     ServerConnector.sendInput(Input.shutdown());
     ServerConnector.disconnect();
@@ -93,6 +124,7 @@ class AppServiceWrapper extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _volumeService.dispose();
     super.dispose();
   }
