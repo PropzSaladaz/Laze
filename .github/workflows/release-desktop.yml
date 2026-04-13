@@ -24,6 +24,8 @@ jobs:
             tauri_args: --bundles deb,appimage
           - os: windows-latest
             tauri_args: --bundles nsis,msi
+          - os: macos-latest
+            tauri_args: --bundles dmg
     
     runs-on: ${{ matrix.os }}
 
