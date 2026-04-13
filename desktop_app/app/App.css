@@ -1,6 +1,16 @@
 @import './theme/css-vars.css';
 @import 'tailwindcss';
 
+/* App-specific shadows (not part of design tokens) */
+:root {
+  --shadow-neumorphic:
+    -2px -1px 5px rgba(255, 255, 255, 0.84),
+    -8px -3px 9px rgba(255, 255, 255, 0.77),
+    -18px -8px 12px rgba(255, 255, 255, 0.68),
+    6px 1px 6px rgba(95, 95, 95, 0.09),
+    1px 0px 3px rgba(95, 95, 95, 0.1);
+}
+
 html,
 body {
   margin: 0;
