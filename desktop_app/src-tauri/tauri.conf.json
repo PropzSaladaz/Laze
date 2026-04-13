@@ -25,7 +25,8 @@
     "active": true,
     "targets": [
       "deb",
-      "appimage"
+      "appimage",
+      "dmg"
     ],
     "icon": [
       "icons/32x32.png",

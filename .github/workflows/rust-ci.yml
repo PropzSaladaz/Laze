@@ -21,7 +21,7 @@ jobs:
   build-and-test:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     
     steps:
@@ -68,12 +68,23 @@ jobs:
   # Verify the Tauri desktop app builds (release mode) so we catch
   # breakage before tagging a release.
   build-tauri:
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            tauri_args: --bundles deb,appimage
+          - os: macos-latest
+            tauri_args: --bundles dmg
+          - os: windows-latest
+            tauri_args: --bundles nsis,msi
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install system dependencies
+    - name: Install system dependencies (Linux)
+      if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y libxdo-dev build-essential \
@@ -93,6 +104,58 @@ jobs:
       working-directory: ./desktop_app
       run: npm ci
 
+    - name: Install macOS native npm packages
+      if: runner.os == 'macOS'
+      working-directory: ./desktop_app
+      run: |
+        PACKAGES=(
+          "@tauri-apps/cli:@tauri-apps/cli-darwin-arm64"
+          "lightningcss:lightningcss-darwin-arm64"
+          "esbuild:@esbuild/darwin-arm64"
+          "next:@next/swc-darwin-arm64"
+          "sharp:@img/sharp-darwin-arm64"
+          "@tailwindcss/oxide:@tailwindcss/oxide-darwin-arm64"
+        )
+
+        INSTALLS=()
+        for entry in "${PACKAGES[@]}"; do
+          PKG="${entry%%:*}"
+          OPT="${entry##*:}"
+          VERSION=$(node -p "require('./node_modules/${PKG}/package.json').optionalDependencies['${OPT}']")
+          if [ -z "$VERSION" ]; then
+            echo "WARNING: Could not resolve ${OPT} from ${PKG}, skipping"
+            continue
+          fi
+          INSTALLS+=("${OPT}@${VERSION}")
+        done
+
+        npm install --no-save "${INSTALLS[@]}"
+
+    - name: Install Windows native npm packages
+      if: runner.os == 'Windows'
+      working-directory: ./desktop_app
+      shell: pwsh
+      run: |
+        $packages = @(
+          @{ Package = '@tauri-apps/cli'; Optional = '@tauri-apps/cli-win32-x64-msvc' },
+          @{ Package = 'lightningcss'; Optional = 'lightningcss-win32-x64-msvc' },
+          @{ Package = 'esbuild'; Optional = '@esbuild/win32-x64' },
+          @{ Package = 'next'; Optional = '@next/swc-win32-x64-msvc' },
+          @{ Package = 'sharp'; Optional = '@img/sharp-win32-x64' },
+          @{ Package = '@tailwindcss/oxide'; Optional = '@tailwindcss/oxide-win32-x64-msvc' }
+        )
+
+        $installs = @()
+        foreach ($entry in $packages) {
+          $version = node -p "require('./node_modules/$($entry.Package)/package.json').optionalDependencies['$($entry.Optional)']"
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($version)) {
+            throw "Unable to resolve optional dependency $($entry.Optional) from $($entry.Package)"
+          }
+          $installs += "$($entry.Optional)@$version"
+        }
+
+        npm install --no-save $installs
+
     - name: Build Tauri app (release)
       working-directory: ./desktop_app
-      run: npx tauri build
+      run: npx tauri build ${{ matrix.tauri_args }}
