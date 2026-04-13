@@ -1,37 +1,7 @@
 @import "tailwindcss";
+@import "./theme/css-vars.css";
 
-/* ── Design tokens (dark-first landing page) ─────────────────────────── */
-:root {
-  --color-bg:           #0b1020;
-  --color-surface-1:    #0f172a;
-  --color-surface-2:    #111827;
-  --color-surface-3:    #161b22;
-  --color-text:         #e5e7eb;
-  --color-text-muted:   #9ca3af;
-  --color-text-inverse: #0b1020;
-  --color-border:       #1f2937;
-  --color-divider:      #293241;
-  --color-primary:      #e9bc74;
-  --color-on-primary:   #1a1a1a;
-  --color-secondary:    #67e8f9;
-  --color-on-secondary: #001219;
-  --color-error:        #f87171;
-  --color-focus:        #60a5fa;
-
-  --space-sm:  8px;
-  --space-md:  12px;
-  --space-lg:  16px;
-  --space-xl:  24px;
-  --space-2xl: 32px;
-  --space-3xl: 48px;
-
-  --radius-md:   10px;
-  --radius-lg:   14px;
-  --radius-xl:   20px;
-  --radius-pill: 999px;
-}
-
-/* ── Tailwind v4 theme extension ─────────────────────────────────────── */
+/* ── Tailwind v4 theme extension (references generated CSS vars) ───── */
 @theme {
   --color-bg:           var(--color-bg);
   --color-surface-1:    var(--color-surface-1);
@@ -43,9 +13,9 @@
   --color-border:       var(--color-border);
   --color-divider:      var(--color-divider);
   --color-primary:      var(--color-primary);
-  --color-on-primary:   var(--color-on-primary);
+  --color-on-primary:   var(--color-onPrimary);
   --color-secondary:    var(--color-secondary);
-  --color-on-secondary: var(--color-on-secondary);
+  --color-on-secondary: var(--color-onSecondary);
   --color-error:        var(--color-error);
   --color-focus:        var(--color-focus);
 

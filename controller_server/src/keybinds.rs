@@ -36,7 +36,14 @@ impl KeyBindings {
             (actions::Key::VolumeMute, vec![enigo::Key::VolumeMute]),
             (actions::Key::VolumeDown, vec![enigo::Key::VolumeDown]),
             (actions::Key::VolumeUp, vec![enigo::Key::VolumeUp]),
+
+            // MediaStop not supported on macOS - use MediaPlayPause instead, 
+            // which toggles between play and pause
+            #[cfg(not(target_os = "macos"))]
             (actions::Key::Pause, vec![enigo::Key::MediaStop]),
+            #[cfg(target_os = "macos")]
+            (actions::Key::Pause, vec![enigo::Key::MediaPlayPause]),
+
             (actions::Key::Play, vec![enigo::Key::MediaPlayPause]),
             (actions::Key::Enter, vec![enigo::Key::Return]),
             (actions::Key::Fullscreen, vec![enigo::Key::F11]),
