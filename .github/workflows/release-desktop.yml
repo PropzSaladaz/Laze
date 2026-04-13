@@ -65,6 +65,33 @@ jobs:
         working-directory: desktop_app
         run: npm ci
 
+      - name: Install macOS native npm packages
+        if: matrix.os == 'macos-latest'
+        working-directory: desktop_app
+        run: |
+          PACKAGES=(
+            "@tauri-apps/cli:@tauri-apps/cli-darwin-arm64"
+            "lightningcss:lightningcss-darwin-arm64"
+            "esbuild:@esbuild/darwin-arm64"
+            "next:@next/swc-darwin-arm64"
+            "sharp:@img/sharp-darwin-arm64"
+            "@tailwindcss/oxide:@tailwindcss/oxide-darwin-arm64"
+          )
+
+          INSTALLS=()
+          for entry in "${PACKAGES[@]}"; do
+            PKG="${entry%%:*}"
+            OPT="${entry##*:}"
+            VERSION=$(node -p "require('./node_modules/${PKG}/package.json').optionalDependencies['${OPT}']")
+            if [ -z "$VERSION" ]; then
+              echo "WARNING: Could not resolve ${OPT} from ${PKG}, skipping"
+              continue
+            fi
+            INSTALLS+=("${OPT}@${VERSION}")
+          done
+
+          npm install --no-save "${INSTALLS[@]}"
+
       - name: Install Windows native npm packages
         if: matrix.os == 'windows-latest'
         working-directory: desktop_app
