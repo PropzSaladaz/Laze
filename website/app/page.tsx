@@ -10,12 +10,10 @@ const features = [
     icon: "🖱️",
     color: "var(--color-primary)",
     items: [
-      { name: "Precision Movement", desc: "Natural, fluid gestures on the touchpad" },
-      { name: "Velocity Acceleration", desc: "Effortless navigation on multi-monitor setups" },
-      { name: "Two-Finger Scroll", desc: "Scroll pages with a natural swipe gesture" },
-      { name: "Drag & Drop", desc: "Long-press to initiate drag mode" },
-      { name: "Adjustable Sensitivity", desc: "Change sensitivity on-the-fly" },
-      { name: "Sub-Pixel Smoothing", desc: "No jittery or sticky cursor behaviour" },
+      "Precision movement with velocity acceleration",
+      "Two-finger scroll & drag-and-drop",
+      "Adjustable sensitivity on-the-fly",
+      "Sub-pixel smoothing — no jitter",
     ],
   },
   {
@@ -23,11 +21,10 @@ const features = [
     icon: "🖥️",
     color: "var(--color-secondary)",
     items: [
-      { name: "Multi-Client Support", desc: "Connect multiple devices simultaneously" },
-      { name: "System Tray Mode", desc: "Runs silently in the background" },
-      { name: "Autostart on Boot", desc: "Ready the moment you log in" },
-      { name: "Graceful Disconnection", desc: "Clients are notified when server shuts down" },
-      { name: "UDP Discovery", desc: "Find the server instantly — no IP config needed" },
+      "Multi-client support",
+      "System tray with autostart on boot",
+      "Instant LAN discovery — no IP config",
+      "Graceful disconnect notifications",
     ],
   },
   {
@@ -35,12 +32,10 @@ const features = [
     icon: "📱",
     color: "#a78bfa",
     items: [
-      { name: "Pre-built Shortcuts", desc: "Mute, volume, play/pause and more" },
-      { name: "Custom Shortcuts", desc: "Create shortcuts with custom keys & icons" },
-      { name: "Terminal Commands", desc: "Execute shell commands from your phone" },
-      { name: "Cross-Platform Commands", desc: "Separate commands for Linux, Windows, macOS" },
-      { name: "Fullscreen Touchpad", desc: "Expand for maximum precision" },
-      { name: "Light & Dark Themes", desc: "Match your style or environment" },
+      "Pre-built & custom shortcuts",
+      "Terminal commands from your phone",
+      "Cross-platform commands (Linux, Windows, macOS)",
+      "Fullscreen touchpad & theme support",
     ],
   },
   {
@@ -48,10 +43,9 @@ const features = [
     icon: "✨",
     color: "#34d399",
     items: [
-      { name: "Saved Shortcuts", desc: "Persist across app restarts" },
-      { name: "Remembered Sensitivity", desc: "Restored automatically on launch" },
-      { name: "Device Naming", desc: "Custom names for easy identification" },
-      { name: "Session Continuity", desc: "Pick up right where you left off" },
+      "Shortcuts & settings persist across restarts",
+      "Custom device naming",
+      "Session continuity — pick up where you left off",
     ],
   },
 ];
@@ -235,18 +229,15 @@ export default function Home() {
                     color: group.color,
                   }}>{group.title}</span>
                 </div>
-                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
+                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
                   {group.items.map((item) => (
-                    <li key={item.name} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <li key={item} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                       <span style={{
                         width: 5, height: 5, borderRadius: "50%",
                         background: group.color,
                         marginTop: 7, flexShrink: 0,
                       }} />
-                      <div>
-                        <span style={{ fontWeight: 600, fontSize: 13.5, color: "var(--color-text)" }}>{item.name}</span>
-                        <span style={{ color: "var(--color-text-muted)", fontSize: 13 }}> — {item.desc}</span>
-                      </div>
+                      <span style={{ fontSize: 13.5, color: "var(--color-text-muted)", lineHeight: 1.5 }}>{item}</span>
                     </li>
                   ))}
                 </ul>
