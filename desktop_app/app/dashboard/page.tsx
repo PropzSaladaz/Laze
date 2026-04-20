@@ -61,6 +61,7 @@ export default function Dashboard() {
 
     async function stopServer() {
         await invoke<string>("stop_server", {});
+        sessionStorage.setItem("server_stopped_by_user", "true");
         window.location.href = "/";
     }
 
