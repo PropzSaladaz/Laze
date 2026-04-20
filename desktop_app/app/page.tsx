@@ -15,6 +15,7 @@ const MAX_RETRY_DURATION_MS = 60000;
 const RETRY_INTERVAL_MS = 5000;
 const SESSION_KEY_INIT = "server_initialized";
 const SESSION_KEY_NAVIGATING = "navigating_to_dashboard";
+const SESSION_KEY_STOPPED = "server_stopped_by_user";
 
 export default function Home() {
   const [connectionState, setConnectionState] = useState<ConnectionState>("loading");
@@ -78,7 +79,14 @@ export default function Home() {
       const success = await tryInit();
       if (success) {
         sessionStorage.setItem(SESSION_KEY_INIT, "true");
-        setConnectionState("ready");
+        const stoppedByUser = sessionStorage.getItem(SESSION_KEY_STOPPED) === "true";
+        if (stoppedByUser) {
+          sessionStorage.removeItem(SESSION_KEY_STOPPED);
+          setConnectionState("ready");
+        } else {
+          // Auto-start server on initial startup
+          await startServer();
+        }
         return;
       }
 
@@ -105,12 +113,19 @@ export default function Home() {
       // Check if already initialized
       const wasInitialized = sessionStorage.getItem(SESSION_KEY_INIT) === "true";
 
+      const stoppedByUser = sessionStorage.getItem(SESSION_KEY_STOPPED) === "true";
+
       if (wasInitialized) {
         try {
           const isInit = await invoke<boolean>("is_server_initialized", {});
           console.log("[Home] sessionStorage says init, backend says:", isInit);
           if (isInit && !cancelled) {
-            setConnectionState("ready");
+            if (stoppedByUser) {
+              sessionStorage.removeItem(SESSION_KEY_STOPPED);
+              setConnectionState("ready");
+            } else {
+              await startServer();
+            }
             return;
           }
         } catch (e) {
@@ -126,7 +141,12 @@ export default function Home() {
 
         if (isInit && !cancelled) {
           sessionStorage.setItem(SESSION_KEY_INIT, "true");
-          setConnectionState("ready");
+          if (stoppedByUser) {
+            sessionStorage.removeItem(SESSION_KEY_STOPPED);
+            setConnectionState("ready");
+          } else {
+            await startServer();
+          }
           return;
         }
       } catch (e) {
