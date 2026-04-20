@@ -174,13 +174,38 @@ export default function Home() {
               <LinuxIcon /> Download for Linux
             </DownloadBtn>
           </div>
+
+          {/* Mobile screenshots */}
+          <div style={{ marginTop: 64, maxWidth: 860, margin: "64px auto 0" }}>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: 16,
+            }}>
+              {["p1.jpg", "p2.jpg", "p3.jpg"].map((img, i) => (
+                <div key={img} style={{
+                  borderRadius: "var(--radius-xl)",
+                  overflow: "hidden",
+                  border: "1px solid var(--color-border)",
+                  boxShadow: "0 16px 40px rgba(0,0,0,0.4)",
+                }}>
+                  <Image
+                    src={`/images/${img}`}
+                    alt={`Laze mobile app screenshot ${i + 1}`}
+                    width={400} height={800}
+                    style={{ width: "100%", height: "auto", display: "block" }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
       </section>
 
       {/* ── What is Laze ───────────────────────────────────────────── */}
       <section style={{ padding: "96px 24px", borderTop: "1px solid var(--color-divider)" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <SectionLabel>What is Laze?</SectionLabel>
           <h2 style={{ ...h2Style, maxWidth: 640 }}>
             Built for the ultimate{" "}
@@ -253,38 +278,8 @@ export default function Home() {
           <SectionLabel>Screenshots</SectionLabel>
           <h2 style={h2Style}>See it in action</h2>
 
-          {/* Mobile screenshots — shown first */}
-          <div style={{ marginTop: 52 }}>
-            <p style={{ ...captionStyle, marginBottom: 20 }}>Mobile Controller</p>
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 20,
-            }}>
-              {["p1.jpg", "p2.jpg", "p3.jpg"].map((img, i) => (
-                <div key={img} style={{
-                  borderRadius: "var(--radius-xl)",
-                  overflow: "hidden",
-                  border: "1px solid var(--color-border)",
-                  boxShadow: "0 16px 40px rgba(0,0,0,0.4)",
-                }}>
-                  <Image
-                    src={`/images/${img}`}
-                    alt={`Laze mobile app screenshot ${i + 1}`}
-                    width={400} height={800}
-                    style={{ width: "100%", height: "auto", display: "block" }}
-                  />
-                </div>
-              ))}
-            </div>
-            <p style={{ ...bodyStyle, textAlign: "center", maxWidth: 580, margin: "20px auto 0" }}>
-              Your entire computer at your fingertips. A responsive touchpad with velocity acceleration,
-              quick-action buttons, and a full keyboard — all designed for one-handed use.
-            </p>
-          </div>
-
           {/* Desktop screenshot */}
-          <div style={{ marginTop: 72 }}>
+          <div style={{ marginTop: 52 }}>
             <p style={{ ...captionStyle, marginBottom: 20 }}>Desktop Dashboard</p>
             <div style={{
               borderRadius: "var(--radius-xl)",
