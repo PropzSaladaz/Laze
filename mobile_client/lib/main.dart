@@ -7,6 +7,7 @@ import 'package:laze/config/dependencies.dart';
 import 'package:laze/data/repositories/shortcut/models/shortcut_data.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/presentation/home/widgets/home_screen.dart';
+import 'package:laze/presentation/onboarding/onboarding_screen.dart';
 import 'package:laze/presentation/settings/settings_screen.dart';
 import 'package:laze/presentation/core/themes/app_theme.dart';
 import 'package:laze/services/app_service_wrapper.dart';
@@ -42,6 +43,9 @@ void main() async {
   final themeNotifier = await ThemeNotifier.create(
     repositoryService.deviceSettingsRepository,
   );
+  final onboardingCompleted = await repositoryService
+      .deviceSettingsRepository
+      .getOnboardingCompleted();
 
   runApp(
     MultiProvider(
@@ -54,13 +58,15 @@ void main() async {
         ),
         ChangeNotifierProvider<ThemeNotifier>.value(value: themeNotifier),
       ],
-      child: const MyApp(),
+      child: MyApp(showOnboarding: !onboardingCompleted),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool showOnboarding;
+
+  const MyApp({super.key, required this.showOnboarding});
 
   @override
   Widget build(BuildContext context) {
@@ -74,9 +80,12 @@ class MyApp extends StatelessWidget {
       themeAnimationDuration: const Duration(milliseconds: 10),
       themeAnimationCurve: Curves.easeOutCubic,
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
+      initialRoute: showOnboarding ? '/onboarding-first-run' : '/',
       routes: {
+        '/': (context) => const HomeScreen(),
         '/settings': (context) => const SettingsScreen(),
+        '/onboarding-first-run': (context) => const OnboardingScreen(),
+        '/onboarding': (context) => const OnboardingScreen(replay: true),
       },
     );
   }
