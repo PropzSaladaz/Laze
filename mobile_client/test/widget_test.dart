@@ -7,7 +7,7 @@ void main() {
     // and other setup that is difficult to test without mocking
     
     // We can at least verify the MyApp widget can be created
-    const app = MyApp();
+    const app = MyApp(showOnboarding: false);
     expect(app, isNotNull);
   });
 }
