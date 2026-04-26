@@ -139,6 +139,18 @@ class DeviceSettingsRepository {
     await _box.put('theme_option', value);
   }
 
+  /// Whether the user has completed the first-run onboarding flow.
+  Future<bool> getOnboardingCompleted() async {
+    if (!_initialized) await init();
+    return _box.get('onboarding_completed') == 'true';
+  }
+
+  /// Persist that the user has completed (or skipped) onboarding.
+  Future<void> setOnboardingCompleted(bool value) async {
+    if (!_initialized) await init();
+    await _box.put('onboarding_completed', value.toString());
+  }
+
   /// Clear all device settings
   Future<void> clear() async {
     if (!_initialized) return;
