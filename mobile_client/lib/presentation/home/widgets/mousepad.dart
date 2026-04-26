@@ -326,6 +326,76 @@ class _MousePadState extends State<MousePad> {
     _maxPointerCount = 0;
   }
 
+  void _showGestureGuide(BuildContext context, AppColors appColors) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: appColors.surface_1,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          20,
+          24,
+          24 + MediaQuery.of(sheetContext).viewPadding.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: appColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Gesture guide',
+              style: TextStyle(
+                color: appColors.text,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _GestureHint(
+              icon: Icons.touch_app_outlined,
+              text: 'Tap to left click',
+              appColors: appColors,
+            ),
+            _GestureHint(
+              icon: Icons.swipe_vertical_outlined,
+              text: 'Two fingers to scroll',
+              appColors: appColors,
+            ),
+            _GestureHint(
+              icon: Icons.ads_click,
+              text: 'Tap with two fingers for right click',
+              appColors: appColors,
+            ),
+            _GestureHint(
+              icon: Icons.swap_horiz,
+              text: 'Three-finger swipe for Alt-Tab',
+              appColors: appColors,
+            ),
+            _GestureHint(
+              icon: Icons.pan_tool_outlined,
+              text: 'Long press to drag',
+              appColors: appColors,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
@@ -461,10 +531,68 @@ class _MousePadState extends State<MousePad> {
                   },
                 ),
               ),
+              Positioned(
+                left: 60,
+                bottom: 12,
+                child: IconButton(
+                  icon: const Icon(Icons.help_outline),
+                  color: appColors.textMuted,
+                  iconSize: 28,
+                  tooltip: 'Gesture guide',
+                  onPressed: () => _showGestureGuide(context, appColors),
+                ),
+              ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _GestureHint extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final AppColors appColors;
+
+  const _GestureHint({
+    required this.icon,
+    required this.text,
+    required this.appColors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: appColors.surface_2,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: appColors.divider, width: 1),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, color: appColors.primary, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: appColors.text,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
