@@ -62,10 +62,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _deviceNameDebounce = Timer(const Duration(milliseconds: 350), () {
       final trimmed = _deviceNameController.text.trim();
       if (trimmed.isEmpty || trimmed == _lastSavedDeviceName) return;
-      _lastSavedDeviceName = trimmed;
-      Provider.of<DeviceSettingsRepository>(context, listen: false)
-          .setDeviceName(trimmed);
+      unawaited(_saveDeviceName(trimmed));
     });
+  }
+
+  Future<void> _saveDeviceName(String name) async {
+    try {
+      final deviceSettings =
+          Provider.of<DeviceSettingsRepository>(context, listen: false);
+      await deviceSettings.setDeviceName(name);
+
+      if (!mounted) return;
+      _lastSavedDeviceName = name;
+    } catch (e) {
+      if (!mounted) return;
+      _showError('Failed to save device name: $e');
+    }
+  }
+
+  void _showError(String message) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: appColors.error,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
