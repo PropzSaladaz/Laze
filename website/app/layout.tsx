@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Laze — Your Phone. Your Remote. Your Control.",
+  title: "Laze — Desktop Controller",
   description:
     "Transform your smartphone into a powerful, intuitive remote control for your desktop. Seamless. Responsive. Beautiful.",
   icons: { icon: "/images/icon.png" },
