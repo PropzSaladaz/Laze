@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
-import 'package:laze/presentation/core/ui/cta_button.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/core/ui/styled_input.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
@@ -19,18 +20,23 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _deviceNameController = TextEditingController();
   bool _isLoading = true;
-  bool _isSaving = false;
 
   int _sensitivity = 5;
+
+  Timer? _deviceNameDebounce;
+  String _lastSavedDeviceName = '';
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _deviceNameController.addListener(_onDeviceNameChanged);
   }
 
   @override
   void dispose() {
+    _deviceNameDebounce?.cancel();
+    _deviceNameController.removeListener(_onDeviceNameChanged);
     _deviceNameController.dispose();
     super.dispose();
   }
@@ -45,62 +51,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     setState(() {
       _deviceNameController.text = results[0] as String;
+      _lastSavedDeviceName = _deviceNameController.text;
       _sensitivity = results[1] as int;
       _isLoading = false;
     });
   }
 
-  Future<void> _saveDeviceName() async {
-    if (_deviceNameController.text.trim().isEmpty) {
-      _showError('Device name cannot be empty');
-      return;
-    }
-
-    setState(() {
-      _isSaving = true;
+  void _onDeviceNameChanged() {
+    _deviceNameDebounce?.cancel();
+    _deviceNameDebounce = Timer(const Duration(milliseconds: 350), () {
+      final trimmed = _deviceNameController.text.trim();
+      if (trimmed.isEmpty || trimmed == _lastSavedDeviceName) return;
+      _lastSavedDeviceName = trimmed;
+      Provider.of<DeviceSettingsRepository>(context, listen: false)
+          .setDeviceName(trimmed);
     });
-
-    try {
-      final deviceSettings =
-          Provider.of<DeviceSettingsRepository>(context, listen: false);
-      await deviceSettings.setDeviceName(_deviceNameController.text.trim());
-
-      if (mounted) {
-        _showSuccess('Settings updated');
-      }
-    } catch (e) {
-      if (mounted) {
-        _showError('Failed to save device name: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
-      }
-    }
-  }
-
-  void _showError(String message) {
-    final appColors = Theme.of(context).extension<AppColors>()!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: appColors.error,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  void _showSuccess(String message) {
-    final appColors = Theme.of(context).extension<AppColors>()!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: appColors.success,
-        duration: const Duration(seconds: 2),
-      ),
-    );
   }
 
   @override
@@ -191,14 +156,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     SizedBox(height: scale.spaceXl),
                     _ThemeCard(appColors: appColors, scale: scale),
+                    SizedBox(height: scale.spaceXl),
+                    _HelpCard(appColors: appColors, scale: scale),
                   ],
                 ),
               ),
-            ),
-            SizedBox(height: scale.spaceXl),
-            CtaButton(
-              text: _isSaving ? 'SAVING' : 'SAVE',
-              onPressed: _isSaving ? () {} : _saveDeviceName,
             ),
           ],
         ],
@@ -500,6 +462,96 @@ class _ControlsCard extends StatelessWidget {
             ),
           ),
 
+        ],
+      ),
+    );
+  }
+}
+
+class _HelpCard extends StatelessWidget {
+  final AppColors appColors;
+  final DesignScale scale;
+
+  const _HelpCard({required this.appColors, required this.scale});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(scale.spaceXl),
+      decoration: BoxDecoration(
+        color: appColors.surface_1,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: appColors.divider, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: appColors.surface_2,
+                  borderRadius: BorderRadius.circular(scale.radiusLg),
+                  border: Border.all(color: appColors.divider, width: 1),
+                ),
+                alignment: Alignment.center,
+                child: Icon(Icons.help_outline,
+                    color: appColors.primary, size: 28),
+              ),
+              SizedBox(width: scale.spaceLg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Help & Tutorial',
+                      style: TextStyle(
+                        color: appColors.text,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: scale.spaceSm),
+                    Text(
+                      'Replay the introduction to learn how Laze works.',
+                      style: TextStyle(
+                        color: appColors.textMuted,
+                        fontSize: 15,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: scale.spaceXl),
+          GestureDetector(
+            onTap: () => Navigator.of(context).pushNamed('/onboarding'),
+            child: Container(
+              width: double.infinity,
+              height: 48,
+              decoration: BoxDecoration(
+                color: appColors.surface_2,
+                borderRadius: BorderRadius.circular(scale.radiusMd),
+                border: Border.all(color: appColors.divider, width: 1),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'View Tutorial',
+                style: TextStyle(
+                  color: appColors.text,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
