@@ -1,7 +1,9 @@
 import Image from "next/image";
-
-// ── GitHub releases base URL ──────────────────────────────────────────
-const RELEASES = "https://github.com/PropzSaladaz/Laze/releases/latest";
+import {
+  HeroCTAs,
+  MobileDownloadList,
+  DesktopDownloadList,
+} from "./components/PlatformDownloads";
 
 // ── Feature data ──────────────────────────────────────────────────────
 const features = [
@@ -166,14 +168,7 @@ export default function Home() {
           </p>
 
           {/* CTA buttons */}
-          <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-            <DownloadBtn href={RELEASES} primary>
-              <AndroidIcon /> Download for Android
-            </DownloadBtn>
-            <DownloadBtn href={RELEASES}>
-              <LinuxIcon /> Download for Linux
-            </DownloadBtn>
-          </div>
+          <HeroCTAs />
 
           {/* Mobile screenshots */}
           <div style={{ marginTop: 64, maxWidth: 860, margin: "64px auto 0" }}>
@@ -402,14 +397,7 @@ export default function Home() {
               <p style={{ fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 24 }}>
                 The remote controller for your phone. Tested on Android.
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <DownloadBtn href={RELEASES} primary full>
-                  <AndroidIcon /> Android APK
-                </DownloadBtn>
-                <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-                  iOS — not yet released
-                </span>
-              </div>
+              <MobileDownloadList />
             </div>
 
             {/* Desktop card */}
@@ -419,19 +407,9 @@ export default function Home() {
                 Desktop Server
               </h3>
               <p style={{ fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 24 }}>
-                The server that runs on your computer. Tested on Linux.
+                The server that runs on your computer. Available for Linux, Windows, and macOS.
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <DownloadBtn href={RELEASES} full>
-                  <LinuxIcon /> Linux .deb
-                </DownloadBtn>
-                <DownloadBtn href={RELEASES} full>
-                  <LinuxIcon /> Linux .AppImage
-                </DownloadBtn>
-                <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-                  Windows &amp; macOS — not yet released
-                </span>
-              </div>
+              <DesktopDownloadList />
             </div>
           </div>
 
@@ -516,57 +494,11 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
-function DownloadBtn({
-  href, children, primary, full,
-}: {
-  href: string;
-  children: React.ReactNode;
-  primary?: boolean;
-  full?: boolean;
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank" rel="noopener noreferrer"
-      style={{
-        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-        padding: "12px 24px",
-        background: primary ? "var(--color-primary)" : "var(--color-surface-2)",
-        border: primary ? "none" : "1px solid var(--color-border)",
-        borderRadius: "var(--radius-pill)",
-        color: primary ? "var(--color-on-primary)" : "var(--color-text)",
-        textDecoration: "none",
-        fontSize: 14, fontWeight: 600,
-        width: full ? "100%" : undefined,
-        transition: "opacity 0.2s",
-      }}
-    >
-      {children}
-    </a>
-  );
-}
-
 // ── Inline SVG icons ──────────────────────────────────────────────────
 function GithubIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.757-1.333-1.757-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.015 2.896-.015 3.286 0 .322.216.694.825.576C20.565 21.796 24 17.296 24 12c0-6.63-5.37-12-12-12z" />
-    </svg>
-  );
-}
-
-function AndroidIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M17.523 15.341A5.97 5.97 0 0 0 18 13a5.97 5.97 0 0 0-.477-2.341l2.247-2.247a9.97 9.97 0 0 1 0 9.176l-2.247-2.247zM13 18a5.97 5.97 0 0 0 2.341-.477l2.247 2.247a9.97 9.97 0 0 1-9.176 0l2.247-2.247A5.97 5.97 0 0 0 13 18zM6.477 15.341L4.23 17.588a9.97 9.97 0 0 1 0-9.176l2.247 2.247A5.97 5.97 0 0 0 6 13a5.97 5.97 0 0 0 .477 2.341zM13 8a5.97 5.97 0 0 0-2.341.477L8.412 6.23a9.97 9.97 0 0 1 9.176 0l-2.247 2.247A5.97 5.97 0 0 0 13 8zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
-    </svg>
-  );
-}
-
-function LinuxIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12.504 0C6.111 0 1.5 5.188 1.5 11.5c0 3.916 2.001 7.391 5.068 9.506l-.006 1.494H9l.001-1.19A10.977 10.977 0 0 0 12.504 23C18.896 23 23.5 17.812 23.5 11.5S18.896 0 12.504 0zm0 2C17.74 2 21.5 6.313 21.5 11.5S17.74 21 12.504 21A10.5 10.5 0 0 1 2.5 11.5C2.5 6.313 7.267 2 12.504 2zm-.004 3c-1.93 0-3.5 1.57-3.5 3.5 0 1.374.799 2.566 1.961 3.146C8.976 12.454 8 14.362 8 16.5V18h9v-1.5c0-2.138-.976-4.046-2.961-4.854C15.2 11.066 16 9.874 16 8.5c0-1.93-1.57-3.5-3.5-3.5z"/>
     </svg>
   );
 }
