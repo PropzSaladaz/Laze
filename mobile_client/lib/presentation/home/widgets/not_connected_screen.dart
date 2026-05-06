@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/core/ui/cta_button.dart';
@@ -38,8 +39,9 @@ class NotConnectedScreen extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: appColors.textMuted,
-              fontSize: 40,
-              fontWeight: FontWeight.w100,
+              fontSize: 28,
+              fontWeight: FontWeight.w200,
+              letterSpacing: 2.0,
             ),
           ),
           const SizedBox(height: 12),
@@ -50,7 +52,7 @@ class NotConnectedScreen extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: appColors.textMuted,
-              fontSize: 16,
+              fontSize: Dimens.text.body,
             ),
           ),
 
@@ -60,7 +62,10 @@ class NotConnectedScreen extends StatelessWidget {
           Expanded(
             child: Align(
               alignment: Alignment.topCenter,
-              child: Image.asset('assets/images/NoConnection.png'),
+              child: Image.asset(
+                'assets/images/NoConnection.png',
+                fit: BoxFit.contain,
+              ),
             ),
           ),
 
