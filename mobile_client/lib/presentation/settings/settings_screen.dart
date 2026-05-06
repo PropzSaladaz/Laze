@@ -5,6 +5,7 @@ import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/core/ui/styled_input.dart';
+import 'package:laze/presentation/core/ui/screen_header.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 import 'package:laze/services/theme_notifier.dart';
@@ -100,57 +101,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 460;
-              final titleBanner = Container(
-                height: 68,
-                padding: const EdgeInsets.symmetric(horizontal: 22),
-                decoration: BoxDecoration(
-                  color: appColors.border,
-                  border: Border.all(color: appColors.divider, width: 1),
-                  borderRadius: BorderRadius.circular(scale.radiusPill),
-                ),
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'SETTINGS',
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: appColors.textMuted,
-                    fontSize: isCompact ? 24 : 30,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              );
-              final closeButton = StyledButton(
+          ScreenHeader(
+            title: const Text('SETTINGS'),
+            actions: [
+              StyledButton(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: Icons.close,
-              );
-
-              return isCompact
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        titleBanner,
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: closeButton,
-                        ),
-                      ],
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(child: titleBanner),
-                        const SizedBox(width: 12),
-                        closeButton,
-                      ],
-                    );
-            },
+              ),
+            ],
           ),
-          SizedBox(height: scale.spaceXl),
+          SizedBox(height: scale.spaceLg),
           if (_isLoading)
             const Expanded(child: Center(child: CircularProgressIndicator()))
           else ...[
@@ -164,7 +124,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       scale: scale,
                       controller: _deviceNameController,
                     ),
-                    SizedBox(height: scale.spaceXl),
+                    SizedBox(height: scale.spaceLg),
                     _ControlsCard(
                       appColors: appColors,
                       scale: scale,
@@ -177,9 +137,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ).setSensitivity(v);
                       },
                     ),
-                    SizedBox(height: scale.spaceXl),
+                    SizedBox(height: scale.spaceLg),
                     _ThemeCard(appColors: appColors, scale: scale),
-                    SizedBox(height: scale.spaceXl),
+                    SizedBox(height: scale.spaceLg),
                     _HelpCard(appColors: appColors, scale: scale),
                   ],
                 ),
@@ -207,10 +167,10 @@ class _DeviceNameCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(scale.spaceXl),
+      padding: EdgeInsets.all(scale.spaceLg),
       decoration: BoxDecoration(
         color: appColors.surface_1,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: appColors.divider, width: 1),
       ),
       child: Column(
@@ -220,17 +180,17 @@ class _DeviceNameCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: appColors.surface_2,
-                  borderRadius: BorderRadius.circular(scale.radiusLg),
+                  borderRadius: BorderRadius.circular(scale.radiusMd),
                   border: Border.all(color: appColors.divider, width: 1),
                 ),
                 alignment: Alignment.center,
-                child: Icon(Icons.smartphone, color: appColors.primary, size: 28),
+                child: Icon(Icons.smartphone, color: appColors.primary, size: 22),
               ),
-              SizedBox(width: scale.spaceLg),
+              SizedBox(width: scale.spaceMd),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,17 +199,17 @@ class _DeviceNameCard extends StatelessWidget {
                       'Device Name',
                       style: TextStyle(
                         color: appColors.text,
-                        fontSize: 24,
+                        fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: scale.spaceSm),
+                    SizedBox(height: scale.space2xs),
                     Text(
-                      'This name identifies your device on the server when multiple devices are connected.',
+                      'This name identifies your device on the server.',
                       style: TextStyle(
                         color: appColors.textMuted,
-                        fontSize: 15,
-                        height: 1.35,
+                        fontSize: 14,
+                        height: 1.2,
                       ),
                     ),
                   ],
@@ -257,7 +217,7 @@ class _DeviceNameCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: scale.spaceXl),
+          SizedBox(height: scale.spaceLg),
           Text(
             'Visible device label',
             style: TextStyle(
@@ -298,10 +258,10 @@ class _ThemeCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(scale.spaceXl),
+      padding: EdgeInsets.all(scale.spaceLg),
       decoration: BoxDecoration(
         color: appColors.surface_1,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: appColors.divider, width: 1),
       ),
       child: Column(
@@ -311,18 +271,18 @@ class _ThemeCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: appColors.surface_2,
-                  borderRadius: BorderRadius.circular(scale.radiusLg),
+                  borderRadius: BorderRadius.circular(scale.radiusMd),
                   border: Border.all(color: appColors.divider, width: 1),
                 ),
                 alignment: Alignment.center,
                 child: Icon(Icons.palette_outlined,
-                    color: appColors.primary, size: 28),
+                    color: appColors.primary, size: 22),
               ),
-              SizedBox(width: scale.spaceLg),
+              SizedBox(width: scale.spaceMd),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,17 +291,17 @@ class _ThemeCard extends StatelessWidget {
                       'Appearance',
                       style: TextStyle(
                         color: appColors.text,
-                        fontSize: 24,
+                        fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: scale.spaceSm),
+                    SizedBox(height: scale.space2xs),
                     Text(
                       'Choose a colour scheme for the app.',
                       style: TextStyle(
                         color: appColors.textMuted,
-                        fontSize: 15,
-                        height: 1.35,
+                        fontSize: 14,
+                        height: 1.2,
                       ),
                     ),
                   ],
@@ -349,7 +309,7 @@ class _ThemeCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: scale.spaceXl),
+          SizedBox(height: scale.spaceLg),
           Row(
             children: AppThemeOption.values.map((option) {
               final selected = themeNotifier.option == option;
@@ -419,10 +379,10 @@ class _ControlsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(scale.spaceXl),
+      padding: EdgeInsets.all(scale.spaceLg),
       decoration: BoxDecoration(
         color: appColors.surface_1,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: appColors.divider, width: 1),
       ),
       child: Column(
@@ -431,28 +391,28 @@ class _ControlsCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: appColors.surface_2,
-                  borderRadius: BorderRadius.circular(scale.radiusLg),
+                  borderRadius: BorderRadius.circular(scale.radiusMd),
                   border: Border.all(color: appColors.divider, width: 1),
                 ),
                 alignment: Alignment.center,
-                child: Icon(Icons.tune, color: appColors.primary, size: 28),
+                child: Icon(Icons.tune, color: appColors.primary, size: 22),
               ),
-              SizedBox(width: scale.spaceLg),
+              SizedBox(width: scale.spaceMd),
               Text(
                 'Controls',
                 style: TextStyle(
                   color: appColors.text,
-                  fontSize: 24,
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          SizedBox(height: scale.spaceXl),
+          SizedBox(height: scale.spaceLg),
 
           // ── Sensitivity ──────────────────────────────────────────────
           _SettingLabel(
@@ -501,10 +461,10 @@ class _HelpCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(scale.spaceXl),
+      padding: EdgeInsets.all(scale.spaceLg),
       decoration: BoxDecoration(
         color: appColors.surface_1,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: appColors.divider, width: 1),
       ),
       child: Column(
@@ -514,18 +474,18 @@ class _HelpCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: appColors.surface_2,
-                  borderRadius: BorderRadius.circular(scale.radiusLg),
+                  borderRadius: BorderRadius.circular(scale.radiusMd),
                   border: Border.all(color: appColors.divider, width: 1),
                 ),
                 alignment: Alignment.center,
                 child: Icon(Icons.help_outline,
-                    color: appColors.primary, size: 28),
+                    color: appColors.primary, size: 22),
               ),
-              SizedBox(width: scale.spaceLg),
+              SizedBox(width: scale.spaceMd),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,17 +494,17 @@ class _HelpCard extends StatelessWidget {
                       'Help & Tutorial',
                       style: TextStyle(
                         color: appColors.text,
-                        fontSize: 24,
+                        fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: scale.spaceSm),
+                    SizedBox(height: scale.space2xs),
                     Text(
                       'Replay the introduction to learn how Laze works.',
                       style: TextStyle(
                         color: appColors.textMuted,
-                        fontSize: 15,
-                        height: 1.35,
+                        fontSize: 14,
+                        height: 1.2,
                       ),
                     ),
                   ],
@@ -552,7 +512,7 @@ class _HelpCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: scale.spaceXl),
+          SizedBox(height: scale.spaceLg),
           GestureDetector(
             onTap: () => Navigator.of(context).pushNamed('/onboarding'),
             child: Container(
