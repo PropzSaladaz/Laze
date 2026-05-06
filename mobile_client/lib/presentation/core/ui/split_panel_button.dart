@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 class SplitPanelButton extends StatelessWidget {
-  static const Radius _radius = Radius.circular(32);
-  static const double _topTextSize = 24;
-  static const double _bottomTextSize = 22;
+  static final Radius _radius = Radius.circular(Dimens.radius.medium);
+  static final double _topTextSize = Dimens.text.title;
+  static final double _bottomTextSize = Dimens.text.body;
   static const double _separatorHorizontalPadding = 18;
 
   final String topText;
@@ -31,10 +32,10 @@ class SplitPanelButton extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: appColors.border,
-        borderRadius: const BorderRadius.all(_radius),
+        borderRadius: BorderRadius.all(_radius),
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.all(_radius),
+        borderRadius: BorderRadius.all(_radius),
         child: Column(
           children: [
             Expanded(
