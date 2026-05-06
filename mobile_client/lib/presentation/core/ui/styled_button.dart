@@ -22,7 +22,7 @@ class StyledButton extends StatefulWidget {
     this.width,
     this.height,
     this.iconSize,
-    this.margin = const EdgeInsets.all(10),
+    this.margin = const EdgeInsets.all(8),
     this.showShadow = true,
   });
 
@@ -51,7 +51,7 @@ class _StyledButtonState extends State<StyledButton>
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: appColors.border,
-            width: 6,
+            width: Dimens.button.styledButtonBorderWidth,
           ),
           boxShadow: flat ? null : AppShadows.raisedControl(appColors),
         ),

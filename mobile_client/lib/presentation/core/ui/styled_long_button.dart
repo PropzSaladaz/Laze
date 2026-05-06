@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:laze/presentation/core/themes/app_shadows.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 typedef Callback = void Function();
@@ -28,8 +29,8 @@ class StyledLongButton extends StatefulWidget {
     this.vertical,
     this.width,
     this.height,
-    this.iconSize = 45,
-    this.descriptionFontSize = 20,
+    this.iconSize = 40.0, // Match Dimens.icon.large
+    this.descriptionFontSize = 18.0, // Match Dimens.text.title
   });
 
   @override
@@ -250,7 +251,7 @@ class _StyledLongButtonState extends State<StyledLongButton> {
       decoration: BoxDecoration(
         shape: BoxShape.rectangle,
         color: appColors.bg,
-        borderRadius: BorderRadius.circular(50),
+        borderRadius: BorderRadius.circular(Dimens.radius.large),
         boxShadow: AppShadows.raisedControl(appColors),
       ),
       child: _buildLayout(context, appColors),

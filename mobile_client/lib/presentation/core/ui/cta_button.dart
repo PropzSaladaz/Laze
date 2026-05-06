@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laze/presentation/core/themes/app_shadows.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/press_animation_mixin.dart';
 
@@ -11,7 +12,7 @@ class CtaButton extends StatefulWidget {
   final Color? foregroundColor;
   final Color? borderColor;
   final double widthFactor;
-  final double fontSize;
+  final double? fontSize;
   final double borderWidth;
   final bool showShadow;
 
@@ -24,7 +25,7 @@ class CtaButton extends StatefulWidget {
     this.foregroundColor,
     this.borderColor,
     this.widthFactor = 0.75,
-    this.fontSize = 38,
+    this.fontSize,
     this.borderWidth = 1,
     this.showShadow = true,
   }) : assert(
@@ -59,17 +60,20 @@ class _CtaButtonState extends State<CtaButton>
       content = TextButton(
         onPressed: widget.onPressed,
         style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 26),
+          padding: EdgeInsets.symmetric(vertical: Dimens.button.ctaVerticalPadding),
           shape: const StadiumBorder(),
           overlayColor: Colors.transparent,
         ),
-        child: Icon(widget.icon, color: resolvedForeground, size: 32),
+        child: Icon(widget.icon, color: resolvedForeground, size: Dimens.button.ctaIconSize),
       );
     } else {
       content = TextButton(
         onPressed: widget.onPressed,
         style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimens.button.ctaHorizontalPadding,
+            vertical: Dimens.button.ctaVerticalPadding,
+          ),
           shape: const StadiumBorder(),
           overlayColor: Colors.transparent,
         ),
@@ -77,7 +81,7 @@ class _CtaButtonState extends State<CtaButton>
           widget.text!,
           style: TextStyle(
             color: resolvedForeground,
-            fontSize: widget.fontSize,
+            fontSize: widget.fontSize ?? Dimens.button.ctaFontSize,
             fontWeight: FontWeight.w900,
             fontFamily: 'NunitoSans',
           ),
