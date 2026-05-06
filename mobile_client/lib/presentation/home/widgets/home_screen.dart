@@ -125,9 +125,11 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: EdgeInsets.only(bottom: bottomInset.toDouble()),
         child: Column(
           children: [
-            MousePad(
-              fullscreen: false,
-              sensitivity: sensitivity,
+            Expanded(
+              child: MousePad(
+                fullscreen: false,
+                sensitivity: sensitivity,
+              ),
             ),
             const SizedBox(height: 28),
             CommandBtns(
@@ -135,7 +137,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onSensitivityChanged: _updateSensitivity,
               feedbackNotifier: _feedbackNotifier,
             ),
-            const Spacer(),
           ],
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:laze/core/os_config.dart';
 import 'package:laze/data/services/input.dart';
 import 'package:laze/presentation/core/themes/app_shadows.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/core/ui/cta_button.dart';
@@ -20,7 +21,7 @@ class AddCustomShortcut extends StatelessWidget {
     final appColors = Theme.of(context).extension<AppColors>()!;
     final scale = Theme.of(context).extension<DesignScale>()!;
     final isSaving = shortcutVM.saveShortcut.running;
-    const actionBarHeight = 92.0;
+    const actionBarHeight = 72.0;
     final actionBarSpacing = scale.spaceLg;
     final scrollBottomInset = actionBarHeight + actionBarSpacing + scale.spaceXl;
 
@@ -48,7 +49,7 @@ class AddCustomShortcut extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: appColors.bg,
-                          borderRadius: BorderRadius.circular(36),
+                          borderRadius: BorderRadius.circular(Dimens.radius.medium),
                           border: Border.all(
                             color: appColors.surface_1,
                             width: 2,
@@ -64,7 +65,7 @@ class AddCustomShortcut extends StatelessWidget {
                               onNameChanged: shortcutVM.setName,
                               onIconSelected: shortcutVM.setIcon,
                             ),
-                            SizedBox(height: scale.spaceXl),
+                            SizedBox(height: Dimens.spacing.lg),
                             Padding(
                               padding: EdgeInsets.symmetric(
                                 horizontal: scale.spaceLg,
@@ -74,16 +75,16 @@ class AddCustomShortcut extends StatelessWidget {
                                 color: appColors.divider,
                               ),
                             ),
-                            SizedBox(height: scale.spaceXl),
+                            SizedBox(height: Dimens.spacing.lg),
                             Text(
                               "Type the commands to run in the host machine:",
                               style: TextStyle(
                                 color: appColors.textMuted,
-                                fontSize: 15,
+                                fontSize: Dimens.text.small,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            SizedBox(height: scale.spaceXl),
+                            SizedBox(height: Dimens.spacing.lg),
                             for (final os in SUPPORTED_OSES)
                               TerminalCommandInput(
                                 operativeSystemName: os.name,
@@ -122,8 +123,8 @@ class AddCustomShortcut extends StatelessWidget {
                           child: CtaButton(
                             text: 'CANCEL',
                             widthFactor: 0.92,
-                            borderWidth: 4,
-                            fontSize: 26,
+                            borderWidth: 2,
+                            fontSize: Dimens.text.title,
                             backgroundColor: appColors.bg,
                             foregroundColor: appColors.textMuted,
                             borderColor: appColors.surface_1,
@@ -141,7 +142,7 @@ class AddCustomShortcut extends StatelessWidget {
                                 ? 'SAVING'
                                 : (shortcutVM.isNew ? 'CREATE' : 'SAVE'),
                             widthFactor: 0.92,
-                            fontSize: 26,
+                            fontSize: Dimens.text.title,
                             onPressed: () async {
                               if (isSaving) {
                                 return;
@@ -216,7 +217,7 @@ class _FlatTestButton extends StatelessWidget {
           'TEST',
           style: TextStyle(
             color: appColors.textMuted,
-            fontSize: 22,
+            fontSize: Dimens.text.body,
             fontWeight: FontWeight.w900,
             fontFamily: 'NunitoSans',
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:laze/data/services/input.dart';
 import 'package:laze/domain/models/shortcut/shortcut.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/cta_button.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
@@ -88,52 +89,24 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(82),
-          topRight: Radius.circular(82),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(Dimens.radius.large),
+          topRight: Radius.circular(Dimens.radius.large),
         ),
         border: Border(
-          top: BorderSide(color: borderColor, width: 3),
+          top: BorderSide(color: borderColor, width: 2),
         ),
-        // boxShadow: [
-        //   BoxShadow(
-        //     color: appColors.border.withValues(alpha: 0.01),
-        //     offset: const Offset(0, -19),
-        //     blurRadius: 5,
-        //   ),
-        //   BoxShadow(
-        //     color: appColors.border.withValues(alpha: 0.07),
-        //     offset: const Offset(0, -12),
-        //     blurRadius: 5,
-        //   ),
-        //   BoxShadow(
-        //     color: appColors.border.withValues(alpha: 0.23),
-        //     offset: const Offset(0, -7),
-        //     blurRadius: 4,
-        //   ),
-        //   BoxShadow(
-        //     color: appColors.border.withValues(alpha: 0.38),
-        //     offset: const Offset(0, -3),
-        //     blurRadius: 3,
-        //   ),
-        //   BoxShadow(
-        //     color: appColors.border.withValues(alpha: 0.44),
-        //     offset: const Offset(0, -1),
-        //     blurRadius: 2,
-        //   ),
-        // ],
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(82),
-          topRight: Radius.circular(82),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(Dimens.radius.large),
+          topRight: Radius.circular(Dimens.radius.large),
         ),
         child: Container(
-          // child: Container(
           decoration: BoxDecoration(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(82),
-              topRight: Radius.circular(82),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(Dimens.radius.large),
+              topRight: Radius.circular(Dimens.radius.large),
             ),
             color: appColors.bg,
           ),
@@ -147,8 +120,8 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                 child: Column(
                   children: [
                     Container(
-                      width: 110,
-                      height: 6,
+                      width: 60,
+                      height: 4,
                       decoration: BoxDecoration(
                         color: appColors.divider,
                         borderRadius: BorderRadius.circular(999),

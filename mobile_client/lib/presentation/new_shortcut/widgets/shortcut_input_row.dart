@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laze/domain/models/shortcut/shortcut.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/new_shortcut/widgets/icon_picker.dart';
@@ -63,7 +64,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
-    const buttonHeight = 64.0;
+    const buttonHeight = 56.0;
     final counterColor = _nameLength >= Shortcut.maxNameLength
         ? appColors.primary
         : appColors.textMuted;
@@ -71,9 +72,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 430;
-        final buttonWidth = isCompact ? 88.0 : 116.0;
-        final inputFontSize = isCompact ? 24.0 : 30.0;
-        final hintFontSize = isCompact ? 21.0 : 26.0;
+        final buttonWidth = isCompact ? 72.0 : 88.0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,7 +93,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
                       maxLength: Shortcut.maxNameLength,
                       style: TextStyle(
                         color: appColors.textMuted,
-                        fontSize: inputFontSize,
+                        fontSize: Dimens.text.title,
                         fontWeight: FontWeight.w600,
                       ),
                       decoration: InputDecoration(
@@ -102,7 +101,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
                         hintStyle: TextStyle(
                           color: appColors.textMuted,
                           fontWeight: FontWeight.w300,
-                          fontSize: hintFontSize,
+                          fontSize: Dimens.text.body,
                         ),
                         border: InputBorder.none,
                         counterText: '',
@@ -118,7 +117,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
                     width: buttonWidth,
                     height: buttonHeight,
                     margin: EdgeInsets.zero,
-                    iconSize: isCompact ? 26 : 30,
+                    iconSize: isCompact ? 22 : 24,
                     icon: widget.initIcon,
                     onPressed: () => _openIconPicker(context),
                   ),
