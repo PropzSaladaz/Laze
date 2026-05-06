@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laze/domain/models/shortcut/shortcut.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/data/services/input.dart';
@@ -36,7 +37,10 @@ class ShortcutIcon extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: TextStyle(color: appColors.textMuted),
+          style: TextStyle(
+            color: appColors.textMuted,
+            fontSize: Dimens.text.tiny,
+          ),
         ),
       ],
     );
