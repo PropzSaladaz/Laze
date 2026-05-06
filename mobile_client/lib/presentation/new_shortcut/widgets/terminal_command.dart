@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_input.dart';
 
@@ -53,7 +54,7 @@ class _TerminalCommandInputState extends State<TerminalCommandInput> {
             _capitalize(widget.operativeSystemName),
             style: TextStyle(
               color: appColors.text,
-              fontSize: 19,
+              fontSize: Dimens.text.title,
               fontWeight: FontWeight.w700,
             ),
           ),
