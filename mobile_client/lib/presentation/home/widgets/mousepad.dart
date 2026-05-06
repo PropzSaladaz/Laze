@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/dashed_border.dart';
 
@@ -360,7 +361,7 @@ class _MousePadState extends State<MousePad> {
               'Gesture guide',
               style: TextStyle(
                 color: appColors.text,
-                fontSize: 22,
+                fontSize: Dimens.text.title,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -407,8 +408,14 @@ class _MousePadState extends State<MousePad> {
         final availableHeight = constraints.hasBoundedHeight
             ? constraints.maxHeight
             : screenSize.height;
-        final padHeight =
-            widget.fullscreen ? availableHeight : 0.40 * screenSize.height;
+        // Use the bounded constraint height when the parent provides one (e.g.
+        // when wrapped in Expanded). Fall back to 40% of screen height only
+        // when the height is truly unbounded.
+        final padHeight = widget.fullscreen
+            ? availableHeight
+            : (constraints.hasBoundedHeight && constraints.maxHeight > 0
+                ? constraints.maxHeight
+                : 0.40 * screenSize.height);
         final scrollHeight = widget.fullscreen ? availableHeight : padHeight;
 
         return SizedBox(
@@ -457,8 +464,9 @@ class _MousePadState extends State<MousePad> {
                               'MOUSEPAD',
                               style: TextStyle(
                                 fontWeight: FontWeight.w400,
-                                fontSize: 40,
+                                fontSize: 24,
                                 color: appColors.textMuted,
+                                letterSpacing: 2.0,
                               ),
                             ),
                           ),
@@ -501,8 +509,9 @@ class _MousePadState extends State<MousePad> {
                               'SCROLL',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 36,
+                                fontSize: 20,
                                 color: appColors.textMuted,
+                                letterSpacing: 1.5,
                               ),
                             ),
                           ),
@@ -517,7 +526,7 @@ class _MousePadState extends State<MousePad> {
                 child: IconButton(
                   icon: const Icon(Icons.fullscreen),
                   color: appColors.textMuted,
-                  iconSize: 64,
+                  iconSize: Dimens.icon.large,
                   onPressed: () {
                     widget.fullscreen
                         ? Navigator.of(context).pop()
@@ -537,7 +546,7 @@ class _MousePadState extends State<MousePad> {
                 child: IconButton(
                   icon: const Icon(Icons.help_outline),
                   color: appColors.textMuted,
-                  iconSize: 28,
+                  iconSize: Dimens.icon.medium,
                   tooltip: 'Gesture guide',
                   onPressed: () => _showGestureGuide(context, appColors),
                 ),
@@ -585,7 +594,7 @@ class _GestureHint extends StatelessWidget {
               text,
               style: TextStyle(
                 color: appColors.text,
-                fontSize: 15,
+                fontSize: Dimens.text.small,
                 fontWeight: FontWeight.w500,
                 height: 1.3,
               ),
