@@ -32,16 +32,19 @@ class CommandBtns extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
+        // Subtract the 8px consumed by Padding(horizontal: 4) so that child
+        // widths add up to the Row's actual available space.
+        final effectiveWidth = width - 8;
         final isCompact = width < 390;
         final sideWidth = math.max(
           56.0,
-          math.min(_CommandControlSizes.sideButtonWidth, width * 0.18),
+          math.min(_CommandControlSizes.sideButtonWidth, effectiveWidth * 0.18),
         );
         final centerWidth = math.max(
           148.0,
           math.min(
             _CommandControlSizes.centerPanelWidth,
-            width - (sideWidth * 2) - 40,
+            effectiveWidth - (sideWidth * 2) - 40,
           ),
         );
         final panelHeight =

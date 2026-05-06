@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/core/ui/cta_button.dart';
@@ -149,15 +150,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             current: _currentPage,
             appColors: appColors,
           ),
-          SizedBox(height: scale.spaceXl),
+          SizedBox(height: Dimens.spacing.xl),
           CtaButton(
             text: _isLastPage
                 ? (_pages[_currentPage].ctaLabel ?? 'GET STARTED')
                 : 'NEXT',
-            fontSize: 28,
             onPressed: _nextPage,
           ),
-          SizedBox(height: scale.spaceLg),
+          SizedBox(height: Dimens.spacing.lg),
         ],
       ),
     );
@@ -253,43 +253,43 @@ class _OnboardingPage extends StatelessWidget {
         children: [
           SizedBox(height: scale.space2xl),
           Container(
-            width: 140,
-            height: 140,
+            width: 120,
+            height: 120,
             decoration: BoxDecoration(
               color: appColors.surface_2,
-              borderRadius: BorderRadius.circular(scale.radiusXl),
+              borderRadius: BorderRadius.circular(Dimens.radius.medium),
               border: Border.all(color: appColors.divider, width: 1),
             ),
             alignment: Alignment.center,
             child: Icon(
               data.icon,
               color: appColors.primary,
-              size: 72,
+              size: 56,
             ),
           ),
           SizedBox(height: scale.space2xl),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: scale.spaceLg),
+            padding: EdgeInsets.symmetric(horizontal: Dimens.spacing.lg),
             child: Text(
               data.title,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: appColors.text,
-                fontSize: 28,
+                fontSize: Dimens.text.header,
                 fontWeight: FontWeight.w800,
                 height: 1.2,
               ),
             ),
           ),
-          SizedBox(height: scale.spaceLg),
+          SizedBox(height: Dimens.spacing.lg),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: scale.spaceXl),
+            padding: EdgeInsets.symmetric(horizontal: Dimens.spacing.xl),
             child: Text(
               data.description,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: appColors.textMuted,
-                fontSize: 16,
+                fontSize: Dimens.text.body,
                 height: 1.45,
               ),
             ),

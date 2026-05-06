@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laze/presentation/core/themes/app_shadows.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 typedef Callback = void Function();
@@ -35,7 +36,7 @@ class WideStyledButton extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.all(1),
       decoration: BoxDecoration(
-        borderRadius: const BorderRadius.all(Radius.circular(30.0)),
+        borderRadius: BorderRadius.all(Radius.circular(Dimens.radius.medium)),
         color: backgroundColor,
         boxShadow: AppShadows.raisedPanel(appColors),
       ),
@@ -43,7 +44,7 @@ class WideStyledButton extends StatelessWidget {
           ? IconButton(
               onPressed: onPressed,
               icon: Icon(icon),
-              iconSize: 60,
+              iconSize: Dimens.icon.large,
               color: iconColor,
             )
           : TextButton(
