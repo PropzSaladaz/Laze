@@ -37,15 +37,17 @@ class CommandBtns extends StatelessWidget {
         // widths add up to the Row's actual available space.
         final effectiveWidth = width - 8;
         final isCompact = width < 390;
+        final spacing = Dimens.spacing.sm;
+
         final sideWidth = math.max(
           56.0,
           math.min(_CommandControlSizes.sideButtonWidth, effectiveWidth * 0.18),
         );
         final centerWidth = math.max(
-          148.0,
+          120.0,
           math.min(
             _CommandControlSizes.centerPanelWidth,
-            effectiveWidth - (sideWidth * 2) - 40,
+            effectiveWidth - (sideWidth * 2) - (spacing * 2),
           ),
         );
         final panelHeight =
@@ -54,8 +56,6 @@ class CommandBtns extends StatelessWidget {
             isCompact ? 38.0 : _CommandControlSizes.sideButtonIconSize;
         final sideLabelSize =
             isCompact ? Dimens.text.body : _CommandControlSizes.sideButtonLabelSize;
-
-        final spacing = Dimens.spacing.sm;
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -78,6 +78,7 @@ class CommandBtns extends StatelessWidget {
                 vertical: true,
                 width: sideWidth,
                 height: panelHeight,
+                margin: EdgeInsets.zero,
                 iconSize: sideIconSize,
                 descriptionFontSize: sideLabelSize,
               ),
@@ -105,6 +106,7 @@ class CommandBtns extends StatelessWidget {
                 vertical: true,
                 width: sideWidth,
                 height: panelHeight,
+                margin: EdgeInsets.zero,
                 iconSize: sideIconSize,
                 descriptionFontSize: sideLabelSize,
               ),

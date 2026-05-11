@@ -16,6 +16,7 @@ class StyledLongButton extends StatefulWidget {
   final bool? vertical;
   final double? width;
   final double? height;
+  final EdgeInsetsGeometry margin;
   final double iconSize;
   final double descriptionFontSize;
 
@@ -29,6 +30,7 @@ class StyledLongButton extends StatefulWidget {
     this.vertical,
     this.width,
     this.height,
+    this.margin = const EdgeInsets.all(8),
     this.iconSize = 40.0, // Match Dimens.icon.large
     this.descriptionFontSize = 18.0, // Match Dimens.text.title
   });
@@ -246,7 +248,7 @@ class _StyledLongButtonState extends State<StyledLongButton> {
     return Container(
       width: widget.width,
       height: widget.height,
-      margin: const EdgeInsets.all(10),
+      margin: widget.margin,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.rectangle,
