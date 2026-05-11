@@ -464,7 +464,7 @@ class _MousePadState extends State<MousePad> {
                               'MOUSEPAD',
                               style: TextStyle(
                                 fontWeight: FontWeight.w400,
-                                fontSize: 24,
+                                fontSize: Dimens.text.display,
                                 color: appColors.textMuted,
                                 letterSpacing: 2.0,
                               ),
@@ -509,7 +509,7 @@ class _MousePadState extends State<MousePad> {
                               'SCROLL',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 20,
+                                fontSize: Dimens.text.header,
                                 color: appColors.textMuted,
                                 letterSpacing: 1.5,
                               ),

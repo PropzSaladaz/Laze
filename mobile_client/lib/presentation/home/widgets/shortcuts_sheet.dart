@@ -258,7 +258,7 @@ class _ShortcutsSheetState extends State<ShortcutsSheet> {
                 : width >= 320
                     ? 3
                     : 2;
-        final spacing = width >= 420 ? 10.0 : 8.0;
+        final spacing = Dimens.spacing.xs;
 
         return GridView.builder(
           primary: false,

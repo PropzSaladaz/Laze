@@ -2,15 +2,16 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/ui/styled_long_button.dart';
 import 'package:laze/presentation/home/widgets/keyboard.dart';
 import 'package:laze/services/server_connector.dart';
 
 final class _CommandControlSizes {
   static const double sideButtonWidth = 70;
-  static const double sideButtonHeight = 180;
-  static const double sideButtonIconSize = 48;
-  static const double sideButtonLabelSize = 18;
+  static const double sideButtonHeight = 172; // Reduced slightly
+  static const double sideButtonIconSize = 44; // Reduced slightly
+  static final double sideButtonLabelSize = Dimens.text.title;
   static const double centerPanelWidth = 195;
   static const double centerPanelHeight = sideButtonHeight;
 }
@@ -48,11 +49,11 @@ class CommandBtns extends StatelessWidget {
           ),
         );
         final panelHeight =
-            isCompact ? 164.0 : _CommandControlSizes.centerPanelHeight;
+            isCompact ? 156.0 : _CommandControlSizes.centerPanelHeight;
         final sideIconSize =
-            isCompact ? 42.0 : _CommandControlSizes.sideButtonIconSize;
+            isCompact ? 38.0 : _CommandControlSizes.sideButtonIconSize;
         final sideLabelSize =
-            isCompact ? 16.0 : _CommandControlSizes.sideButtonLabelSize;
+            isCompact ? Dimens.text.body : _CommandControlSizes.sideButtonLabelSize;
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
