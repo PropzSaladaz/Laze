@@ -10,9 +10,9 @@ import 'package:laze/services/server_connector.dart';
 final class _CommandControlSizes {
   static const double sideButtonWidth = 70;
   static const double sideButtonHeight = 172;
-  static const double sideButtonIconSize = 44;
+  static const double sideButtonIconSize = 32; // Reduced for better balance
   static final double sideButtonLabelSize = Dimens.text.title;
-  static const double centerPanelWidth = 195;
+  static const double centerPanelWidth = 160; // Reduced from 195 to be more "square"
   static const double centerPanelHeight = sideButtonHeight;
 }
 
@@ -37,23 +37,29 @@ class CommandBtns extends StatelessWidget {
         // widths add up to the Row's actual available space.
         final effectiveWidth = width - 8;
         final isCompact = width < 390;
-        final spacing = Dimens.spacing.sm;
+        final spacing = Dimens.spacing.md; // Increased from sm (12) to md (16)
 
+        final availableWidth = effectiveWidth - (spacing * 2);
+        
+        // Scale side buttons based on available space, capped at 70
         final sideWidth = math.max(
-          56.0,
-          math.min(_CommandControlSizes.sideButtonWidth, effectiveWidth * 0.18),
+          52.0,
+          math.min(_CommandControlSizes.sideButtonWidth, availableWidth * 0.2),
         );
+        
+        // Center panel takes remaining space, capped at 160
         final centerWidth = math.max(
-          120.0,
+          100.0,
           math.min(
             _CommandControlSizes.centerPanelWidth,
-            effectiveWidth - (sideWidth * 2) - (spacing * 2),
+            availableWidth - (sideWidth * 2),
           ),
         );
+
         final panelHeight =
             isCompact ? 156.0 : _CommandControlSizes.centerPanelHeight;
         final sideIconSize =
-            isCompact ? 38.0 : _CommandControlSizes.sideButtonIconSize;
+            isCompact ? 28.0 : _CommandControlSizes.sideButtonIconSize;
         final sideLabelSize =
             isCompact ? Dimens.text.body : _CommandControlSizes.sideButtonLabelSize;
 
