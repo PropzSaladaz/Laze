@@ -20,7 +20,7 @@ class AppTheme {
   );
 
   static const _inputDecorationTheme = InputDecorationTheme(
-    hintStyle: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w100),
+    hintStyle: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w300),
   );
 
   static ThemeData light = ThemeData(
