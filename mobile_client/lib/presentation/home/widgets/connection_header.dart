@@ -126,7 +126,7 @@ class ConnectionHeader extends StatelessWidget {
             Dimens.spacing.lg,
             Dimens.spacing.lg,
             Dimens.spacing.lg,
-            Dimens.spacing.md,
+            Dimens.spacing.lg,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -156,7 +156,7 @@ class ConnectionHeader extends StatelessWidget {
                   Expanded(
                     child: TextButton(
                       style: ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll(appColors.muted),
+                        backgroundColor: WidgetStatePropertyAll(appColors.surface_3),
                         padding: WidgetStatePropertyAll(
                           EdgeInsets.symmetric(
                             vertical: Dimens.button.ctaVerticalPadding,
