@@ -55,10 +55,12 @@ class CommandBtns extends StatelessWidget {
         final sideLabelSize =
             isCompact ? Dimens.text.body : _CommandControlSizes.sideButtonLabelSize;
 
+        final spacing = Dimens.spacing.sm;
+
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               StyledLongButton(
@@ -79,11 +81,13 @@ class CommandBtns extends StatelessWidget {
                 iconSize: sideIconSize,
                 descriptionFontSize: sideLabelSize,
               ),
+              SizedBox(width: spacing),
               KeyboardButton(
                 width: centerWidth,
                 height: panelHeight,
                 feedbackNotifier: feedbackNotifier,
               ),
+              SizedBox(width: spacing),
               StyledLongButton(
                 iconUp: Icons.keyboard_arrow_up_rounded,
                 iconDown: Icons.keyboard_arrow_down_rounded,
