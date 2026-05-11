@@ -9,8 +9,8 @@ import 'package:laze/services/server_connector.dart';
 
 final class _CommandControlSizes {
   static const double sideButtonWidth = 70;
-  static const double sideButtonHeight = 172; // Reduced slightly
-  static const double sideButtonIconSize = 44; // Reduced slightly
+  static const double sideButtonHeight = 172;
+  static const double sideButtonIconSize = 44;
   static final double sideButtonLabelSize = Dimens.text.title;
   static const double centerPanelWidth = 195;
   static const double centerPanelHeight = sideButtonHeight;

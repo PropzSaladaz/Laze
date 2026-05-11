@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 class StyledInput extends StatelessWidget {
@@ -31,6 +32,7 @@ class StyledInput extends StatelessWidget {
       style: TextStyle(
         fontFamily: 'monospace',
         color: appColors.textMuted,
+        fontSize: Dimens.text.body,
       ),
       cursorColor: appColors.textMuted,
       onChanged: onInputUpdated,
@@ -53,6 +55,7 @@ class StyledInput extends StatelessWidget {
         hintStyle: TextStyle(
           color: appColors.textMuted,
           fontWeight: FontWeight.w300,
+          fontSize: Dimens.text.body,
         ),
       ),
     );
