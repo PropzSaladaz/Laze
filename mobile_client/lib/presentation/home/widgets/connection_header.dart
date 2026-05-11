@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laze/presentation/core/themes/app_shadows.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/core/ui/screen_header.dart';
@@ -128,7 +129,7 @@ class ConnectionHeader extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: appColors.text,
-                  fontSize: 24,
+                  fontSize: Dimens.text.header,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -138,7 +139,7 @@ class ConnectionHeader extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: appColors.textMuted,
-                  fontSize: 15,
+                  fontSize: Dimens.text.small,
                   height: 1.35,
                 ),
               ),

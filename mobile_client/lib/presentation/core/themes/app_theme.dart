@@ -43,7 +43,7 @@ class AppTheme {
     ),
     textTheme: _textTheme,
     inputDecorationTheme: _inputDecorationTheme,
-    extensions: [
+    extensions: const [
       AppColors(
         bg: _lightBg,
         fg: Color(0xFF0F172A),
@@ -118,7 +118,7 @@ class AppTheme {
     ),
     textTheme: _textTheme,
     inputDecorationTheme: _inputDecorationTheme,
-    extensions: [
+    extensions: const [
       AppColors(
         bg: _blackBg,
         fg: Color(0xFFE5E7EB),
@@ -191,7 +191,7 @@ class AppTheme {
     ),
     textTheme: _textTheme,
     inputDecorationTheme: _inputDecorationTheme,
-    extensions: [
+    extensions: const [
       AppColors(
         bg: _darkBg,
         fg: Color(0xFFE5E7EB),
