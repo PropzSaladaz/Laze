@@ -132,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 sensitivity: sensitivity,
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 40),
             CommandBtns(
               sensitivity: sensitivity,
               onSensitivityChanged: _updateSensitivity,
