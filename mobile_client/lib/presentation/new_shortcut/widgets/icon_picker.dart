@@ -45,7 +45,7 @@ class _IconPickerState extends State<IconPicker> {
                   : width >= 320
                       ? 3
                       : 2;
-          final titleFontSize = width < 360 ? 24.0 : 32.0;
+          final titleFontSize = width < 360 ? Dimens.text.title : Dimens.text.header;
 
           return Padding(
             padding: EdgeInsets.all(Dimens.padding.vertical),
@@ -78,8 +78,9 @@ class _IconPickerState extends State<IconPicker> {
                   child: GridView.builder(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 7,
-                      mainAxisSpacing: 7,
+                      crossAxisSpacing: Dimens.spacing.xs,
+                      mainAxisSpacing: Dimens.spacing.xs,
+                      mainAxisExtent: 64,
                     ),
                     itemCount: _iconList.length,
                     itemBuilder: (context, index) {
@@ -88,6 +89,7 @@ class _IconPickerState extends State<IconPicker> {
 
                       return StyledButton(
                         icon: icon,
+                        iconSize: Dimens.icon.small,
                         showShadow: false,
                         onPressed: () {
                           widget.onIconSelected(icon);

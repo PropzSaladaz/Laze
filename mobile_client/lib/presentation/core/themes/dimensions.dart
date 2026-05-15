@@ -49,6 +49,7 @@ class IconDim {
 ///      Typography Dimensions
 /// ------------------------------
 class TextDim {
+  final display = 32.0;
   final header = 22.0;
   final title = 18.0;
   final body = 16.0;

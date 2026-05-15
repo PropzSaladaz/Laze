@@ -117,8 +117,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
+    final mq = MediaQuery.of(context);
     final bottomInset =
-        (MediaQuery.of(context).size.height * 0.12).clamp(80.0, 112.0);
+        (mq.size.height - mq.padding.top - mq.padding.bottom) * 0.15 + 16;
 
     return Expanded(
       child: Padding(
@@ -131,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 sensitivity: sensitivity,
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 40),
             CommandBtns(
               sensitivity: sensitivity,
               onSensitivityChanged: _updateSensitivity,

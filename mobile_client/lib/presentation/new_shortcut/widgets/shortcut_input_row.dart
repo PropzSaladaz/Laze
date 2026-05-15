@@ -133,7 +133,7 @@ class _ShortcutInputRowState extends State<ShortcutInputRow> {
                   '$_nameLength/${Shortcut.maxNameLength}',
                   style: TextStyle(
                     color: counterColor,
-                    fontSize: 12,
+                    fontSize: Dimens.text.tiny,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.2,
                   ),
