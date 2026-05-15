@@ -80,6 +80,7 @@ class _IconPickerState extends State<IconPicker> {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: Dimens.spacing.xs,
                       mainAxisSpacing: Dimens.spacing.xs,
+                      mainAxisExtent: 64,
                     ),
                     itemCount: _iconList.length,
                     itemBuilder: (context, index) {
@@ -88,6 +89,7 @@ class _IconPickerState extends State<IconPicker> {
 
                       return StyledButton(
                         icon: icon,
+                        iconSize: Dimens.icon.small,
                         showShadow: false,
                         onPressed: () {
                           widget.onIconSelected(icon);
