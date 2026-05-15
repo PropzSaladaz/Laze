@@ -531,32 +531,32 @@ class _MousePadState extends State<MousePad> {
               Positioned(
                 left: 0,
                 bottom: 0,
-                child: IconButton(
-                  icon: const Icon(Icons.fullscreen),
-                  color: appColors.textMuted,
-                  iconSize: Dimens.icon.large,
-                  onPressed: () {
-                    widget.fullscreen
-                        ? Navigator.of(context).pop()
-                        : Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => _FullscreenMousePadPage(
-                                sensitivity: widget.sensitivity,
-                              ),
-                            ),
-                          );
-                  },
-                ),
-              ),
-              Positioned(
-                left: 60,
-                bottom: 12,
-                child: IconButton(
-                  icon: const Icon(Icons.help_outline),
-                  color: appColors.textMuted,
-                  iconSize: Dimens.icon.medium,
-                  tooltip: 'Gesture guide',
-                  onPressed: () => _showGestureGuide(context, appColors),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.fullscreen),
+                      color: appColors.textMuted,
+                      iconSize: Dimens.icon.large,
+                      onPressed: () {
+                        widget.fullscreen
+                            ? Navigator.of(context).pop()
+                            : Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => _FullscreenMousePadPage(
+                                    sensitivity: widget.sensitivity,
+                                  ),
+                                ),
+                              );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.help_outline),
+                      color: appColors.textMuted,
+                      iconSize: Dimens.icon.medium,
+                      tooltip: 'Gesture guide',
+                      onPressed: () => _showGestureGuide(context, appColors),
+                    ),
+                  ],
                 ),
               ),
             ],
