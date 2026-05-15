@@ -31,13 +31,18 @@ class CommandBtns extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 390;
-        final sideWidth = isCompact ? 52.0 : _CommandControlSizes.sideButtonWidth;
+        final horizontalPadding = isCompact ? Dimens.spacing.md : Dimens.spacing.xl;
+        final available = constraints.maxWidth - 2 * horizontalPadding;
+        final sideWidth = (available * 0.2)
+            .clamp(52.0, _CommandControlSizes.sideButtonWidth);
+        final centerWidth = (available - 2 * sideWidth)
+            .clamp(100.0, _CommandControlSizes.centerPanelWidth);
         final panelHeight = isCompact ? 156.0 : _CommandControlSizes.centerPanelHeight;
         final sideIconSize = isCompact ? 28.0 : _CommandControlSizes.sideButtonIconSize;
         final sideLabelSize = isCompact ? Dimens.text.body : _CommandControlSizes.sideButtonLabelSize;
 
         return Padding(
-          padding: EdgeInsets.symmetric(horizontal: isCompact ? Dimens.spacing.md : Dimens.spacing.xl),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -62,7 +67,7 @@ class CommandBtns extends StatelessWidget {
                 descriptionFontSize: sideLabelSize,
               ),
               KeyboardButton(
-                width: _CommandControlSizes.centerPanelWidth,
+                width: centerWidth,
                 height: panelHeight,
                 feedbackNotifier: feedbackNotifier,
               ),
