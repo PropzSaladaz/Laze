@@ -501,17 +501,25 @@ class _MousePadState extends State<MousePad> {
                       ),
                       if (!widget.fullscreen)
                         Positioned(
-                          bottom: 70,
-                          right: -25,
-                          child: Transform.rotate(
-                            angle: rotationAngle,
-                            child: Text(
-                              'SCROLL',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: Dimens.text.header,
-                                color: appColors.textMuted,
-                                letterSpacing: 1.5,
+                          left: 0,
+                          right: 0,
+                          bottom: 64,
+                          child: SizedBox(
+                            height: 28,
+                            child: OverflowBox(
+                              maxWidth: double.infinity,
+                              alignment: Alignment.center,
+                              child: Transform.rotate(
+                                angle: rotationAngle,
+                                child: Text(
+                                  'SCROLL',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: Dimens.text.header,
+                                    color: appColors.textMuted,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
