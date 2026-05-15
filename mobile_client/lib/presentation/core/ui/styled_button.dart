@@ -47,20 +47,25 @@ class _StyledButtonState extends State<StyledButton>
         height: widget.height,
         margin: widget.margin,
         decoration: BoxDecoration(
-          color: widget.isClicked ? appColors.primary : appColors.bg,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: appColors.border,
-            width: Dimens.button.styledButtonBorderWidth,
-          ),
           boxShadow: flat ? null : AppShadows.raisedControl(appColors),
         ),
-        child: IconButton(
-          onPressed: widget.onPressed,
-          icon: Icon(widget.icon),
-          padding: EdgeInsets.zero,
-          iconSize: widget.iconSize ?? Dimens.icon.medium,
-          color: widget.isClicked ? appColors.textInverse : appColors.textMuted,
+        child: Container(
+          decoration: BoxDecoration(
+            color: widget.isClicked ? appColors.primary : appColors.bg,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: appColors.border,
+              width: Dimens.button.styledButtonBorderWidth,
+            ),
+          ),
+          child: IconButton(
+            onPressed: widget.onPressed,
+            icon: Icon(widget.icon),
+            padding: EdgeInsets.zero,
+            iconSize: widget.iconSize ?? Dimens.icon.medium,
+            color: widget.isClicked ? appColors.textInverse : appColors.textMuted,
+          ),
         ),
       ),
     );

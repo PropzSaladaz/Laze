@@ -218,8 +218,8 @@ class _TopBar extends StatelessWidget {
             ),
             child: Text(
               actionLabel,
-              style: const TextStyle(
-                fontSize: 14,
+              style: TextStyle(
+                fontSize: Dimens.text.small,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.2,
               ),
@@ -303,7 +303,7 @@ class _OnboardingPage extends StatelessWidget {
                 'Download desktop app',
                 style: TextStyle(
                   color: appColors.primary,
-                  fontSize: 15,
+                  fontSize: Dimens.text.small,
                   fontWeight: FontWeight.w700,
                   decoration: TextDecoration.underline,
                   decorationColor: appColors.primary,
@@ -316,7 +316,7 @@ class _OnboardingPage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: appColors.textMuted,
-                fontSize: 13,
+                fontSize: Dimens.text.label,
                 height: 1.35,
               ),
             ),

@@ -1,17 +1,16 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:laze/data/services/input.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/ui/styled_long_button.dart';
 import 'package:laze/presentation/home/widgets/keyboard.dart';
 import 'package:laze/services/server_connector.dart';
 
 final class _CommandControlSizes {
   static const double sideButtonWidth = 70;
-  static const double sideButtonHeight = 180;
-  static const double sideButtonIconSize = 48;
-  static const double sideButtonLabelSize = 18;
-  static const double centerPanelWidth = 195;
+  static const double sideButtonHeight = 172;
+  static const double sideButtonIconSize = 32; // Reduced for better balance
+  static final double sideButtonLabelSize = Dimens.text.title;
+  static const double centerPanelWidth = 160; // Reduced from 195 to be more "square"
   static const double centerPanelHeight = sideButtonHeight;
 }
 
@@ -31,31 +30,19 @@ class CommandBtns extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        // Subtract the 8px consumed by Padding(horizontal: 4) so that child
-        // widths add up to the Row's actual available space.
-        final effectiveWidth = width - 8;
-        final isCompact = width < 390;
-        final sideWidth = math.max(
-          56.0,
-          math.min(_CommandControlSizes.sideButtonWidth, effectiveWidth * 0.18),
-        );
-        final centerWidth = math.max(
-          148.0,
-          math.min(
-            _CommandControlSizes.centerPanelWidth,
-            effectiveWidth - (sideWidth * 2) - 40,
-          ),
-        );
-        final panelHeight =
-            isCompact ? 164.0 : _CommandControlSizes.centerPanelHeight;
-        final sideIconSize =
-            isCompact ? 42.0 : _CommandControlSizes.sideButtonIconSize;
-        final sideLabelSize =
-            isCompact ? 16.0 : _CommandControlSizes.sideButtonLabelSize;
+        final isCompact = constraints.maxWidth < 390;
+        final horizontalPadding = isCompact ? Dimens.spacing.md : Dimens.spacing.xl;
+        final available = constraints.maxWidth - 2 * horizontalPadding;
+        final sideWidth = (available * 0.2)
+            .clamp(52.0, _CommandControlSizes.sideButtonWidth);
+        final centerWidth = (available - 2 * sideWidth)
+            .clamp(100.0, _CommandControlSizes.centerPanelWidth);
+        final panelHeight = isCompact ? 156.0 : _CommandControlSizes.centerPanelHeight;
+        final sideIconSize = isCompact ? 28.0 : _CommandControlSizes.sideButtonIconSize;
+        final sideLabelSize = isCompact ? Dimens.text.body : _CommandControlSizes.sideButtonLabelSize;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -75,6 +62,7 @@ class CommandBtns extends StatelessWidget {
                 vertical: true,
                 width: sideWidth,
                 height: panelHeight,
+                margin: EdgeInsets.zero,
                 iconSize: sideIconSize,
                 descriptionFontSize: sideLabelSize,
               ),
@@ -100,6 +88,7 @@ class CommandBtns extends StatelessWidget {
                 vertical: true,
                 width: sideWidth,
                 height: panelHeight,
+                margin: EdgeInsets.zero,
                 iconSize: sideIconSize,
                 descriptionFontSize: sideLabelSize,
               ),

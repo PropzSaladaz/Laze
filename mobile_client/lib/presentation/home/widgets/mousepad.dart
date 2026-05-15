@@ -464,7 +464,7 @@ class _MousePadState extends State<MousePad> {
                               'MOUSEPAD',
                               style: TextStyle(
                                 fontWeight: FontWeight.w400,
-                                fontSize: 24,
+                                fontSize: Dimens.text.display,
                                 color: appColors.textMuted,
                                 letterSpacing: 2.0,
                               ),
@@ -501,17 +501,25 @@ class _MousePadState extends State<MousePad> {
                       ),
                       if (!widget.fullscreen)
                         Positioned(
-                          bottom: 70,
-                          right: -25,
-                          child: Transform.rotate(
-                            angle: rotationAngle,
-                            child: Text(
-                              'SCROLL',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 20,
-                                color: appColors.textMuted,
-                                letterSpacing: 1.5,
+                          left: 0,
+                          right: 0,
+                          bottom: 64,
+                          child: SizedBox(
+                            height: 28,
+                            child: OverflowBox(
+                              maxWidth: double.infinity,
+                              alignment: Alignment.center,
+                              child: Transform.rotate(
+                                angle: rotationAngle,
+                                child: Text(
+                                  'SCROLL',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: Dimens.text.header,
+                                    color: appColors.textMuted,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -523,32 +531,32 @@ class _MousePadState extends State<MousePad> {
               Positioned(
                 left: 0,
                 bottom: 0,
-                child: IconButton(
-                  icon: const Icon(Icons.fullscreen),
-                  color: appColors.textMuted,
-                  iconSize: Dimens.icon.large,
-                  onPressed: () {
-                    widget.fullscreen
-                        ? Navigator.of(context).pop()
-                        : Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => _FullscreenMousePadPage(
-                                sensitivity: widget.sensitivity,
-                              ),
-                            ),
-                          );
-                  },
-                ),
-              ),
-              Positioned(
-                left: 60,
-                bottom: 12,
-                child: IconButton(
-                  icon: const Icon(Icons.help_outline),
-                  color: appColors.textMuted,
-                  iconSize: Dimens.icon.medium,
-                  tooltip: 'Gesture guide',
-                  onPressed: () => _showGestureGuide(context, appColors),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.fullscreen),
+                      color: appColors.textMuted,
+                      iconSize: Dimens.icon.large,
+                      onPressed: () {
+                        widget.fullscreen
+                            ? Navigator.of(context).pop()
+                            : Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => _FullscreenMousePadPage(
+                                    sensitivity: widget.sensitivity,
+                                  ),
+                                ),
+                              );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.help_outline),
+                      color: appColors.textMuted,
+                      iconSize: Dimens.icon.medium,
+                      tooltip: 'Gesture guide',
+                      onPressed: () => _showGestureGuide(context, appColors),
+                    ),
+                  ],
                 ),
               ),
             ],

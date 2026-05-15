@@ -6,6 +6,7 @@ import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/core/ui/styled_input.dart';
 import 'package:laze/presentation/core/ui/screen_header.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 
 import 'package:laze/services/theme_notifier.dart';
@@ -199,7 +200,7 @@ class _DeviceNameCard extends StatelessWidget {
                       'Device Name',
                       style: TextStyle(
                         color: appColors.text,
-                        fontSize: 18,
+                        fontSize: Dimens.text.title,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -208,7 +209,7 @@ class _DeviceNameCard extends StatelessWidget {
                       'This name identifies your device on the server.',
                       style: TextStyle(
                         color: appColors.textMuted,
-                        fontSize: 14,
+                        fontSize: Dimens.text.small,
                         height: 1.2,
                       ),
                     ),
@@ -222,7 +223,7 @@ class _DeviceNameCard extends StatelessWidget {
             'Visible device label',
             style: TextStyle(
               color: appColors.textMuted,
-              fontSize: 13,
+              fontSize: Dimens.text.label,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.3,
             ),
@@ -291,7 +292,7 @@ class _ThemeCard extends StatelessWidget {
                       'Appearance',
                       style: TextStyle(
                         color: appColors.text,
-                        fontSize: 18,
+                        fontSize: Dimens.text.title,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -300,7 +301,7 @@ class _ThemeCard extends StatelessWidget {
                       'Choose a colour scheme for the app.',
                       style: TextStyle(
                         color: appColors.textMuted,
-                        fontSize: 14,
+                        fontSize: Dimens.text.small,
                         height: 1.2,
                       ),
                     ),
@@ -345,7 +346,7 @@ class _ThemeCard extends StatelessWidget {
                           color: selected
                               ? appColors.onPrimary
                               : appColors.textMuted,
-                          fontSize: 13,
+                          fontSize: Dimens.text.label,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.2,
                         ),
@@ -406,7 +407,7 @@ class _ControlsCard extends StatelessWidget {
                 'Controls',
                 style: TextStyle(
                   color: appColors.text,
-                  fontSize: 18,
+                  fontSize: Dimens.text.title,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -422,7 +423,7 @@ class _ControlsCard extends StatelessWidget {
               '$sensitivity',
               style: TextStyle(
                 color: appColors.primary,
-                fontSize: 16,
+                fontSize: Dimens.text.body,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -494,7 +495,7 @@ class _HelpCard extends StatelessWidget {
                       'Help & Tutorial',
                       style: TextStyle(
                         color: appColors.text,
-                        fontSize: 18,
+                        fontSize: Dimens.text.title,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -503,7 +504,7 @@ class _HelpCard extends StatelessWidget {
                       'Replay the introduction to learn how Laze works.',
                       style: TextStyle(
                         color: appColors.textMuted,
-                        fontSize: 14,
+                        fontSize: Dimens.text.small,
                         height: 1.2,
                       ),
                     ),
@@ -528,7 +529,7 @@ class _HelpCard extends StatelessWidget {
                 'View Tutorial',
                 style: TextStyle(
                   color: appColors.text,
-                  fontSize: 14,
+                  fontSize: Dimens.text.small,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.3,
                 ),
@@ -561,7 +562,7 @@ class _SettingLabel extends StatelessWidget {
           label,
           style: TextStyle(
             color: appColors.textMuted,
-            fontSize: 13,
+            fontSize: Dimens.text.label,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.3,
           ),

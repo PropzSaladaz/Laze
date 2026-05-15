@@ -39,7 +39,7 @@ class NotConnectedScreen extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: appColors.textMuted,
-              fontSize: 28,
+              fontSize: Dimens.text.display,
               fontWeight: FontWeight.w200,
               letterSpacing: 2.0,
             ),

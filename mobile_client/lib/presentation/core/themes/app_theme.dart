@@ -20,7 +20,7 @@ class AppTheme {
   );
 
   static const _inputDecorationTheme = InputDecorationTheme(
-    hintStyle: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w100),
+    hintStyle: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w300),
   );
 
   static ThemeData light = ThemeData(
@@ -43,7 +43,7 @@ class AppTheme {
     ),
     textTheme: _textTheme,
     inputDecorationTheme: _inputDecorationTheme,
-    extensions: [
+    extensions: const [
       AppColors(
         bg: _lightBg,
         fg: Color(0xFF0F172A),
@@ -118,7 +118,7 @@ class AppTheme {
     ),
     textTheme: _textTheme,
     inputDecorationTheme: _inputDecorationTheme,
-    extensions: [
+    extensions: const [
       AppColors(
         bg: _blackBg,
         fg: Color(0xFFE5E7EB),
@@ -191,7 +191,7 @@ class AppTheme {
     ),
     textTheme: _textTheme,
     inputDecorationTheme: _inputDecorationTheme,
-    extensions: [
+    extensions: const [
       AppColors(
         bg: _darkBg,
         fg: Color(0xFFE5E7EB),

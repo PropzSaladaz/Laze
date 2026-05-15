@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laze/presentation/core/themes/app_shadows.dart';
+import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
 import 'package:laze/presentation/core/ui/screen_header.dart';
@@ -113,13 +114,20 @@ class ConnectionHeader extends StatelessWidget {
 
     return Dialog(
       alignment: Alignment.center,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      insetPadding: EdgeInsets.symmetric(horizontal: Dimens.spacing.xl),
       backgroundColor: appColors.surface_1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Dimens.radius.medium),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 360),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+          padding: EdgeInsets.fromLTRB(
+            Dimens.spacing.lg,
+            Dimens.spacing.lg,
+            Dimens.spacing.lg,
+            Dimens.spacing.lg,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -128,33 +136,35 @@ class ConnectionHeader extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: appColors.text,
-                  fontSize: 24,
+                  fontSize: Dimens.text.header,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: Dimens.spacing.xs),
               Text(
                 'Choose whether to disconnect from the computer or shut it down.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: appColors.textMuted,
-                  fontSize: 15,
+                  fontSize: Dimens.text.small,
                   height: 1.35,
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: Dimens.spacing.lg),
               Row(
                 children: [
                   Expanded(
                     child: TextButton(
                       style: ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll(appColors.muted),
-                        padding: const WidgetStatePropertyAll(
-                          EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: WidgetStatePropertyAll(appColors.surface_3),
+                        padding: WidgetStatePropertyAll(
+                          EdgeInsets.symmetric(
+                            vertical: Dimens.button.ctaVerticalPadding,
+                          ),
                         ),
                         shape: WidgetStatePropertyAll(
                           RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(Dimens.radius.pill),
                           ),
                         ),
                       ),
@@ -171,17 +181,19 @@ class ConnectionHeader extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: Dimens.spacing.sm),
                   Expanded(
                     child: TextButton(
                       style: ButtonStyle(
                         backgroundColor: WidgetStatePropertyAll(appColors.error),
-                        padding: const WidgetStatePropertyAll(
-                          EdgeInsets.symmetric(vertical: 14),
+                        padding: WidgetStatePropertyAll(
+                          EdgeInsets.symmetric(
+                            vertical: Dimens.button.ctaVerticalPadding,
+                          ),
                         ),
                         shape: WidgetStatePropertyAll(
                           RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(Dimens.radius.pill),
                           ),
                         ),
                       ),
