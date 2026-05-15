@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:laze/data/services/input.dart';
 import 'package:laze/presentation/core/themes/dimensions.dart';
@@ -32,41 +30,16 @@ class CommandBtns extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        // Subtract the 8px consumed by Padding(horizontal: 4) so that child
-        // widths add up to the Row's actual available space.
-        final effectiveWidth = width - 8;
-        final isCompact = width < 390;
-        final spacing = Dimens.spacing.md; // Increased from sm (12) to md (16)
-
-        final availableWidth = effectiveWidth - (spacing * 2);
-        
-        // Scale side buttons based on available space, capped at 70
-        final sideWidth = math.max(
-          52.0,
-          math.min(_CommandControlSizes.sideButtonWidth, availableWidth * 0.2),
-        );
-        
-        // Center panel takes remaining space, capped at 160
-        final centerWidth = math.max(
-          100.0,
-          math.min(
-            _CommandControlSizes.centerPanelWidth,
-            availableWidth - (sideWidth * 2),
-          ),
-        );
-
-        final panelHeight =
-            isCompact ? 156.0 : _CommandControlSizes.centerPanelHeight;
-        final sideIconSize =
-            isCompact ? 28.0 : _CommandControlSizes.sideButtonIconSize;
-        final sideLabelSize =
-            isCompact ? Dimens.text.body : _CommandControlSizes.sideButtonLabelSize;
+        final isCompact = constraints.maxWidth < 390;
+        final sideWidth = isCompact ? 52.0 : _CommandControlSizes.sideButtonWidth;
+        final panelHeight = isCompact ? 156.0 : _CommandControlSizes.centerPanelHeight;
+        final sideIconSize = isCompact ? 28.0 : _CommandControlSizes.sideButtonIconSize;
+        final sideLabelSize = isCompact ? Dimens.text.body : _CommandControlSizes.sideButtonLabelSize;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? Dimens.spacing.md : Dimens.spacing.xl),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               StyledLongButton(
@@ -88,13 +61,11 @@ class CommandBtns extends StatelessWidget {
                 iconSize: sideIconSize,
                 descriptionFontSize: sideLabelSize,
               ),
-              SizedBox(width: spacing),
               KeyboardButton(
-                width: centerWidth,
+                width: _CommandControlSizes.centerPanelWidth,
                 height: panelHeight,
                 feedbackNotifier: feedbackNotifier,
               ),
-              SizedBox(width: spacing),
               StyledLongButton(
                 iconUp: Icons.keyboard_arrow_up_rounded,
                 iconDown: Icons.keyboard_arrow_down_rounded,
