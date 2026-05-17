@@ -1,3 +1,3 @@
 class Limits {
-  static const TERMINAL_COMMAND_MAX_SIZE = 32;
+  static const TERMINAL_COMMAND_MAX_SIZE = 256;
 }

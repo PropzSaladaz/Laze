@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -15,11 +16,14 @@ import 'package:laze/services/theme_notifier.dart';
 import 'package:provider/provider.dart';
 
 void setupLogging() {
-  Logger.root.level = Level.ALL;
+  Logger.root.level = kReleaseMode ? Level.WARNING : Level.ALL;
   Logger.root.onRecord.listen((record) {
-    print(
-      '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}',
-    );
+    if (!kReleaseMode) {
+      // ignore: avoid_print
+      print(
+        '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}',
+      );
+    }
   });
 }
 
@@ -73,7 +77,7 @@ class MyApp extends StatelessWidget {
     debugPaintSizeEnabled = false;
     final themeNotifier = context.watch<ThemeNotifier>();
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Laze - Desktop Controller',
       theme: AppTheme.light,
       darkTheme: themeNotifier.darkTheme,
       themeMode: themeNotifier.themeMode,

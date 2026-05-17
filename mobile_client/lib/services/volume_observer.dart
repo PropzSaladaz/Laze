@@ -31,7 +31,6 @@ class VolumeObserver {
   void start() {
     _sub = FlutterVolumeController.addListener(
       (double volume) {
-        print("Volume: $volume");
         final now = DateTime.now();
 
         // If we just bounced the volume programmatically, ignore the subsequent

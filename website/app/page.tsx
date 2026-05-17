@@ -441,6 +441,11 @@ export default function Home() {
             style={{ color: "var(--color-text-muted)", textDecoration: "underline" }}>
             View on GitHub
           </a>
+          {" · "}
+          <a href="/privacy"
+            style={{ color: "var(--color-text-muted)", textDecoration: "underline" }}>
+            Privacy Policy
+          </a>
         </p>
       </footer>
 
