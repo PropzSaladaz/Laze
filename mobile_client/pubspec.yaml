@@ -70,9 +70,8 @@ dev_dependencies:
   # json serializable
   build_runner: ^2.3.3
   json_serializable: ^6.6.0
-
-  logging: ^1.2.0
   flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.6
 
 flutter_launcher_icons:
   android: true

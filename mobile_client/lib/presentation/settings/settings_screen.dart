@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
@@ -529,6 +530,32 @@ class _HelpCard extends StatelessWidget {
                 'View Tutorial',
                 style: TextStyle(
                   color: appColors.text,
+                  fontSize: Dimens.text.small,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: scale.spaceSm),
+          GestureDetector(
+            onTap: () => launchUrl(
+              Uri.parse('https://lazecontroller.vercel.app/privacy'),
+              mode: LaunchMode.externalApplication,
+            ),
+            child: Container(
+              width: double.infinity,
+              height: 48,
+              decoration: BoxDecoration(
+                color: appColors.surface_2,
+                borderRadius: BorderRadius.circular(scale.radiusMd),
+                border: Border.all(color: appColors.divider, width: 1),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'Privacy Policy',
+                style: TextStyle(
+                  color: appColors.textMuted,
                   fontSize: Dimens.text.small,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.3,
