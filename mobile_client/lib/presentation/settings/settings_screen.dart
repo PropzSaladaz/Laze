@@ -540,6 +540,32 @@ class _HelpCard extends StatelessWidget {
           SizedBox(height: scale.spaceSm),
           GestureDetector(
             onTap: () => launchUrl(
+              Uri.parse('https://buymeacoffee.com/propzsaladaz'),
+              mode: LaunchMode.externalApplication,
+            ),
+            child: Container(
+              width: double.infinity,
+              height: 48,
+              decoration: BoxDecoration(
+                color: appColors.surface_2,
+                borderRadius: BorderRadius.circular(scale.radiusMd),
+                border: Border.all(color: appColors.divider, width: 1),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'Buy me a coffee ☕',
+                style: TextStyle(
+                  color: appColors.textMuted,
+                  fontSize: Dimens.text.small,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: scale.spaceSm),
+          GestureDetector(
+            onTap: () => launchUrl(
               Uri.parse('https://lazecontroller.vercel.app/privacy'),
               mode: LaunchMode.externalApplication,
             ),
