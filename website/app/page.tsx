@@ -442,6 +442,11 @@ export default function Home() {
             View on GitHub
           </a>
           {" · "}
+          <a href="https://buymeacoffee.com/propzsaladaz" target="_blank" rel="noopener noreferrer"
+            style={{ color: "var(--color-text-muted)", textDecoration: "underline" }}>
+            Buy me a coffee ☕
+          </a>
+          {" · "}
           <a href="/privacy"
             style={{ color: "var(--color-text-muted)", textDecoration: "underline" }}>
             Privacy Policy

@@ -33,6 +33,7 @@ class StyledInput extends StatelessWidget {
         fontFamily: 'monospace',
         color: appColors.textMuted,
         fontSize: Dimens.text.body,
+        fontWeight: FontWeight.w600,
       ),
       cursorColor: appColors.textMuted,
       onChanged: onInputUpdated,
