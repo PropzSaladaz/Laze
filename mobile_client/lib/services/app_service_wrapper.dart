@@ -24,6 +24,11 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   // when the app resumes after the screen was locked.
   bool _wasConnected = false;
 
+  // Latest app lifecycle state. Used to decide whether a dropped connection
+  // can be reconnected immediately (foreground) or should wait for resume
+  // (screen off / backgrounded).
+  AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
+
   AppServiceWrapper({required DeviceSettingsRepository deviceSettings})
       : _deviceSettings = deviceSettings {
     _init();
@@ -40,6 +45,7 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
       _getConnectionState,
       _onError,
       _onServerEvent,
+      _onConnectionLost,
       deviceSettings: _deviceSettings,
     );
 
@@ -54,6 +60,7 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   // events fired before the TCP drop is detected cannot reach a dead socket.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _lifecycleState = state;
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
@@ -85,6 +92,26 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   void _onError(String error) {
     errorMessage = error;
     notifyListeners();
+  }
+
+  // Called when an established connection drops unexpectedly (screen lock,
+  // transient network loss). This is recoverable and is deliberately NOT shown
+  // as an error. If the app is in the foreground, reconnect right away;
+  // otherwise (screen off / backgrounded) just mark it disconnected and let
+  // the resume handler reconnect when the screen comes back on.
+  void _onConnectionLost() {
+    _volumeService.setDisconnected();
+
+    // onError and onDone can both fire for a single drop — ignore the second
+    // one if a reconnect is already underway.
+    if (connectionStatus == AppConnectionStatus.searching) return;
+
+    if (_wasConnected && _lifecycleState == AppLifecycleState.resumed) {
+      connect();
+    } else {
+      connectionStatus = AppConnectionStatus.notConnected;
+      notifyListeners();
+    }
   }
 
   void _onServerEvent(ServerEvent event) {

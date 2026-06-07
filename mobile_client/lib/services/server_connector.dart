@@ -20,6 +20,10 @@ typedef CallbackSetStatus = void Function(AppConnectionStatus connectionStatus);
 typedef CallbackGetStatus = AppConnectionStatus Function();
 typedef CallbackOnError = void Function(String errorMessage);
 typedef CallbackOnServerEvent = void Function(ServerEvent event);
+// Signals that an established connection dropped unexpectedly (screen lock,
+// transient network loss). This is recoverable and must NOT be treated as a
+// user-facing error — the app decides whether/when to reconnect.
+typedef CallbackOnConnectionLost = void Function();
 
 class ServerConnector {
   // specifies server's operative system
@@ -59,8 +63,10 @@ class ServerConnector {
   static late CallbackGetStatus getConnectionStatus;
 
   static late CallbackOnError onError;
-  
+
   static late CallbackOnServerEvent onServerEvent;
+
+  static late CallbackOnConnectionLost onConnectionLost;
 
   static final Logger _log = Logger("ServerConnector");
 
@@ -75,12 +81,14 @@ class ServerConnector {
     CallbackGetStatus getConnectionStatus,
     CallbackOnError onError,
     CallbackOnServerEvent onServerEvent,
+    CallbackOnConnectionLost onConnectionLost,
     {DeviceSettingsRepository? deviceSettings}
   ) {
     ServerConnector.setConnectionStatus = setConnectionStatus;
     ServerConnector.getConnectionStatus = getConnectionStatus;
     ServerConnector.onError = onError;
     ServerConnector.onServerEvent = onServerEvent;
+    ServerConnector.onConnectionLost = onConnectionLost;
     _deviceSettings = deviceSettings;
   }
 
@@ -549,15 +557,17 @@ class ServerConnector {
         // Currently the client only sends data to server, not receives
       },
       onError: (error) {
-        _log.severe("Error in server event listener: $error");
+        // A stream error here means the TCP connection dropped (screen lock,
+        // Wi-Fi blip, server restart). This is recoverable, not a user-facing
+        // error — let the app reconnect silently.
+        _log.info("Server connection dropped: $error");
         _cleanupConnection();
-        setConnectionStatus(AppConnectionStatus.notConnected);
-        onError("Connection error: $error");
+        onConnectionLost();
       },
       onDone: () {
         _log.info("Server connection closed");
         _cleanupConnection();
-        setConnectionStatus(AppConnectionStatus.notConnected);
+        onConnectionLost();
       },
       cancelOnError: false,
     );
