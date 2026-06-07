@@ -123,9 +123,15 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  void dismissError() {
+  /// Reads the pending error message and clears it in a single step, without
+  /// notifying listeners. Used by the UI to show an error exactly once: because
+  /// the message is consumed on the first rebuild that observes it, the many
+  /// rapid rebuilds that follow a socket drop (cleanup, status change, error,
+  /// auto-reconnect) no longer each re-queue an identical snackbar.
+  String? consumeError() {
+    final error = errorMessage;
     errorMessage = null;
-    notifyListeners();
+    return error;
   }
 
   Future<bool> connect() async {
