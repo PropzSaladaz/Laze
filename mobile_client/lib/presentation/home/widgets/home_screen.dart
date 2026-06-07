@@ -146,25 +146,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _checkAndShowErrorSnackbar(
       BuildContext context, AppServiceWrapper wrapper) {
-    if (wrapper.errorMessage != null) {
-      final String msg = wrapper.errorMessage!;
-      final appColors = Theme.of(context).extension<AppColors>()!;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(msg),
-            backgroundColor: appColors.error,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: "OK",
-              onPressed: () {
-                wrapper.dismissError();
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              },
-            ),
+    // Consume the error once: clearing it here means the rapid burst of
+    // rebuilds following a socket drop (cleanup, status change, error,
+    // auto-reconnect) won't each re-queue an identical snackbar.
+    final String? msg = wrapper.consumeError();
+    if (msg == null) return;
+
+    final appColors = Theme.of(context).extension<AppColors>()!;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final messenger = ScaffoldMessenger.of(context);
+      // Replace any snackbar already on screen so a fresh error never stacks
+      // behind a stale one.
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: appColors.error,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: "OK",
+            onPressed: () {
+              messenger.hideCurrentSnackBar();
+            },
           ),
-        );
-      });
-    }
+        ),
+      );
+    });
   }
 }
