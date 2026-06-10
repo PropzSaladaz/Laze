@@ -76,12 +76,12 @@ class CommandBtns extends StatelessWidget {
                 iconDown: Icons.keyboard_arrow_down_rounded,
                 onPressedUp: () {
                   onSensitivityChanged(sensitivity + 1);
-                  feedbackNotifier?.value = 'SEN: ${sensitivity + 1}';
+                  feedbackNotifier?.value = 'Sensitivity: ${sensitivity + 1}';
                 },
                 onPressedDown: () {
                   if (sensitivity > 1) {
                     onSensitivityChanged(sensitivity - 1);
-                    feedbackNotifier?.value = 'SEN: ${sensitivity - 1}';
+                    feedbackNotifier?.value = 'Sensitivity: ${sensitivity - 1}';
                   }
                 },
                 description: 'SEN',

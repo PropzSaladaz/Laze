@@ -529,7 +529,7 @@ class _HelpCard extends StatelessWidget {
               child: Text(
                 'View Tutorial',
                 style: TextStyle(
-                  color: appColors.text,
+                  color: appColors.textMuted,
                   fontSize: Dimens.text.small,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.3,
