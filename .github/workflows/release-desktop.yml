@@ -11,10 +11,20 @@ on:
         required: true
 
 jobs:
+  # Gate: the committed manifest versions must equal the tag before we build,
+  # so the desktop bundle/asset names always match the release tag.
+  verify-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify manifest versions match the tag
+        run: scripts/set-version.sh --check "${{ github.event.inputs.version || github.ref_name }}"
+
   build-app:
+    needs: verify-version
     permissions:
       contents: write
-    
+
     strategy:
       # If windows fails, let Linux build (and vice versa)
       fail-fast: false

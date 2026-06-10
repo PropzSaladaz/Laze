@@ -3,7 +3,7 @@ name: Release Mobile App
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       version:
@@ -11,7 +11,17 @@ on:
         required: true
 
 jobs:
+  # Gate: the committed manifest versions must equal the tag before we build,
+  # so a forgotten bump can never ship a mismatched artifact.
+  verify-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify manifest versions match the tag
+        run: scripts/set-version.sh --check "${{ github.event.inputs.version || github.ref_name }}"
+
   build-android:
+    needs: verify-version
     runs-on: ubuntu-latest
     environment: Laze Android App Deployment
     permissions:
@@ -99,6 +109,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-ios:
+    needs: verify-version
     runs-on: macos-latest
     permissions:
       contents: write
