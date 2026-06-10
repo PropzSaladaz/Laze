@@ -53,7 +53,7 @@ class _TerminalCommandInputState extends State<TerminalCommandInput> {
           Text(
             _capitalize(widget.operativeSystemName),
             style: TextStyle(
-              color: appColors.text,
+              color: appColors.textMuted,
               fontSize: Dimens.text.title,
               fontWeight: FontWeight.w700,
             ),
