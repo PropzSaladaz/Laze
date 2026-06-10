@@ -72,6 +72,44 @@ flutter run
 - If the desktop app fails to start the backend, start the Rust server manually to verify it runs.
 - If the mobile app cannot find the server, ensure you are on Wi‑Fi and on the same subnet; check firewall rules.
 
+## Releasing
+
+The version is committed to the repo and is the single source of truth. One
+script keeps every manifest in sync, and CI refuses to build a release whose
+manifests don't match the tag — so the published artifacts (including the
+desktop bundle filenames, e.g. `Laze.Server_1.1.0_x64...`) always match.
+
+Manifests kept in sync:
+
+- `mobile_client/pubspec.yaml` — Flutter `build-name` + `build-number`
+- `desktop_app/package.json` — npm/Tauri frontend
+- `desktop_app/src-tauri/tauri.conf.json` — drives desktop bundle/asset names
+- `desktop_app/src-tauri/Cargo.toml` — `[package]` version
+
+To cut a release `X.Y.Z`:
+
+```bash
+scripts/set-version.sh X.Y.Z          # write the version into every manifest
+git commit -am "chore(release): X.Y.Z"
+git tag vX.Y.Z
+git push --follow-tags
+```
+
+Pushing a `vMAJOR.MINOR.PATCH` tag triggers both
+[release-mobile.yml](../.github/workflows/release-mobile.yml) and
+[release-desktop.yml](../.github/workflows/release-desktop.yml). Each first runs
+a `verify-version` job (`scripts/set-version.sh --check <tag>`) that fails the
+release if any manifest version differs from the tag.
+
+Notes:
+
+- Use the full `vX.Y.Z` form — the stricter trigger means a partial tag like
+  `v1.1` won't start a release.
+- The Android `versionCode` is derived deterministically from the semver
+  (`MAJOR*10000 + MINOR*100 + PATCH`), so it always increases with the version.
+- For a correctly versioned local build, run `scripts/set-version.sh X.Y.Z`
+  first (no commit needed for local testing).
+
 ## Per-app documentation
 
 - [Controller Server (Rust)](../controller_server/README.md)
