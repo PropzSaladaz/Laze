@@ -87,19 +87,11 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           name: 'Laze ${{ steps.get_version.outputs.VERSION }}'
-          body: |
-            ## Laze Mobile App
-
-            Download the APK to install directly on your Android device.
-
-            ### Installation
-            1. Download `app-release.apk`
-            2. Enable "Install from unknown sources" in Android settings
-            3. Open the APK file to install
+          body_path: ${{ github.workspace }}/.github/release-notes.md
           files: |
             mobile_client/build/app/outputs/flutter-apk/app-release.apk
             mobile_client/build/app/outputs/bundle/release/app-release.aab
@@ -186,10 +178,11 @@ jobs:
 
       - name: Upload IPA to release
         if: env.IOS_SIGNING == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           name: 'Laze ${{ steps.get_version.outputs.VERSION }}'
+          body_path: ${{ github.workspace }}/.github/release-notes.md
           files: mobile_client/build/ios/ipa/*.ipa
           draft: false
           prerelease: false
