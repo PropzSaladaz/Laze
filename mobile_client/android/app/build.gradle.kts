@@ -21,7 +21,9 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.propzsaladaz.laze"
-    compileSdk = flutter.compileSdkVersion
+    // Hardcoded rather than flutter.compileSdkVersion so target/compileSdk track
+    // Google Play's API level mandate regardless of which Flutter version builds this.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -69,7 +71,7 @@ android {
     defaultConfig {
         applicationId = "com.propzsaladaz.laze"
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
