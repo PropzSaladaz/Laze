@@ -12,6 +12,7 @@ mod actions;
 mod keybinds;
 mod logger;
 mod mobile_controller;
+mod security;
 mod server;
 
 const PORT: usize = 7878;
@@ -21,7 +22,11 @@ fn main() {
     let app = MobileController::new().unwrap();
 
     // server has started here
-    let mut handle = Server::start(config, app);
+    let directory = directories::ProjectDirs::from("com", "propzsaladaz", "Laze")
+        .expect("Local application data directory");
+    let auth = security::AuthManager::load(directory.data_local_dir().join("paired-phones.json"))
+        .expect("Secure phone credentials");
+    let mut handle = Server::start(config, app, std::sync::Arc::new(auth)).unwrap();
 
     // emulates main thread communication with server
     handle.start_server().unwrap();

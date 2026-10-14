@@ -3,9 +3,11 @@
 /// Events sent from the server to the mobile client
 /// These are single-byte event codes that notify the client of server-side events
 enum ServerEvent {
+  pairingRevoked(252),
+
   /// Server is terminating this specific client
   clientTerminated(254),
-  
+
   /// Server is shutting down completely
   serverShutdown(255);
 
@@ -25,6 +27,8 @@ enum ServerEvent {
   /// Get a user-friendly description of the event
   String get description {
     switch (this) {
+      case ServerEvent.pairingRevoked:
+        return "This computer forgot your phone. Scan a new pairing QR code to reconnect.";
       case ServerEvent.clientTerminated:
         return "You were disconnected by the server";
       case ServerEvent.serverShutdown:

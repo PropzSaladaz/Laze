@@ -1,589 +1,412 @@
-// ignore_for_file: non_constant_identifier_names, constant_identifier_names
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:logging/logging.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
-
-import 'package:laze/data/dto/new_client_response.dart';
-import 'package:laze/data/dto/client_info_request.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:laze/data/dto/server_event.dart';
-import 'package:laze/data/repositories/server/server_cache_repository.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
+import 'package:laze/data/repositories/server/pairing_repository.dart';
 import 'package:laze/services/app_connection_status.dart';
-import 'package:laze/services/connection_status.dart';
+import 'package:laze/services/auth_wire.dart';
 import 'package:laze/services/udp_discovery.dart';
 
-typedef CallbackSetStatus = void Function(AppConnectionStatus connectionStatus);
+typedef CallbackSetStatus = void Function(AppConnectionStatus status);
 typedef CallbackGetStatus = AppConnectionStatus Function();
-typedef CallbackOnError = void Function(String errorMessage);
+typedef CallbackOnError = void Function(String message);
 typedef CallbackOnServerEvent = void Function(ServerEvent event);
-// Signals that an established connection dropped unexpectedly (screen lock,
-// transient network loss). This is recoverable and must NOT be treated as a
-// user-facing error — the app decides whether/when to reconnect.
 typedef CallbackOnConnectionLost = void Function();
 
-class ServerConnector {
-  // specifies server's operative system
-  // used when sending commands - client only sends the command
-  // for the specific server OS
-  static late String _serverOS;
-
-
-  static const serverPort = 7878;
-  // specifies the amount of tries in a row done
-  static const connectionBatchedTries = 40;
-  static const connectionWaitTIme = 1000; // 1s
-
-  static late Socket server;
-  static Map<String, Future<TwoStepConnection>> connections = {};
-
-  // UDP socket for motion input (mouse move, scroll)
-  static RawDatagramSocket? _udpSocket;
-  static InternetAddress? _serverAddress;
-  static int _udpPort = 0;
-  static int _udpSeq = 0;
-
-  // Subscription for server event listener
-  static StreamSubscription<Uint8List>? _serverEventSubscription;
-
-  // Server cache for fast reconnection
-  static final ServerCacheRepository _serverCache = ServerCacheRepository();
-  static bool _cacheInitialized = false;
-
-  // Device settings for sending device name
-  static DeviceSettingsRepository? _deviceSettings;
-
-  // Used to inform application of current connection status
-  static late CallbackSetStatus setConnectionStatus;
-  // connection status may change while we search for the server.
-  // this can happen if the user cancels the search manually.
-  static late CallbackGetStatus getConnectionStatus;
-
-  static late CallbackOnError onError;
-
-  static late CallbackOnServerEvent onServerEvent;
-
-  static late CallbackOnConnectionLost onConnectionLost;
-
-  static final Logger _log = Logger("ServerConnector");
-
-  static String getServerOS() {
-    return _serverOS;
+class _Connection {
+  final FramedSocket tcp;
+  final SessionCrypto crypto;
+  final PairedComputer computer;
+  final String host, os;
+  final int udpPort, generation;
+  RawDatagramSocket? udp;
+  _Connection(this.tcp, this.crypto, this.computer, this.host, this.os,
+      this.udpPort, this.generation);
+  void close() {
+    udp?.close();
+    tcp.close();
   }
+}
 
-  // Sets the callback function to be used by the application that uses the server connector to update
-  // its state upon server connector changes
+class ServerConnector {
+  static const serverPort = 7878;
+  static final pairings = PairingRepository();
+  static _Connection? _active;
+  static final Set<FramedSocket> _pending = {};
+  static int _generation = 0;
+  static DeviceSettingsRepository? _deviceSettings;
+  static late CallbackSetStatus setConnectionStatus;
+  static late CallbackGetStatus getConnectionStatus;
+  static late CallbackOnError onError;
+  static late CallbackOnServerEvent onServerEvent;
+  static late CallbackOnConnectionLost onConnectionLost;
+  static String getServerOS() => _active?.os ?? 'unknown';
+  static String? get activeServerId => _active?.computer.serverId;
   static void init(
-    CallbackSetStatus setConnectionStatus,
-    CallbackGetStatus getConnectionStatus,
-    CallbackOnError onError,
-    CallbackOnServerEvent onServerEvent,
-    CallbackOnConnectionLost onConnectionLost,
-    {DeviceSettingsRepository? deviceSettings}
-  ) {
-    ServerConnector.setConnectionStatus = setConnectionStatus;
-    ServerConnector.getConnectionStatus = getConnectionStatus;
-    ServerConnector.onError = onError;
-    ServerConnector.onServerEvent = onServerEvent;
-    ServerConnector.onConnectionLost = onConnectionLost;
+      CallbackSetStatus setStatus,
+      CallbackGetStatus getStatus,
+      CallbackOnError error,
+      CallbackOnServerEvent event,
+      CallbackOnConnectionLost lost,
+      {DeviceSettingsRepository? deviceSettings}) {
+    setConnectionStatus = setStatus;
+    getConnectionStatus = getStatus;
+    onError = error;
+    onServerEvent = event;
+    onConnectionLost = lost;
     _deviceSettings = deviceSettings;
   }
 
-  /// Releases all socket resources without updating connection status.
-  /// Called both by [disconnect] and internally when the TCP stream closes
-  /// unexpectedly (screen lock, network drop, etc.).
-  static void _cleanupConnection() {
-    _serverEventSubscription?.cancel();
-    _serverEventSubscription = null;
-    _udpSocket?.close();
-    _udpSocket = null;
-    _serverAddress = null;
-    _udpPort = 0;
-    _udpSeq = 0;
-    try {
-      server.destroy();
-    } catch (_) {}
+  static bool _current(int generation) => generation == _generation;
+  static void _closeResources() {
+    _active?.close();
+    _active = null;
+    for (final socket in _pending.toList()) {
+      socket.close();
+    }
+    _pending.clear();
+  }
+
+  static int _begin() {
+    _generation++;
+    _closeResources();
+    setConnectionStatus(AppConnectionStatus.searching);
+    return _generation;
+  }
+
+  static void cancelPendingConnection({bool notify = true}) {
+    _generation++;
+    _closeResources();
+    if (notify) setConnectionStatus(AppConnectionStatus.notConnected);
   }
 
   static void disconnect() {
-    _cleanupConnection();
+    _generation++;
+    _closeResources();
     setConnectionStatus(AppConnectionStatus.notConnected);
   }
 
-  static void sendInput(Uint8List bytes) {
-    server.add(bytes);
+  static void sendInput(Uint8List payload) {
+    final connection = _active;
+    if (connection == null) return;
+    try {
+      connection.tcp.writeFrame(connection.crypto.clientRecord(payload));
+    } catch (_) {
+      _lost(connection);
+    }
   }
 
-  /// Send motion input (mouse move or scroll) over UDP for lower latency.
-  /// Falls back to TCP if the UDP socket is not available.
-  static void sendMotionInput(Uint8List actionBytes) {
-    final socket = _udpSocket;
-    final addr = _serverAddress;
-    if (socket == null || addr == null || _udpPort == 0) {
-      sendInput(actionBytes);
-      return;
-    }
-    final packet = ByteData(4 + actionBytes.length);
-    packet.setUint32(0, _udpSeq, Endian.big);
-    for (int i = 0; i < actionBytes.length; i++) {
-      packet.setUint8(4 + i, actionBytes[i]);
-    }
-    _udpSeq = (_udpSeq + 1) & 0xFFFFFFFF;
-    socket.send(packet.buffer.asUint8List(), addr, _udpPort);
-  }
-
-  /// Initialize the UDP socket for motion input after a successful TCP connection.
-  /// If [udpPort] is 0, the server signalled that UDP is unavailable — stays on TCP.
-  static Future<void> _initUdpSocket(String ip, int udpPort) async {
-    // Close any previously open UDP socket before binding a new one.
-    _udpSocket?.close();
-    _udpSocket = null;
-
-    _udpPort = udpPort;
-    _serverAddress = InternetAddress(ip);
-    if (udpPort == 0) {
-      _log.info('Server sent udp_port=0 — motion input will use TCP');
+  static void sendMotionInput(Uint8List payload) {
+    final connection = _active;
+    if (connection == null) return;
+    if (connection.udp == null || connection.udpPort == 0) {
+      sendInput(payload);
       return;
     }
     try {
-      _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-      _udpSeq = 0;
-      _log.info('UDP socket ready for motion input → $ip:$udpPort');
-    } catch (e) {
-      _log.warning('Failed to bind UDP socket: $e — motion input will use TCP');
-      _udpSocket = null;
+      final packet = connection.crypto.clientRecord(payload, motion: true);
+      connection.udp!
+          .send(packet, InternetAddress(connection.host), connection.udpPort);
+    } catch (_) {
+      _lost(connection);
     }
   }
 
-  /// Send device information to the server
-  static Future<void> _sendDeviceInfo() async {
-    if (_deviceSettings != null) {
-      try {
-        final deviceName = await _deviceSettings!.getDeviceName();
-        final clientInfo = ClientInfoRequest(deviceName: deviceName);
-        final json = jsonEncode(clientInfo.toJson());
-        final bytes = utf8.encode(json);
-        server.add(bytes);
-        _log.info("Sent device info to server: $deviceName");
-      } catch (e) {
-        _log.warning("Failed to send device info: $e");
+  static Future<void> sendAndDisconnect(Uint8List payload) async {
+    final connection = _active;
+    if (connection == null) {
+      disconnect();
+      return;
+    }
+    // Detach immediately so no UI/volume input can enter the closing session.
+    _active = null;
+    _generation++;
+    connection.udp?.close();
+    setConnectionStatus(AppConnectionStatus.notConnected);
+    try {
+      connection.tcp.writeFrame(connection.crypto.clientRecord(payload));
+      await connection.tcp.socket.flush().timeout(const Duration(seconds: 2));
+      await connection.tcp.socket.close().timeout(const Duration(seconds: 2));
+    } catch (_) {
+    } finally {
+      connection.close();
+    }
+  }
+
+  static void _lost(_Connection connection) {
+    if (!identical(_active, connection) || !_current(connection.generation)) {
+      return;
+    }
+    disconnect();
+    onConnectionLost();
+  }
+
+  static Future<bool> pairWithQr(String code) async {
+    final generation = _begin();
+    try {
+      await pairings.init();
+      final computer = PairedComputer.fromQr(code.trim());
+      if (!_current(generation)) return false;
+      String? failureMessage;
+      var reachedDesktop = false;
+      void rememberFailure(String message, bool reached) {
+        if (!reachedDesktop || reached) failureMessage = message;
+        reachedDesktop = reachedDesktop || reached;
+      }
+
+      for (final host in computer.hosts) {
+        if (!_current(generation)) return false;
+        if (await _connect(computer, host, generation,
+            onFailure: rememberFailure)) return true;
+      }
+      if (_current(generation)) {
+        onError(failureMessage ??
+            'Unable to pair. Keep the desktop server running and generate a fresh QR code.');
+      }
+    } on AuthException catch (error) {
+      if (_current(generation)) onError(error.message);
+    } catch (_) {
+      if (_current(generation)) {
+        onError(
+            'Unable to complete secure pairing. Check your network and device secure storage.');
       }
     }
-  }
-
-  static Future<bool> _isWifiEnabled() async {
-    final connectivityResult = await Connectivity().checkConnectivity();
-    return connectivityResult.contains(ConnectivityResult.wifi);
-  }
-
-  /// Initialize server cache
-  static Future<void> _initCache() async {
-    if (!_cacheInitialized) {
-      await _serverCache.init();
-      _cacheInitialized = true;
+    if (_current(generation)) {
+      setConnectionStatus(AppConnectionStatus.notConnected);
     }
+    return false;
   }
 
-  /// Searches for a server listening for requests in local network
-  /// Uses fast discovery: cached IP -> UDP broadcast -> IP sweep
   static Future<bool> findServer() async {
-    connections.clear();
-
-    bool isWifiEnabled = await _isWifiEnabled();
-    if (!isWifiEnabled) {
-      String message = "You must be connected to a Wi-Fi network to search for servers.";
-      _log.warning(message);
-      onError(message);
-      setConnectionStatus(AppConnectionStatus.notConnected);
-      return false;
-    }
-
-    setConnectionStatus(AppConnectionStatus.searching);
-
-    // Initialize cache
-    await _initCache();
-
-    // Step 1: Try cached IPs first (instant if valid)
-    _log.info("Step 1: Trying cached server IPs...");
-    if (await _tryConnectToCachedServers()) {
-      return true;
-    }
-
-    // Check if user cancelled
-    if (getConnectionStatus() != AppConnectionStatus.searching) {
-      setConnectionStatus(AppConnectionStatus.notConnected);
-      return false;
-    }
-
-    // Step 2: Try UDP broadcast discovery (~100ms)
-    _log.info("Step 2: Trying UDP broadcast discovery...");
-    if (await _tryUdpDiscovery()) {
-      return true;
-    }
-
-    // Check if user cancelled
-    if (getConnectionStatus() != AppConnectionStatus.searching) {
-      setConnectionStatus(AppConnectionStatus.notConnected);
-      return false;
-    }
-
-    // Step 3: Fallback to IP sweep (slow, but guaranteed to work)
-    _log.info("Step 3: Falling back to IP sweep...");
-    return await _ipSweepDiscovery();
-  }
-
-  /// Try to connect to cached server IPs
-  static Future<bool> _tryConnectToCachedServers() async {
-    final cachedServers = _serverCache.getCachedServers();
-    if (cachedServers.isEmpty) {
-      _log.info("No cached servers found");
-      return false;
-    }
-
-    _log.info("Found ${cachedServers.length} cached server(s)");
-
-    for (final cached in cachedServers) {
-      _log.info("Trying cached server: ${cached.ip}:${cached.port}");
-      
-      final result = await _tryDirectConnection(cached.ip, cached.port);
-      if (result) {
-        _log.info("Connected to cached server: ${cached.ip}");
-        setConnectionStatus(AppConnectionStatus.connected);
-        return true;
-      }
-    }
-
-    _log.info("No cached servers responded");
-    return false;
-  }
-
-  /// Try UDP broadcast discovery
-  static Future<bool> _tryUdpDiscovery() async {
-    final result = await UdpDiscovery.discoverServer();
-    
-    if (result == null) {
-      _log.info("UDP discovery: no server found");
-      return false;
-    }
-
-    _log.info("UDP discovery found server at ${result.ip}:${result.port}");
-    
-    final connected = await _tryDirectConnection(result.ip, result.port);
-    if (connected) {
-      setConnectionStatus(AppConnectionStatus.connected);
-      return true;
-    }
-
-    return false;
-  }
-
-  /// Try to connect directly to a known IP/port
-  static Future<bool> _tryDirectConnection(String ip, int port) async {
+    final generation = _begin();
     try {
-      // Connect to base port first
-      final socket = await Socket.connect(ip, port,
-          timeout: const Duration(milliseconds: 500));
-      socket.setOption(SocketOption.tcpNoDelay, true);
-
-      _log.info("Connected to $ip:$port, waiting for dedicated port...");
-
-      // Wait for server response with dedicated port
-      final response = await socket.timeout(
-        const Duration(seconds: 2),
-        onTimeout: (sink) {
-          _log.warning("Timeout waiting for dedicated port from $ip");
-          sink.close();
-        },
-      ).first;
-
-      final json = jsonDecode(utf8.decode(response));
-      final newClientResp = NewClientResponse.fromJson(json);
-
-      if (newClientResp.port == -1) {
-        _log.warning("Server rejected connection: max clients");
-        socket.destroy();
+      await pairings.init();
+      if (!_current(generation)) return false;
+      final computers = pairings.computers;
+      if (computers.isEmpty) {
+        onError(
+            'Pair your computer first: open Pair phone on the desktop, then scan its QR code.');
+        setConnectionStatus(AppConnectionStatus.notConnected);
         return false;
       }
-
-      _log.info("Received dedicated port: ${newClientResp.port}");
-
-      // Connect to dedicated port
-      final dedicatedSocket = await Socket.connect(ip, newClientResp.port,
-          timeout: const Duration(seconds: 2));
-      dedicatedSocket.setOption(SocketOption.tcpNoDelay, true);
-
-      server = dedicatedSocket;
-      _serverOS = newClientResp.server_os;
-
-      // Initialize UDP socket for motion input
-      await _initUdpSocket(ip, newClientResp.udp_port);
-
-      // Send device info as first message
-      await _sendDeviceInfo();
-
-      // Start listening for server events
-      _startServerEventListener();
-
-      // Cache this successful connection
-      await _serverCache.cacheServer(ip, port);
-
-      socket.destroy();
-      _log.info("Successfully connected to $ip:${newClientResp.port}");
-      return true;
-    } catch (e) {
-      _log.warning("Direct connection to $ip:$port failed: $e");
-      return false;
-    }
-  }
-
-  /// Fallback: IP sweep discovery (slow)
-  static Future<bool> _ipSweepDiscovery() async {
-    int n_LANs = 255;
-    for (int lan = 0; lan < n_LANs; lan++) {
-      int baseIp = _ipToInt("192.168.$lan.0");
-      var subnetMask = 24;
-      var totalLocalIpSuffixes = pow(2, 32 - subnetMask).toInt();
-
-      for (int i = 0; i < totalLocalIpSuffixes; i++) {
-        // if status has been changed - return right away & cancel further searching
-        if (getConnectionStatus() != AppConnectionStatus.searching) {
-          setConnectionStatus(AppConnectionStatus.notConnected);
-          return false;
-        }
-
-        var testIp = _intToIp(baseIp | i);
-        
-        _log.config(testIp);
-
-        connections[testIp.address] = _connectToHost(testIp.address);
-
-        // waits for responses from X requests at a time
-        if (i % connectionBatchedTries == 0) {
-          ConnectionStatus status = await _waitForBatchedConnections();
-          switch (status) {
-            case ConnectionEstablished():
-              // halt search
-              setConnectionStatus(AppConnectionStatus.connected);
-              return true;
-            case ConnectionRejectedByServer(reason: var r):
-              _log.warning("Connection rejected by server. Reason: $r");
-              // halt search
-              setConnectionStatus(AppConnectionStatus.notConnected);
-              return false;
-            default:
-              // any other type -> continue searching
-              break;
-          } 
+      final connectivity = await Connectivity().checkConnectivity();
+      if (!_current(generation)) return false;
+      if (!connectivity.contains(ConnectivityResult.wifi)) {
+        onError('Connect to the same Wi-Fi network as your computer.');
+        setConnectionStatus(AppConnectionStatus.notConnected);
+        return false;
+      }
+      for (final computer in computers) {
+        for (final host in computer.hosts) {
+          if (!_current(generation)) return false;
+          if (await _connect(computer, host, generation)) return true;
         }
       }
+      final discoveries = await UdpDiscovery.discoverServers();
+      for (final result in discoveries) {
+        if (!_current(generation)) return false;
+        for (final computer in computers.where(
+            (v) => v.serverId == result.serverId && v.port == result.port)) {
+          if (await _connect(computer, result.ip, generation)) return true;
+        }
+      }
+      // A bounded /24 fallback around the phone's local interfaces replaces the old 65,280-host sweep.
+      final interfaces = await NetworkInterface.list(
+          type: InternetAddressType.IPv4, includeLinkLocal: false);
+      final prefixes = <String>{};
+      for (final interface in interfaces) {
+        for (final address in interface.addresses) {
+          final octets = address.address.split('.').map(int.parse).toList();
+          if (octets[0] == 10 ||
+              (octets[0] == 172 && octets[1] >= 16 && octets[1] <= 31) ||
+              (octets[0] == 192 && octets[1] == 168)) {
+            prefixes.add(octets.take(3).join('.'));
+          }
+        }
+      }
+      for (final prefix in prefixes.take(2)) {
+        for (var start = 1; start < 255; start += 32) {
+          if (!_current(generation)) return false;
+          // Authenticate candidates sequentially after the cheap bounded port probe; only one session is published.
+          final hosts = await Future.wait(
+              List.generate((255 - start).clamp(0, 32).toInt(), (i) async {
+            final host = '$prefix.${start + i}';
+            Socket? probe;
+            try {
+              probe = await Socket.connect(host, serverPort,
+                  timeout: const Duration(milliseconds: 250));
+              return host;
+            } catch (_) {
+              return null;
+            } finally {
+              probe?.destroy();
+            }
+          }));
+          for (final host in hosts.whereType<String>()) {
+            for (final computer
+                in computers.where((v) => v.port == serverPort)) {
+              if (!_current(generation)) return false;
+              if (await _connect(computer, host, generation)) return true;
+            }
+          }
+        }
+      }
+      if (_current(generation)) {
+        onError(
+            'No paired computer was found. Start Laze on the computer; pair again if its trusted-phone list was reset.');
+      }
+    } on AuthException catch (error) {
+      if (_current(generation)) onError(error.message);
+    } catch (_) {
+      if (_current(generation)) {
+        onError('Unable to connect securely to the computer.');
+      }
     }
-
-    setConnectionStatus(AppConnectionStatus.notConnected);
+    if (_current(generation)) {
+      setConnectionStatus(AppConnectionStatus.notConnected);
+    }
     return false;
   }
 
-  /// Waits for all requests currently in the map of sent requests
-  /// Returns true if one of the requests was accepted at the server,
-  /// and also
-  static Future<ConnectionStatus> _waitForBatchedConnections() async {
-
-    connection_search:
-    for (var conn in connections.keys) {
-
-      // will be in a loop trying to reach step 2 of communication.
-      while(true) {
-        var future = connections[conn];
-        if (future != null) {
-          // await connection from main server port
-          TwoStepConnection connStep = await future;
-          switch (connStep) {
-
-            // connection from base server port
-            case BasePortServerConnection(status: var status):
-              switch (status) {
-
-                case ConnectionEstablished():
-                  _log.info("Successfully connected to server base port: "
-                  "$conn\n Now waiting for dedicated port...");
-                  // Connection to server was made
-                  // now wait for connection to the new dedicated port
-                  
-                  // sleep is to give time for connection type to be updated by the async thread
-                  // from `_connectToHost`
-                  await Future.delayed(const Duration(seconds: 2));
-                  break;
-
-                case ConnectionRejectedByServer():
-                  String error = "Server rejected communication - max clients reached";
-                  _log.severe(error);
-                  onError(error);
-                  // halt batch search
-                  return status;
-                
-                default:
-                  // Even if there was some timeout, we accept as a non-error
-                  // and continue searching
-                  _log.info("Other");
-                  continue connection_search; 
-              }
-            
-            // connection from the dedicated port
-            case DedicatedPortServerConnection(status: var status):
-              switch (status) {
-
-                case ConnectionEstablished():
-                  _log.info("Successfully connected to server dedicated port ");
-                  // Cache this connection for future
-                  await _serverCache.cacheServer(conn, serverPort);
-                  return status;
-
-                default:
-                  String error = "Unexpected connection status from dedicated port";
-                  _log.severe(error);
-                  onError(error);
-                  return status;
-              }
-          }
-        }
+  static Future<bool> _connect(
+      PairedComputer computer, String host, int generation,
+      {void Function(String message, bool reachedDesktop)? onFailure}) async {
+    FramedSocket? wire;
+    RawDatagramSocket? udp;
+    var published = false;
+    var phase = 'connect';
+    try {
+      final socket = await Socket.connect(host, computer.port,
+          timeout: const Duration(milliseconds: 700));
+      wire = FramedSocket(socket);
+      _pending.add(wire);
+      if (!_current(generation)) return false;
+      phase = 'device';
+      socket.setOption(SocketOption.tcpNoDelay, true);
+      final deviceName = await _deviceSettings?.getDeviceName() ?? 'My phone';
+      if (!_current(generation)) return false;
+      final hello = <String, dynamic>{
+        'version': 2,
+        'server_id': computer.serverId,
+        'device_id': computer.deviceId,
+        'device_name': deviceName,
+        'invite_id': computer.inviteId,
+        'client_nonce': AuthWire.encode(AuthWire.randomBytes(32))
+      };
+      hello['proof'] = AuthWire.encode(
+          AuthWire.tag(computer.secret, AuthWire.helloBytes(hello)));
+      wire.writeFrame(utf8.encode(jsonEncode(hello)));
+      phase = 'challenge';
+      final challenge = Map<String, dynamic>.from(
+          jsonDecode(utf8.decode(await wire.readFrame())) as Map);
+      final crypto =
+          await SessionCrypto.establish(computer.secret, hello, challenge);
+      if (!_current(generation)) return false;
+      final finish = AuthWire.transcript(
+          'laze-v2/client-finish', [AuthWire.challengeBytes(hello, challenge)]);
+      phase = 'ready';
+      wire.writeFrame(utf8.encode(jsonEncode(
+          {'proof': AuthWire.encode(AuthWire.tag(computer.secret, finish))})));
+      final ready = crypto.serverRecord(
+          await wire.readFrame(max: AuthWire.overhead + AuthWire.maxInput));
+      if (!_current(generation)) return false;
+      if (ready.length != 1 || ready[0] != 253) {
+        throw const AuthException(
+            'The desktop ended the connection before pairing completed. Generate a fresh QR code.');
       }
+      final trusted = computer.connectedAt(host);
+      phase = 'storage';
+      await pairings.save(trusted);
+      if (!_current(generation)) return false;
+      final port = challenge['udp_port'] as int;
+      if (port != 0) {
+        try {
+          udp = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+        } catch (_) {}
+      }
+      if (!_current(generation)) return false;
+      final connection = _Connection(wire, crypto, trusted, host,
+          challenge['server_os'] as String, port, generation)
+        ..udp = udp;
+      _pending.remove(wire);
+      _active = connection;
+      published = true;
+      setConnectionStatus(AppConnectionStatus.connected);
+      unawaited(_listen(connection));
+      return true;
+    } catch (error) {
+      if (_current(generation) && onFailure != null) {
+        final String message;
+        if (error is AuthException) {
+          message = error.message;
+        } else if (phase == 'connect') {
+          message =
+              'Cannot reach the desktop. Connect both devices to the same network and allow Laze through Windows Firewall.';
+        } else if (phase == 'storage') {
+          message =
+              'The desktop accepted pairing, but the phone could not save its credentials. Check phone secure storage and create a new QR code.';
+        } else if (phase == 'device') {
+          message =
+              'Unable to read this phone\'s device name. Restart the phone app and try pairing again.';
+        } else if (error is TimeoutException) {
+          message =
+              'The desktop did not finish authentication in time. Restart the desktop app and generate a fresh QR code.';
+        } else if (phase == 'challenge') {
+          message =
+              'The desktop closed or returned an invalid pairing handshake. Restart the updated desktop app and generate a fresh QR code.';
+        } else {
+          message =
+              'The desktop did not complete pairing. Generate a new QR code; check desktop credential storage if this repeats.';
+        }
+        onFailure(message, wire != null);
+      }
+      return false;
+    } finally {
+      if (!published) {
+        udp?.close();
+        wire?.close();
+      }
+      if (wire != null) _pending.remove(wire);
     }
-    // there was no connection established and no connections rejected
-    return const ConnectionRefused();
   }
 
-
-  static Future<BasePortServerConnection> _connectToHost(String ipAddress) async {
+  static Future<void> _listen(_Connection connection) async {
     try {
-      // try connecting to base port
-      var socket = await Socket.connect(ipAddress, serverPort,
-          timeout: const Duration(milliseconds: connectionWaitTIme));
-      socket.setOption(SocketOption.tcpNoDelay, true);
-
-      _log.info("Awaiting for $ipAddress:$serverPort");
-
-      /// This is non-blocking - we will set this async function to
-      /// whenever a message is received by the socket. Then we jump to the
-      /// return ConnectionEstablished to indicate we established connection 
-      /// with server base port
-      int activeHandlers = 0;
-      socket.listen((jsonBytes) async {
-        // register async reader -> used to avoid destroying the socket while there is still
-        // a handler reading the data
-        activeHandlers++;
-        _log.info("Client received what was supposed to be a JSON response with dedicated port");
-        // upon receiving the new dedicated port
-        var json = jsonDecode(utf8.decode(jsonBytes));
-        NewClientResponse resp = NewClientResponse.fromJson(json);
-        
-        // check for error from server
-        if (resp.port == -1) {
-          connections[ipAddress] = Future.value(
-            const BasePortServerConnection(
-              ConnectionRejectedByServer("Server reached max clients!")
-            )
-          );
+      while (
+          identical(_active, connection) && _current(connection.generation)) {
+        final payload = connection.crypto.serverRecord(await connection.tcp
+            .readFrame(
+                max: AuthWire.overhead + AuthWire.maxInput,
+                timeout: const Duration(days: 1)));
+        if (payload.length != 1) {
+          throw const AuthException('Invalid server event');
+        }
+        final event = ServerEvent.fromByte(payload[0]);
+        if (event == null) throw const AuthException('Unknown server event');
+        if (!identical(_active, connection) ||
+            !_current(connection.generation)) {
           return;
         }
-
-        _log.info("Received new dedicated port: ${resp.port} from server");
-        // try connecting to dedicated port
-        var newSocket = await Socket.connect(ipAddress, resp.port);
-        server = newSocket;
-        // Update the future
-        connections[ipAddress] = Future.value(
-            const DedicatedPortServerConnection(
-              ConnectionEstablished()
-            )
-          );
-        _serverOS = resp.server_os;
-        // !IMPORTANT! this is set to force all data to be sent in a different tcp packet
-        server.setOption(SocketOption.tcpNoDelay, true);
-
-        // Initialize UDP socket for motion input
-        await _initUdpSocket(ipAddress, resp.udp_port);
-
-        // Send device info as first message
-        await _sendDeviceInfo();
-        
-        // Start listening for server events
-        _startServerEventListener();
-        
-        activeHandlers--;
-      
-      }, onDone: () async {
-        while (activeHandlers > 0) {
-          _log.info("Still active listeners $ipAddress");
-          await Future.delayed(const Duration(milliseconds: 100));
-        } 
-        socket.destroy();
-        _log.info("Socket destroyed for $ipAddress");
-      });
-
-      return const BasePortServerConnection(ConnectionEstablished());
-
-    } catch (e) {
-      // Due to socket timeout
-      _log.warning("$ipAddress -> !!NOT CONNECTED: $e");
-      return const BasePortServerConnection(ConnectionRefused());
+        disconnect();
+        onServerEvent(event);
+        if (event == ServerEvent.pairingRevoked) {
+          try {
+            await pairings.forget(connection.computer.serverId);
+          } catch (_) {}
+        }
+        return;
+      }
+    } catch (_) {
+      _lost(connection);
     }
   }
 
-  Future<void> _handleNewClientResponse() async {
-
-  }
-
-  /// Starts listening for server events on the established connection
-  /// This listens for single-byte event codes sent by the server
-  static void _startServerEventListener() {
-    // Cancel any existing subscription to avoid multiple listeners
-    _serverEventSubscription?.cancel();
-    
-    _serverEventSubscription = server.listen(
-      (Uint8List data) {
-        // Check if this is a server event (single byte with high value)
-        if (data.length == 1) {
-          final eventByte = data[0];
-          final event = ServerEvent.fromByte(eventByte);
-          
-          if (event != null) {
-            _log.info("Received server event: ${event.name}");
-            onServerEvent(event);
-          }
-        }
-        // Regular data packets would be handled here if needed
-        // Currently the client only sends data to server, not receives
-      },
-      onError: (error) {
-        // A stream error here means the TCP connection dropped (screen lock,
-        // Wi-Fi blip, server restart). This is recoverable, not a user-facing
-        // error — let the app reconnect silently.
-        _log.info("Server connection dropped: $error");
-        _cleanupConnection();
-        onConnectionLost();
-      },
-      onDone: () {
-        _log.info("Server connection closed");
-        _cleanupConnection();
-        onConnectionLost();
-      },
-      cancelOnError: false,
-    );
-  }
-
-  static int _ipToInt(String address) {
-    var parts = address.split('.').map(int.parse).toList();
-    return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + (parts[3]);
-  }
-
-  static InternetAddress _intToIp(int ip) {
-    return InternetAddress([
-      ip >> 24,
-      (ip >> 16) & 0xFF,
-      (ip >> 8) & 0xFF,
-      ip & 0xFF,
-    ].join("."));
+  static Future<void> forgetComputer(String serverId) async {
+    // Cancel searches before changing trust so an in-flight handshake cannot save it again.
+    if (_active == null || _active?.computer.serverId == serverId) disconnect();
+    await pairings.forget(serverId);
   }
 }

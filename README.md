@@ -83,7 +83,7 @@ There are great remote apps out there, but they often require clunky desktop set
 | **Cost / License** | 🆓 Free & Open Source | 🆓 Free & Open Source | 💰 Freemium | 💰 Freemium | 🆓 / 💰 |
 | **Primary Focus** | Fast local PC control | Device ecosystem | PC remote toolkit | Mouse/keyboard control | Full remote desktop |
 | **Custom Commands** | ✅ Create directly on phone | ⚠️ Configured on desktop | 💰 Paid feature | ❌ Limited | ❌ Not typical |
-| **Setup Complexity** | ✅ Instant LAN discovery | ⚠️ Pairing required | ⚠️ Server install | ⚠️ Helper install | ⚠️ Account setup |
+| **Setup Complexity** | ✅ QR pairing once, then LAN discovery | ⚠️ Pairing required | ⚠️ Server install | ⚠️ Helper install | ⚠️ Account setup |
 | **UX Design** | Modern, mobile-first | Functional | Functional | Basic | Desktop-style |
 | **Architecture** | Rust + Tauri + Flutter | C++ / Qt | Mixed native | Proprietary | Cloud-based |
 
@@ -164,7 +164,13 @@ cd mobile_client
 flutter pub get
 flutter run
 ```
-The app will automatically discover your desktop on the same network.
+On the desktop dashboard, select **Pair phone**. On the mobile app, select
+**Pair computer** and scan the QR code. Pairing connects immediately; subsequent
+connections use **Connect** to discover your trusted desktop on the same network.
+
+The QR code expires after three minutes. **Forget phone** on the desktop revokes
+its access, including an active session. Update both apps together; older
+unauthenticated clients cannot connect. See [pairing and authentication](docs/authentication.md).
 
 ---
 

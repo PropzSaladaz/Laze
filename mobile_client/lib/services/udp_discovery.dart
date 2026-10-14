@@ -1,108 +1,62 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:logging/logging.dart';
+import 'dart:convert';
 
-/// UDP Discovery Service for finding the server on local network
+class DiscoveryResult {
+  final String ip, serverId;
+  final int port;
+  DiscoveryResult(
+      {required this.ip, required this.port, required this.serverId});
+}
+
 class UdpDiscovery {
-  static const int discoveryPort = 7877;
-  static const String discoveryRequest = 'DISCOVER_MOBILE_CONTROLLER';
-  static const String responsePrefix = 'MOBILE_CONTROLLER';
-  static const Duration timeout = Duration(milliseconds: 1500);
-
-  static final Logger _log = Logger('UdpDiscovery');
-
-  /// Discover server using UDP broadcast
-  /// Returns server IP and port if found, null otherwise
-  static Future<DiscoveryResult?> discoverServer() async {
+  static const discoveryPort = 7877;
+  static Future<List<DiscoveryResult>> discoverServers() async {
     RawDatagramSocket? socket;
-    
+    final results = <String, DiscoveryResult>{};
     try {
-      // Create UDP socket
-      socket = await RawDatagramSocket.bind(
-        InternetAddress.anyIPv4,
-        0, // Let OS assign a port
-      );
+      socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
       socket.broadcastEnabled = true;
-
-      _log.info('Starting UDP discovery broadcast...');
-
-      // Send discovery broadcast
-      final data = Uint8List.fromList(discoveryRequest.codeUnits);
-      socket.send(
-        data,
-        InternetAddress('255.255.255.255'),
-        discoveryPort,
-      );
-
-      // Wait for response with timeout
-      final completer = Completer<DiscoveryResult?>();
-      Timer? timeoutTimer;
-
-      timeoutTimer = Timer(timeout, () {
-        if (!completer.isCompleted) {
-          _log.info('Discovery timeout - no server found');
-          completer.complete(null);
-        }
+      final done = Completer<void>();
+      final timer = Timer(const Duration(milliseconds: 1500), () {
+        if (!done.isCompleted) done.complete();
       });
-
-      socket.listen((RawSocketEvent event) {
-        if (event == RawSocketEvent.read) {
-          final datagram = socket!.receive();
-          if (datagram != null) {
-            final response = String.fromCharCodes(datagram.data);
-            _log.info('Received response: $response from ${datagram.address.address}');
-
-            // Parse response: "MOBILE_CONTROLLER:IP:PORT"
-            final result = _parseResponse(response);
-            if (result != null && !completer.isCompleted) {
-              timeoutTimer?.cancel();
-              completer.complete(result);
+      final subscription = socket.listen((event) {
+        if (event != RawSocketEvent.read) return;
+        Datagram? datagram;
+        while ((datagram = socket!.receive()) != null) {
+          try {
+            final parts = utf8.decode(datagram!.data).split(':');
+            if (parts.length != 5 ||
+                parts[0] != 'MOBILE_CONTROLLER' ||
+                parts[4] != '2') {
+              continue;
             }
-          }
+            final port = int.tryParse(parts[2]);
+            if (port == null ||
+                port < 1 ||
+                port > 65535 ||
+                !RegExp(r'^[A-Za-z0-9_-]{1,64}$').hasMatch(parts[3])) {
+              continue;
+            }
+            // Discovery is only an address hint; trust is checked in the subsequent mutual handshake.
+            final result = DiscoveryResult(
+                ip: datagram.address.address, port: port, serverId: parts[3]);
+            results['${result.serverId}:${result.ip}:${result.port}'] = result;
+          } catch (_) {}
         }
+      }, onError: (_) {
+        if (!done.isCompleted) done.complete();
       });
-
-      return await completer.future;
-    } catch (e) {
-      _log.severe('UDP discovery error: $e');
-      return null;
+      socket.send(utf8.encode('DISCOVER_MOBILE_CONTROLLER'),
+          InternetAddress('255.255.255.255'), discoveryPort);
+      await done.future;
+      timer.cancel();
+      await subscription.cancel();
+    } catch (_) {
     } finally {
       socket?.close();
     }
+    return results.values.toList();
   }
-
-  /// Parse server response
-  static DiscoveryResult? _parseResponse(String response) {
-    if (!response.startsWith(responsePrefix)) {
-      return null;
-    }
-
-    final parts = response.split(':');
-    if (parts.length != 3) {
-      _log.warning('Invalid response format: $response');
-      return null;
-    }
-
-    final ip = parts[1];
-    final port = int.tryParse(parts[2]);
-
-    if (port == null) {
-      _log.warning('Invalid port in response: $response');
-      return null;
-    }
-
-    return DiscoveryResult(ip: ip, port: port);
-  }
-}
-
-/// Result of UDP discovery
-class DiscoveryResult {
-  final String ip;
-  final int port;
-
-  DiscoveryResult({required this.ip, required this.port});
-
-  @override
-  String toString() => 'DiscoveryResult($ip:$port)';
 }

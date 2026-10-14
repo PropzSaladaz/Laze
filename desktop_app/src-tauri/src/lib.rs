@@ -78,6 +78,11 @@ pub fn run() {
             commands::start_server,
             commands::stop_server,
             commands::remove_client,
+            commands::create_pairing_invite,
+            commands::cancel_pairing_invite,
+            commands::list_paired_devices,
+            commands::revoke_phone,
+            commands::list_connected_clients,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

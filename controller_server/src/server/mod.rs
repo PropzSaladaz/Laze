@@ -8,3 +8,4 @@ pub mod application;
 pub mod command_sender;
 pub mod commands;
 pub mod core;
+pub mod wire;

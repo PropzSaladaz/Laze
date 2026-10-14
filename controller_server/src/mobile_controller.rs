@@ -118,12 +118,12 @@ impl MobileController {
 }
 
 impl Application for MobileController {
-    fn dispatch_to_device(&mut self, mut input: &[u8]) -> ConnectionStatus {
-        // while there are bytes to be consumed -> consume.
-        // each TCP may send buffered inputs within the same packet, thus we need to
-        // check if there aren't any other commands within the bytes of the current packet
-        while input.len() > 0 {
-            let action = Action::decode(&mut input);
+    fn dispatch_to_device(&mut self, input: &[u8]) -> ConnectionStatus {
+        let actions = match Action::decode_batch(input) {
+            Ok(actions) => actions,
+            Err(_) => return ConnectionStatus::Disconnected,
+        };
+        for action in actions {
             self.log_debug(&format!("Action received: {:?}", action));
             match self.handle_input(action) {
                 ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,

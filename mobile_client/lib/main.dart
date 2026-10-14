@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:laze/presentation/pairing/pairing_screen.dart';
+import 'package:laze/presentation/pairing/paired_computers_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -47,9 +49,8 @@ void main() async {
   final themeNotifier = await ThemeNotifier.create(
     repositoryService.deviceSettingsRepository,
   );
-  final onboardingCompleted = await repositoryService
-      .deviceSettingsRepository
-      .getOnboardingCompleted();
+  final onboardingCompleted =
+      await repositoryService.deviceSettingsRepository.getOnboardingCompleted();
 
   runApp(
     MultiProvider(
@@ -57,7 +58,8 @@ void main() async {
         ...repositoryService.providers,
         ChangeNotifierProvider<AppServiceWrapper>(
           create: (context) => AppServiceWrapper(
-            deviceSettings: Provider.of<DeviceSettingsRepository>(context, listen: false),
+            deviceSettings:
+                Provider.of<DeviceSettingsRepository>(context, listen: false),
           ),
         ),
         ChangeNotifierProvider<ThemeNotifier>.value(value: themeNotifier),
@@ -86,6 +88,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: showOnboarding ? '/onboarding-first-run' : '/',
       routes: {
+        '/pairing': (context) => const PairingScreen(),
+        '/paired-computers': (context) => const PairedComputersScreen(),
         '/': (context) => const HomeScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/onboarding-first-run': (context) => const OnboardingScreen(),

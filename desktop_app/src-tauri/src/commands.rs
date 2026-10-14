@@ -1,7 +1,8 @@
 use std::sync::{Arc, Mutex};
 
+use server::security::{AuthManager, PairingInvite, TrustedDevice};
 use server::{MobileController, Server, ServerConfig, ServerEvent, ServerHandler};
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use tokio::sync::broadcast;
 
 use crate::TCP_PORT;
@@ -25,7 +26,7 @@ pub fn is_server_initialized(state: tauri::State<'_, SharedCommunicator>) -> boo
 /// Initialize the server - can be called multiple times for retry
 #[tauri::command]
 pub fn init_server(
-    _app_handle: tauri::AppHandle,
+    app_handle: tauri::AppHandle,
     state: tauri::State<'_, SharedCommunicator>,
 ) -> InitResult {
     let mut guard = state.lock().unwrap();
@@ -89,7 +90,33 @@ pub fn init_server(
     let config = ServerConfig::new(TCP_PORT as usize, 10);
 
     // Now safe to start since we verified network is available
-    let handler = Server::start(config, controller);
+    let auth_path = match app_handle.path().app_data_dir() {
+        Ok(path) => path.join("paired-phones.json"),
+        Err(_) => {
+            return InitResult {
+                success: false,
+                message: "Unable to locate secure phone credentials".into(),
+            }
+        }
+    };
+    let auth = match AuthManager::load(auth_path) {
+        Ok(auth) => Arc::new(auth),
+        Err(message) => {
+            return InitResult {
+                success: false,
+                message,
+            }
+        }
+    };
+    let handler = match Server::start(config, controller, auth) {
+        Ok(handler) => handler,
+        Err(_) => {
+            return InitResult {
+                success: false,
+                message: "Unable to open the Laze network listener".into(),
+            }
+        }
+    };
     *guard = Some(handler);
 
     InitResult {
@@ -203,6 +230,78 @@ pub fn remove_client(state: tauri::State<'_, SharedCommunicator>, client_id: usi
             format!("Failed to receive response: {:?}", e)
         }
     }
+}
+
+#[tauri::command]
+pub fn create_pairing_invite(
+    state: tauri::State<'_, SharedCommunicator>,
+) -> Result<PairingInvite, String> {
+    let guard = state.lock().map_err(|_| "Server state unavailable")?;
+    let handler = guard.as_ref().ok_or("Start the server before pairing")?;
+    let hosts: Vec<_> = local_ip_address::list_afinet_netifas()
+        .map_err(|_| "Network unavailable")?
+        .into_iter()
+        .filter_map(|(_, ip)| match ip {
+            std::net::IpAddr::V4(ip) if !ip.is_loopback() && !ip.is_unspecified() => {
+                Some(ip.to_string())
+            }
+            _ => None,
+        })
+        .take(8)
+        .collect();
+    if hosts.is_empty() {
+        return Err("Connect the computer to your local network".into());
+    }
+    let name = std::env::var("COMPUTERNAME")
+        .or_else(|_| std::env::var("HOSTNAME"))
+        .unwrap_or_else(|_| "Laze desktop".into());
+    handler.create_pairing_invite(hosts, TCP_PORT, name)
+}
+
+#[tauri::command]
+pub fn cancel_pairing_invite(
+    invite_id: String,
+    state: tauri::State<'_, SharedCommunicator>,
+) -> Result<(), String> {
+    let guard = state.lock().map_err(|_| "Server state unavailable")?;
+    if let Some(handler) = guard.as_ref() {
+        handler.cancel_pairing_invite(&invite_id);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn list_paired_devices(
+    state: tauri::State<'_, SharedCommunicator>,
+) -> Result<Vec<TrustedDevice>, String> {
+    let guard = state.lock().map_err(|_| "Server state unavailable")?;
+    Ok(guard
+        .as_ref()
+        .ok_or("Server not initialized")?
+        .trusted_devices())
+}
+
+#[tauri::command]
+pub fn list_connected_clients(
+    state: tauri::State<'_, SharedCommunicator>,
+) -> Result<Vec<server::ClientInfo>, String> {
+    let guard = state.lock().map_err(|_| "Server state unavailable")?;
+    Ok(guard
+        .as_ref()
+        .ok_or("Server not initialized")?
+        .connected_clients())
+}
+
+#[tauri::command]
+pub fn revoke_phone(
+    device_id: String,
+    state: tauri::State<'_, SharedCommunicator>,
+) -> Result<(), String> {
+    let guard = state.lock().map_err(|_| "Server state unavailable")?;
+    guard
+        .as_ref()
+        .ok_or("Server not initialized")?
+        .revoke_phone(&device_id)
 }
 
 fn spawn_event_listener(

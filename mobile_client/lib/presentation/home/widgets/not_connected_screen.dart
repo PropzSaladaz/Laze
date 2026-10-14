@@ -4,6 +4,7 @@ import 'package:laze/presentation/core/themes/generated_theme.dart';
 import 'package:laze/presentation/core/ui/controller_page.dart';
 import 'package:laze/presentation/core/ui/cta_button.dart';
 import 'package:laze/presentation/core/ui/styled_button.dart';
+import 'package:laze/presentation/pairing/pairing_widgets.dart';
 
 class NotConnectedScreen extends StatelessWidget {
   final VoidCallback onConnect;
@@ -48,7 +49,7 @@ class NotConnectedScreen extends StatelessWidget {
 
           // Subtitle
           Text(
-            'Open the Laze desktop app on your computer and press connect.',
+            'Pair your computer once, then press Connect whenever you want to control it.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: appColors.textMuted,
@@ -70,6 +71,16 @@ class NotConnectedScreen extends StatelessWidget {
           ),
 
           // CTA button
+          Align(
+              alignment: Alignment.center,
+              child: FractionallySizedBox(
+                  widthFactor: .75,
+                  child: PairingAction(
+                      label: 'PAIR COMPUTER',
+                      icon: Icons.qr_code_scanner,
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/pairing')))),
+          const SizedBox(height: 16),
           CtaButton(
             text: 'CONNECT',
             onPressed: onConnect,

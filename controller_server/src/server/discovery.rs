@@ -53,7 +53,10 @@ impl DiscoveryHandle {
 ///
 /// Listens for broadcast messages from mobile clients and responds with
 /// the server's IP address so they can connect.
-pub fn start_discovery_listener(tcp_port: u16) -> Result<DiscoveryHandle, std::io::Error> {
+pub fn start_discovery_listener(
+    tcp_port: u16,
+    server_id: String,
+) -> Result<DiscoveryHandle, std::io::Error> {
     let socket = UdpSocket::bind(SocketAddr::new(
         IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
         DISCOVERY_PORT,
@@ -66,7 +69,7 @@ pub fn start_discovery_listener(tcp_port: u16) -> Result<DiscoveryHandle, std::i
     let shutdown_clone = Arc::clone(&shutdown_signal);
 
     let thread_handle = thread::spawn(move || {
-        DiscoveryListener::run(socket, tcp_port, shutdown_clone);
+        DiscoveryListener::run(socket, tcp_port, server_id, shutdown_clone);
     });
 
     DiscoveryListener::static_log_info(&format!(
@@ -83,7 +86,7 @@ pub fn start_discovery_listener(tcp_port: u16) -> Result<DiscoveryHandle, std::i
 struct DiscoveryListener;
 
 impl DiscoveryListener {
-    fn run(socket: UdpSocket, tcp_port: u16, shutdown_signal: Arc<AtomicBool>) {
+    fn run(socket: UdpSocket, tcp_port: u16, server_id: String, shutdown_signal: Arc<AtomicBool>) {
         let mut buf = [0u8; 1024];
 
         loop {
@@ -105,8 +108,10 @@ impl DiscoveryListener {
 
                         // Get our local IP that can reach the client
                         if let Some(local_ip) = Self::get_local_ip_for(&src_addr) {
-                            let response =
-                                format!("{}:{}:{}", DISCOVERY_RESPONSE_PREFIX, local_ip, tcp_port);
+                            let response = format!(
+                                "{}:{}:{}:{}:2",
+                                DISCOVERY_RESPONSE_PREFIX, local_ip, tcp_port, server_id
+                            );
 
                             if let Err(e) = socket.send_to(response.as_bytes(), src_addr) {
                                 Self::static_log_error(&format!(

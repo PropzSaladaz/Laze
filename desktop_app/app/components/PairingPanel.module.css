@@ -1,0 +1,71 @@
+.panel {
+  --pairing-secondary: color-mix(in srgb, var(--color-text) 62%, var(--color-text-muted));
+  margin-top: var(--space-xl);
+  padding: var(--space-xl);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-1);
+  color: var(--color-text);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--color-shadow-low) 14%, transparent);
+}
+.heading, .dialogHeading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-lg); }
+.heading h2, .dialogHeading h2 { font-size: 18px; font-weight: 600; line-height: 1.4; margin: 0; }
+.eyebrow { margin: 0 0 var(--space-xs); color: var(--pairing-secondary); font-size: 10px; font-weight: 600; letter-spacing: 1.2px; }
+.count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 7px; margin-left: var(--space-sm); border-radius: var(--radius-pill); background: var(--color-surface-3); color: var(--pairing-secondary); font-size: 11px; font-weight: 500; vertical-align: middle; }
+.description { color: var(--pairing-secondary); font-size: 13px; line-height: 1.6; margin: var(--space-md) 0 var(--space-lg); }
+.primaryButton, .forgetButton, .closeButton { font: inherit; cursor: pointer; transition: background .15s, box-shadow .15s, transform .15s; }
+.primaryButton { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm); min-height: 44px; padding: var(--space-sm) var(--space-lg); border-radius: var(--radius-pill); border: 1px solid var(--color-primary); background: var(--color-primary); color: var(--color-onPrimary); font-size: 13px; font-weight: 600; flex-shrink: 0; box-shadow: 0 3px 8px color-mix(in srgb, var(--color-shadow-low) 16%, transparent); }
+.primaryButton:hover:not(:disabled) { background: color-mix(in srgb, var(--color-primary) 88%, var(--color-surface-1)); transform: translateY(-1px); }
+.primaryButton:active:not(:disabled) { box-shadow: none; transform: translateY(0); }
+.primaryButton:disabled, .forgetButton:disabled { cursor: default; opacity: .5; }
+.phones { padding: 0; margin: 0; list-style: none; }
+.phones li, .empty { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-lg); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-2); }
+.phones li + li { margin-top: var(--space-sm); }
+.deviceIcon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 40px; height: 40px; border-radius: var(--radius-md); border: 1px solid var(--color-divider); background: var(--color-surface-1); color: var(--color-primary); }
+.deviceDetails { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: var(--space-xs); }
+.deviceName { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.deviceMeta, .empty p { font-size: 12px; line-height: 1.5; color: var(--pairing-secondary); }
+.empty h3 { font-size: 13px; font-weight: 600; margin: 0 0 var(--space-xs); }
+.forgetButton { flex-shrink: 0; min-height: 40px; padding: var(--space-sm) var(--space-md); border: 1px solid transparent; border-radius: var(--radius-pill); background: transparent; color: color-mix(in srgb, var(--color-error) 80%, var(--color-text)); font-size: 12px; }
+.forgetButton:hover:not(:disabled) { background: color-mix(in srgb, var(--color-error) 10%, transparent); border-color: color-mix(in srgb, var(--color-error) 20%, transparent); }
+.hint { color: var(--pairing-secondary); font-size: 11px; line-height: 1.6; margin: var(--space-lg) 0 0; }
+.error { border: 1px solid color-mix(in srgb, var(--color-error) 30%, transparent); padding: var(--space-md); margin-bottom: var(--space-lg); border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-error) 8%, transparent); color: var(--color-text); font-size: 12px; line-height: 1.5; }
+.dialog {
+  --pairing-secondary: color-mix(in srgb, var(--color-text) 62%, var(--color-text-muted));
+  margin: auto;
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  padding: var(--space-xl);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 20px 70px var(--color-shadow-low);
+}
+.dialog::backdrop { background: var(--color-overlay); backdrop-filter: blur(4px); }
+.dialogHeading { text-align: left; }
+.closeButton { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: var(--radius-pill); border: 1px solid var(--color-divider); background: var(--color-surface-2); color: var(--pairing-secondary); }
+.closeButton:hover { background: var(--color-surface-3); color: var(--color-text); }
+.qr { display: flex; justify-content: center; padding: var(--space-md); margin: 0 auto; width: fit-content; max-width: 100%; border: 1px solid var(--color-divider); border-radius: var(--radius-lg); background: #fff; }
+.qr svg { width: min(244px, 100%); height: auto; display: block; }
+.expiry { display: flex; align-items: center; justify-content: center; gap: var(--space-sm); margin: var(--space-lg) 0; color: var(--pairing-secondary); font-size: 12px; }
+.expiry strong { font-variant-numeric: tabular-nums; color: var(--color-text); font-weight: 600; }
+.expiryDot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-primary); }
+.manualCode { border-top: 1px solid var(--color-divider); padding-top: var(--space-sm); }
+.manualCode summary { padding: var(--space-sm) 0; min-height: 40px; cursor: pointer; font-size: 12px; color: var(--pairing-secondary); }
+.manualCode p { font-size: 12px; color: var(--pairing-secondary); line-height: 1.5; margin: var(--space-sm) 0 var(--space-md); }
+.codeField { width: 100%; min-height: 96px; resize: vertical; padding: var(--space-md); border: 1px solid var(--color-divider); border-radius: var(--radius-md); background: var(--color-surface-1); color: var(--color-text); font: 11px/1.6 monospace; overflow-wrap: anywhere; }
+.dialogHint { color: var(--pairing-secondary); font-size: 11px; line-height: 1.5; margin: var(--space-md) 0 0; text-align: center; }
+.primaryButton:focus-visible, .forgetButton:focus-visible, .closeButton:focus-visible, .manualCode summary:focus-visible, .codeField:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
+@media (max-width: 480px) {
+  .panel { padding: var(--space-lg); }
+  .heading { flex-wrap: wrap; }
+  .heading .primaryButton { width: 100%; }
+  .phones li { flex-wrap: wrap; padding: var(--space-md); }
+  .phones .forgetButton { margin-left: 52px; }
+  .dialog { padding: var(--space-lg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .primaryButton, .forgetButton, .closeButton { transition: none; }
+}

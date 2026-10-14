@@ -1,0 +1,33 @@
+{
+  "secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+  "hello": {
+    "version": 2,
+    "server_id": "computer-test",
+    "device_id": "phone-test",
+    "device_name": "Phone café",
+    "invite_id": "invite-test",
+    "client_nonce": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+    "proof": "gEqufkqHcDYwoCsLCDRqeP2OxacJOF1w6JFEbPnywE0"
+  },
+  "challenge": {
+    "version": 2,
+    "session_id": "YGFiY2RlZmdoaWprbG1ubw",
+    "server_nonce": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+    "server_os": "windows",
+    "udp_port": 7876,
+    "proof": "eRrTubf5w4122gfWmtROxP4E-oMZ3sN1gkKcMSZKka0"
+  },
+  "finish": {
+    "proof": "RNSrZFjhpgLXX4DcjHNjTiGffGwYJGO8OA9TbgeRSCo"
+  },
+  "hello_bytes": "AAAAFGxhemUtdjIvY2xpZW50LWhlbGxvAAAADWNvbXB1dGVyLXRlc3QAAAAKcGhvbmUtdGVzdAAAAAtQaG9uZSBjYWbDqQAAAAtpbnZpdGUtdGVzdAAAACAgISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0-Pw",
+  "challenge_bytes": "AAAAGGxhemUtdjIvc2VydmVyLWNoYWxsZW5nZQAAAHkAAAAUbGF6ZS12Mi9jbGllbnQtaGVsbG8AAAANY29tcHV0ZXItdGVzdAAAAApwaG9uZS10ZXN0AAAAC1Bob25lIGNhZsOpAAAAC2ludml0ZS10ZXN0AAAAICAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4_AAAAIEBBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fAAAAEGBhYmNkZWZnaGlqa2xtbm8AAAAHd2luZG93cwAAAAIexA",
+  "keys": {
+    "client-tcp": "ZP8CthKkyHvYwMhON-_fBTT_d1QAlpLJG0UiSLaFnr8",
+    "client-udp": "m3plW6bKqWPvWb2X4I2P7c2EVcHpPAf1T19Y6U4_6FQ",
+    "server-tcp": "LJqZ4dsT2GqwZQeLg9VpsVaF3vKDs8GIqWxwApfsl0g"
+  },
+  "tcp_record": "YGFiY2RlZmdoaWprbG1ubwAAAAAAAAAABAAfZmEr8K6Zatd2eNkd1e3ocRqZn-tZNs72N8M221RynQ",
+  "udp_record": "YGFiY2RlZmdoaWprbG1ubwAAAAAAAAAAAwH_s9TA3bc9ValCQTIDQaKRDKlnc9X0zn7WwjnlaQNYqnI",
+  "ready_record": "YGFiY2RlZmdoaWprbG1ubwAAAAAAAAAA_dZKswgLWp1OdNdXkN65wn7EpQYleN_q6lDDlQsCTEQz"
+}

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:laze/data/dto/server_event.dart';
 import 'package:laze/data/repositories/device/device_settings_repository.dart';
@@ -19,6 +20,7 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   String? errorMessage;
 
   bool _isInit = false;
+  int _operation = 0;
 
   // Tracks whether the user had an active connection — used to auto-reconnect
   // when the app resumes after the screen was locked.
@@ -65,6 +67,10 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
         _volumeService.setDisconnected();
+        if (_wasConnected &&
+            connectionStatus == AppConnectionStatus.connected) {
+          ServerConnector.disconnect();
+        }
       case AppLifecycleState.resumed:
         if (_wasConnected &&
             connectionStatus == AppConnectionStatus.notConnected) {
@@ -115,6 +121,7 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _onServerEvent(ServerEvent event) {
+    _operation++;
     // Server intentionally ended the session — do not auto-reconnect.
     _wasConnected = false;
     _volumeService.setDisconnected();
@@ -135,8 +142,26 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<bool> connect() async {
+    final operation = ++_operation;
     _setConnectionState(AppConnectionStatus.searching);
     final success = await ServerConnector.findServer();
+    if (operation != _operation) return false;
+    if (success) {
+      _wasConnected = true;
+      _volumeService.setConnected();
+      _setConnectionState(AppConnectionStatus.connected);
+    } else {
+      _setConnectionState(AppConnectionStatus.notConnected);
+    }
+    return success;
+  }
+
+  Future<bool> pairWithQr(String code) async {
+    final operation = ++_operation;
+    _wasConnected = false;
+    errorMessage = null;
+    final success = await ServerConnector.pairWithQr(code);
+    if (operation != _operation) return false;
     if (success) {
       _wasConnected = true;
       _volumeService.setConnected();
@@ -148,24 +173,37 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void cancelSearch() {
+    _operation++;
+    _wasConnected = false;
+    ServerConnector.cancelPendingConnection();
     _setConnectionState(AppConnectionStatus.notConnected);
   }
 
+  Future<void> forgetComputer(String serverId) async {
+    if (ServerConnector.activeServerId == null ||
+        ServerConnector.activeServerId == serverId) {
+      _operation++;
+      _wasConnected = false;
+      _volumeService.setDisconnected();
+    }
+    await ServerConnector.forgetComputer(serverId);
+  }
+
   void disconnect() {
+    _operation++;
     // User explicitly disconnected — do not auto-reconnect.
     _wasConnected = false;
     _volumeService.setDisconnected();
-    ServerConnector.sendInput(Input.disconnect());
-    ServerConnector.disconnect();
+    unawaited(ServerConnector.sendAndDisconnect(Input.disconnect()));
     _setConnectionState(AppConnectionStatus.notConnected);
   }
 
   void turnOffPc() {
+    _operation++;
     // User explicitly shut down — do not auto-reconnect.
     _wasConnected = false;
     _volumeService.setDisconnected();
-    ServerConnector.sendInput(Input.shutdown());
-    ServerConnector.disconnect();
+    unawaited(ServerConnector.sendAndDisconnect(Input.shutdown()));
     _setConnectionState(AppConnectionStatus.notConnected);
   }
 

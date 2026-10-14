@@ -9,6 +9,7 @@ import 'package:laze/presentation/core/ui/styled_input.dart';
 import 'package:laze/presentation/core/ui/screen_header.dart';
 import 'package:laze/presentation/core/themes/dimensions.dart';
 import 'package:laze/presentation/core/themes/generated_theme.dart';
+import 'package:laze/presentation/pairing/pairing_widgets.dart';
 
 import 'package:laze/services/theme_notifier.dart';
 import 'package:provider/provider.dart';
@@ -127,6 +128,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       controller: _deviceNameController,
                     ),
                     SizedBox(height: scale.spaceLg),
+                    const _PairedComputersCard(),
+                    SizedBox(height: scale.spaceLg),
                     _ControlsCard(
                       appColors: appColors,
                       scale: scale,
@@ -190,7 +193,8 @@ class _DeviceNameCard extends StatelessWidget {
                   border: Border.all(color: appColors.divider, width: 1),
                 ),
                 alignment: Alignment.center,
-                child: Icon(Icons.smartphone, color: appColors.primary, size: 22),
+                child:
+                    Icon(Icons.smartphone, color: appColors.primary, size: 22),
               ),
               SizedBox(width: scale.spaceMd),
               Expanded(
@@ -329,14 +333,12 @@ class _ThemeCard extends StatelessWidget {
                       curve: Curves.easeOut,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: selected
-                            ? appColors.primary
-                            : appColors.surface_2,
+                        color:
+                            selected ? appColors.primary : appColors.surface_2,
                         borderRadius: BorderRadius.circular(scale.radiusMd),
                         border: Border.all(
-                          color: selected
-                              ? appColors.primary
-                              : appColors.divider,
+                          color:
+                              selected ? appColors.primary : appColors.divider,
                           width: 1,
                         ),
                       ),
@@ -446,7 +448,6 @@ class _ControlsCard extends StatelessWidget {
               onChanged: (v) => onSensitivityChanged(v.round()),
             ),
           ),
-
         ],
       ),
     );
@@ -622,6 +623,59 @@ class _SettingLabel extends StatelessWidget {
         ),
         if (trailing != null) trailing!,
       ],
+    );
+  }
+}
+
+class _PairedComputersCard extends StatelessWidget {
+  const _PairedComputersCard();
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final scale = Theme.of(context).extension<DesignScale>()!;
+    return PairingCard(
+      padding: EdgeInsets.zero,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Dimens.radius.small),
+          onTap: () => Navigator.pushNamed(context, '/paired-computers'),
+          child: Padding(
+            padding: EdgeInsets.all(scale.spaceLg),
+            child: Row(children: [
+              Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                      color: colors.surface_2,
+                      borderRadius: BorderRadius.circular(scale.radiusMd),
+                      border: Border.all(color: colors.divider)),
+                  child: Icon(Icons.devices_rounded,
+                      color: colors.primary, size: 22)),
+              SizedBox(width: scale.spaceMd),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text('Paired computers',
+                        style: TextStyle(
+                            color: colors.text,
+                            fontSize: Dimens.text.title,
+                            fontWeight: FontWeight.w700)),
+                    SizedBox(height: scale.space2xs),
+                    Text('Pair or manage a saved connection.',
+                        style: TextStyle(
+                            color: colors.textMuted,
+                            fontSize: Dimens.text.small,
+                            height: 1.4)),
+                  ])),
+              SizedBox(width: scale.spaceSm),
+              Icon(Icons.chevron_right_rounded,
+                  color: colors.textMuted, size: 24),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 }

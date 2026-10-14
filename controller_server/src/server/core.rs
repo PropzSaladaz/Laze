@@ -1,21 +1,3 @@
-use std::{
-    io::Write,
-    net::{SocketAddr, TcpStream},
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        mpsc::channel,
-        Arc, Mutex,
-    },
-    thread,
-    time::Duration,
-};
-
-use serde::{Deserialize, Serialize};
-
-use tokio::sync::broadcast;
-
-use crate::logger::Loggable;
-
 use super::{
     application::Application,
     client_pool::ClientPool,
@@ -29,19 +11,27 @@ use super::{
     udp_input::{start_udp_input_listener, UdpInputHandle, UDP_INPUT_PORT},
     utils,
 };
+use crate::{
+    logger::Loggable,
+    security::{AuthManager, PairingInvite, TrustedDevice},
+};
+use serde::Serialize;
+use std::{
+    marker::PhantomData,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc::channel,
+        Arc, Mutex,
+    },
+    thread,
+    time::Duration,
+};
+use tokio::sync::broadcast;
 
-const SERVER_REACHED_MAX_CONCURRENT_CLIENTS: i32 = -1;
-
-/// Represents the server configuration.
-///
-/// All new connections will start from the specified port
-/// increasing by 1 for each new connection until reaching
-/// the max_clients.
 pub struct ServerConfig {
     starting_port: usize,
     max_clients: usize,
 }
-
 impl ServerConfig {
     pub fn new(starting_port: usize, max_clients: usize) -> Self {
         Self {
@@ -50,92 +40,79 @@ impl ServerConfig {
         }
     }
 }
-
-/// Data sent to a brand new client specifying:
-/// 1) The dedicated TCP port to connect to.
-/// 2) The server's OS type.
-/// 3) The UDP port for motion input (mouse move / scroll). 0 means UDP unavailable — use TCP.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct NewClientResponse {
-    port: i32,
-    server_os: String,
-    udp_port: u16,
-}
-
 #[derive(Debug, Clone)]
 pub enum ServerEvent {
     ClientAdded(ClientInfo),
     ClientRemoved(ClientInfo),
     ClientUpdated(ClientInfo),
 }
-
 #[derive(Debug, Clone, Serialize)]
 pub struct ClientInfo {
     pub id: usize,
     pub addr: String,
     pub device_name: Option<String>,
 }
-
 pub struct ServerHandler {
     event_pub: broadcast::Sender<ServerEvent>,
     command_sender: CommandSender,
     discovery_handle: Option<DiscoveryHandle>,
     udp_input_handle: Option<UdpInputHandle>,
+    auth: Arc<AuthManager>,
+    clients: ClientPool,
 }
-
 impl ServerHandler {
-    pub fn new(
-        event_pub: broadcast::Sender<ServerEvent>,
-        command_sender: CommandSender,
-        discovery_handle: Option<DiscoveryHandle>,
-        udp_input_handle: Option<UdpInputHandle>,
-    ) -> Self {
-        Self {
-            event_pub,
-            command_sender,
-            discovery_handle,
-            udp_input_handle,
-        }
-    }
-
     pub fn subscribe_events(&self) -> broadcast::Receiver<ServerEvent> {
         self.event_pub.subscribe()
     }
-
-    fn send_request(
-        &self,
-        request: ServerRequest,
-    ) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
-        self.command_sender.send_request(request)
-    }
-
     pub fn start_server(&self) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
-        self.send_request(ServerRequest::InitServer)
+        self.command_sender.send_request(ServerRequest::InitServer)
     }
-
     pub fn stop_server(&self) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
-        self.send_request(ServerRequest::StopServer)
+        self.command_sender.send_request(ServerRequest::StopServer)
     }
-
     pub fn terminate_server(&self) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
-        self.send_request(ServerRequest::TerminateServer)
+        self.command_sender
+            .send_request(ServerRequest::TerminateServer)
     }
-
     pub fn terminate_client(
         &self,
-        client_id: usize,
+        id: usize,
     ) -> Result<(), std::sync::mpsc::SendError<ServerRequest>> {
-        self.send_request(ServerRequest::TerminateClient(client_id))
+        self.command_sender
+            .send_request(ServerRequest::TerminateClient(id))
     }
-
     pub fn receive_response(&mut self) -> Result<ServerResponse, std::sync::mpsc::RecvError> {
         self.command_sender.receive_response()
     }
+    pub fn create_pairing_invite(
+        &self,
+        hosts: Vec<String>,
+        port: u16,
+        name: String,
+    ) -> Result<PairingInvite, String> {
+        self.auth.create_invite(hosts, port, name)
+    }
+    pub fn cancel_pairing_invite(&self, id: &str) {
+        self.auth.cancel_invite(id);
+    }
+    pub fn trusted_devices(&self) -> Vec<TrustedDevice> {
+        self.auth.trusted_devices()
+    }
+    pub fn revoke_phone(&self, id: &str) -> Result<(), String> {
+        let frames = self.auth.revoke(id)?;
+        self.clients.close_sessions(frames);
+        Ok(())
+    }
+    pub fn connected_clients(&self) -> Vec<ClientInfo> {
+        self.clients.connected_clients()
+    }
 }
-
-/// Automatic cleanup when ServerHandler is dropped
 impl Drop for ServerHandler {
     fn drop(&mut self) {
+        self.clients.close_sessions(self.auth.stop());
+        let _ = self
+            .command_sender
+            .send_request(ServerRequest::TerminateServer);
         if let Some(handle) = self.discovery_handle.take() {
             handle.shutdown();
         }
@@ -144,360 +121,128 @@ impl Drop for ServerHandler {
         }
     }
 }
-
-/// The server that will handle all client's requests.
-/// Holds a pool of clients and an application that will handle all client's requests.
 pub struct Server<A: Application> {
-    clients: ClientPool,
-    config: ServerConfig,
-
-    /// The application that will handle all client's requests.
-    app: Arc<Mutex<A>>,
-
-    /// Indicates whether the server is currently listening to client requests.
-    /// If false, the server will only accept requests from the server controller (tauri app).
-    /// Shared with the UDP input listener so it can gate motion dispatch on server state.
-    listening_to_clients: Arc<AtomicBool>,
-
-    /// Indicates whether the server is currently terminating.
-    terminate_signal: bool,
-
-    /// UDP port communicated to clients for motion input. 0 if UDP listener failed to start.
-    udp_input_port: u16,
+    _app: PhantomData<A>,
 }
-
 impl<A: Application + 'static> Server<A> {
-    /// Runs the server.
-    ///
-    /// This call is non-blocking, and allows the server to wait for
-    /// new client connection requests at port 7878.
-    /// It also creates a thread that listens for server commands through channels.
-    ///
-    /// Once a new connection to a new client is established, that client is assigned a new
-    /// isolated socket with its own port. Each client then connects to the server through its own
-    /// assigned socket.
-    ///
-    /// The port 7878 is only used as a common ground to establish new connections with new clients.
-    pub fn start(config: ServerConfig, app: A) -> ServerHandler {
+    /// The single TCP listener requires v2 mutual authentication before allocating a live client.
+    pub fn start(
+        config: ServerConfig,
+        app: A,
+        auth: Arc<AuthManager>,
+    ) -> std::io::Result<ServerHandler> {
+        let _ = env_logger::try_init();
+        let socket = utils::create_socket(config.starting_port)?;
+        socket.set_nonblocking(true)?;
         let (event_pub, _) = broadcast::channel(100);
-
-        // Extract port before config is moved
-        let starting_port = config.starting_port;
-
-        // Initialize logger with default settings
-        env_logger::init();
-        let clients = ClientPool::new(config.max_clients, event_pub.clone());
-
-        // Unidirectional channel from ServerController (client) -> Server
-        let (send_to_server, receive_from_client) = channel::<ServerRequest>();
-        // Unidirectional channel from Server -> ServerController (client)
-        let (send_to_client, receive_from_server) = channel::<ServerResponse>();
-
-        // will listen for commands from server controller and will parse them.
-        let command_listener = CommandListener::new(send_to_client, receive_from_client);
-
-        // Create app Arc before the thread spawn so it can be shared with the UDP listener
-        let app_arc = Arc::new(Mutex::new(app));
-        let app_for_udp = Arc::clone(&app_arc);
-
-        // Shared flag: true while the server is accepting clients, false when stopped.
-        // Passed to the UDP listener so motion input is suppressed after StopServer.
-        let listening_flag = Arc::new(AtomicBool::new(false));
-        let listening_for_udp = Arc::clone(&listening_flag);
-
-        // Start UDP input listener for mouse move and scroll
-        let udp_input_handle = match start_udp_input_listener(app_for_udp, listening_for_udp) {
-            Ok(handle) => {
-                Self::static_log_info(&format!(
-                    "UDP input listener started on port {} (motion input)",
-                    UDP_INPUT_PORT
-                ));
-                Some(handle)
-            }
-            Err(e) => {
-                Self::static_log_warn(&format!(
-                    "Failed to start UDP input listener: {}. Motion input will use TCP.",
-                    e
-                ));
-                None
-            }
-        };
-        let udp_input_port = if udp_input_handle.is_some() { UDP_INPUT_PORT } else { 0 };
-
-        thread::spawn(move || {
-            let server = Arc::new(Mutex::new(Server {
-                clients,
-                config,
-                app: app_arc,
-                listening_to_clients: listening_flag,
-                terminate_signal: false,
-                udp_input_port,
-            }));
-
-            // set command listener callback for parsing server commands before starting command listener thread
-            command_listener.set_command_processor({
-                let server = Arc::clone(&server);
-                move |req| Self::command_parser(server.clone(), req)
-            });
-
-            // non blocking
-            let delay = Duration::from_millis(1000);
-            let handler = command_listener.listen(delay);
-
-            // blocking - only exits when the server is terminated
-            Self::start_client_listener(server);
-            Self::static_log_info("Client listener thread has exited.");
-
-            // await for non-blocking thread
-            handler.schedule_shutdown();
-            Self::static_log_info("Waiting on command listener thread to shutdown.");
-            handler.wait_for_exit();
-            Self::static_log_info("Command listener thread has exited.");
-        });
-
-        // Start UDP discovery listener so clients can find the server
-        let discovery_handle = match start_discovery_listener(starting_port as u16) {
-            Ok(handle) => {
-                Self::static_log_info(&format!(
-                    "UDP discovery listener started on port 7877 (advertising TCP port {})",
-                    starting_port
-                ));
-                Some(handle)
-            }
-            Err(e) => {
-                Self::static_log_warn(&format!(
-                    "Failed to start UDP discovery listener: {}. Clients will need to connect manually.",
-                    e
-                ));
-                None
-            }
-        };
-
-        // return channel endpoints to send messages and also receive messages to / from the server
-        ServerHandler {
-            event_pub,
-            command_sender: CommandSender::new(send_to_server, receive_from_server),
-            discovery_handle,
-            udp_input_handle,
-        }
-    }
-
-    /// Main loop.
-    /// Waits on a new client connection.
-    fn start_client_listener(server: Arc<Mutex<Self>>) {
-        let mut server_is_scheduled_for_termination;
-
-        let starting_port = {
-            let lock = server.lock().unwrap();
-            server_is_scheduled_for_termination = lock.terminate_signal;
-            lock.config.starting_port
-        };
-
-        let socket = match utils::create_socket(starting_port) {
-            Ok(socket) => socket,
-            Err(e) => {
-                Self::static_log_error(&format!(
-                    "Failed to create socket for client listener: {}. Network may be unavailable.",
-                    e
-                ));
-                return;
-            }
-        };
-
-        // configure it such that .accept() returns immediately
-        // without blocking the thread. Allows to sleep for a while if no
-        // new connections are available.
-        socket.set_nonblocking(true).unwrap();
-
-        Self::static_log_info(&format!(
-            "Starting client listener: {}",
-            socket.local_addr().unwrap()
-        ));
-
-        loop {
-            if server_is_scheduled_for_termination {
-                Self::static_log_info(&format!(
-                    "Terminated client listener thread. Server is scheduled for termination."
-                ));
-                break;
-            }
-
-            match socket.accept() {
-                Ok(connection) => {
-                    Self::handle_new_client(&server, connection);
-                }
-                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    // No new connections available, sleep for a while
-                    thread::sleep(Duration::from_millis(1000));
-                }
-                Err(e) => {
-                    Self::static_log_error(&format!("Error accepting connection: {}", e));
-                }
-            }
-
-            // pull the server lock to check if the server is scheduled for termination
-            server_is_scheduled_for_termination = {
-                let lock = server.lock().unwrap();
-                lock.terminate_signal
-            };
-        }
-    }
-
-    // Upon receiving a new connection request, create a new client
-    // waiting on a new port and send the new socket's port dedicated
-    // to that connection to the client
-    fn handle_new_client(server: &Arc<Mutex<Self>>, connection: (TcpStream, SocketAddr)) {
-        let label = "[ClientListener]:";
-        let (mut stream, addr) = connection;
-        Self::static_log_info(&format!("{label} Received client connection"));
-        let mut lock = server.lock().unwrap();
-
-        if lock.listening_to_clients.load(Ordering::SeqCst) {
-            Self::static_log_debug(&format!(
-                "{label} Received connection from address: {:?}",
-                addr
-            ));
-            // try adding new client to pool
-            let app = Arc::clone(&lock.app);
-            let port = match lock.clients.add(addr, app) {
-                Ok(connection_port) => {
-                    Self::static_log_info(&format!(
-                        "{label} Opened socket for new client at {connection_port}"
-                    ));
-                    connection_port as i32
-                }
-                Err(reason) => {
-                    Self::static_log_error(&format!("{reason}"));
-                    SERVER_REACHED_MAX_CONCURRENT_CLIENTS
-                }
-            };
-
-            let data = serde_json::to_vec(&NewClientResponse {
-                port,
-                server_os: std::env::consts::OS.to_owned(),
-                udp_port: lock.udp_input_port,
-            })
-            .unwrap();
-
-            stream.write_all(&data).unwrap();
-
-            Self::static_log_debug(&format!("{label} Sent new client response: {:?}", data));
+        let clients = ClientPool::new(config.max_clients, event_pub.clone(), Arc::clone(&auth));
+        let app = Arc::new(Mutex::new(app));
+        let udp_input_handle = start_udp_input_listener(Arc::clone(&app), Arc::clone(&auth)).ok();
+        let udp_port = if udp_input_handle.is_some() {
+            UDP_INPUT_PORT
         } else {
-            Self::static_log_warn(&format!("{label} Received connection from address: {:?}, but server is not listening to clients!", addr));
-        }
-    }
-
-    /// Parses a command from the server.
-    /// Should be passed as callback function to the `command_listener` struct when constructing the server.
-    fn command_parser(
-        server: Arc<Mutex<Self>>,
-        req: ServerRequest,
-    ) -> Result<ServerResponse, ProcessError> {
-        let mut lock = server.lock().unwrap();
-
-        match req {
-            ServerRequest::InitServer => {
-                // send response to the server
-                lock.listening_to_clients.store(true, Ordering::SeqCst);
-                Ok(ServerResponse::ServerStarted(ServerStarted {}))
+            0
+        };
+        let discovery_handle =
+            start_discovery_listener(config.starting_port as u16, auth.server_id()).ok();
+        let (request_tx, request_rx) = channel();
+        let (response_tx, response_rx) = channel();
+        let terminated = Arc::new(AtomicBool::new(false));
+        let listener = CommandListener::new(response_tx, request_rx);
+        listener.set_command_processor({
+            let clients = clients.clone();
+            let auth = Arc::clone(&auth);
+            let terminated = Arc::clone(&terminated);
+            move |request| match request {
+                ServerRequest::InitServer => {
+                    auth.enable();
+                    Ok(ServerResponse::ServerStarted(ServerStarted {}))
+                }
+                ServerRequest::StopServer => {
+                    clients.close_sessions(auth.stop());
+                    Ok(ServerResponse::ServerStopped(ServerStopped {}))
+                }
+                ServerRequest::TerminateServer => {
+                    clients.close_sessions(auth.stop());
+                    terminated.store(true, Ordering::SeqCst);
+                    Ok(ServerResponse::ServerTerminated(ServerTerminated {}))
+                }
+                ServerRequest::TerminateClient(id) => clients
+                    .terminate_client(id)
+                    .map(|_| ServerResponse::ClientTerminated(ClientTerminated { client_id: id }))
+                    .map_err(|message| ProcessError { message }),
             }
-            ServerRequest::StopServer => {
-                // Stop accepting clients but keep threads alive for restart
-                lock.listening_to_clients.store(false, Ordering::SeqCst);
-                lock.clients.clear();
-                Ok(ServerResponse::ServerStopped(ServerStopped {}))
-            }
-            ServerRequest::TerminateServer => {
-                lock.terminate_signal = true;
-                lock.clients.shutdown();
-                Ok(ServerResponse::ServerTerminated(ServerTerminated {}))
-            }
-            ServerRequest::TerminateClient(client_id) => {
-                match lock.clients.terminate_client(client_id) {
-                    Ok(_) => Ok(ServerResponse::ClientTerminated(ClientTerminated {
-                        client_id,
-                    })),
-                    Err(err_msg) => {
-                        Self::static_log_error(&err_msg);
-                        Err(ProcessError { message: err_msg })
+        });
+        let command_handle = listener.listen(Duration::ZERO);
+        thread::spawn({
+            let clients = clients.clone();
+            let auth = Arc::clone(&auth);
+            move || {
+                while !terminated.load(Ordering::SeqCst) {
+                    match socket.accept() {
+                        Ok((stream, addr)) if auth.enabled() => {
+                            clients.admit(stream, addr, Arc::clone(&app), udp_port)
+                        }
+                        Ok((stream, _)) => {
+                            let _ = stream.shutdown(std::net::Shutdown::Both);
+                        }
+                        Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                            thread::sleep(Duration::from_millis(10))
+                        }
+                        Err(e) => {
+                            Self::static_log_error(&format!("Connection listener error: {e}"));
+                            thread::sleep(Duration::from_millis(100));
+                        }
                     }
                 }
+                command_handle.schedule_shutdown();
+                command_handle.wait_for_exit();
             }
-        }
+        });
+        Ok(ServerHandler {
+            event_pub,
+            command_sender: CommandSender::new(request_tx, response_rx),
+            discovery_handle,
+            udp_input_handle,
+            auth,
+            clients,
+        })
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::mpsc::channel;
-
     #[test]
-    fn test_server_config_creation() {
+    fn server_config() {
         let config = ServerConfig::new(8000, 10);
-        // We can access private fields in the same module
         assert_eq!(config.starting_port, 8000);
         assert_eq!(config.max_clients, 10);
     }
-
     #[test]
-    fn test_client_info_serialization() {
-        let client_info = ClientInfo {
+    fn client_info_serialization() {
+        let info = ClientInfo {
             id: 1,
-            addr: "127.0.0.1:8080".to_string(),
-            device_name: Some("Test Device".to_string()),
+            addr: "127.0.0.1:8080".into(),
+            device_name: Some("Test Device".into()),
         };
-
-        let serialized = serde_json::to_string(&client_info).unwrap();
-        assert!(serialized.contains("127.0.0.1:8080"));
-        assert!(serialized.contains("\"id\":1"));
+        let text = serde_json::to_string(&info).unwrap();
+        assert!(text.contains("127.0.0.1:8080"));
+        assert!(text.contains("\"id\":1"));
     }
-
     #[test]
-    fn test_server_event_client_added() {
-        let client_info = ClientInfo {
+    fn server_event_variants() {
+        let info = ClientInfo {
             id: 1,
-            addr: "192.168.1.100:8080".to_string(),
-            device_name: Some("Test Device".to_string()),
-        };
-        let event = ServerEvent::ClientAdded(client_info.clone());
-
-        match event {
-            ServerEvent::ClientAdded(info) => {
-                assert_eq!(info.id, 1);
-                assert_eq!(info.addr, "192.168.1.100:8080");
-            }
-            _ => panic!("Expected ClientAdded event"),
-        }
-    }
-
-    #[test]
-    fn test_server_event_client_removed() {
-        let client_info = ClientInfo {
-            id: 42,
-            addr: "10.0.0.1:9999".to_string(),
+            addr: "127.0.0.1:8080".into(),
             device_name: None,
         };
-        let event = ServerEvent::ClientRemoved(client_info);
-
-        match event {
-            ServerEvent::ClientRemoved(info) => {
-                assert_eq!(info.id, 42);
-            }
-            _ => panic!("Expected ClientRemoved event"),
-        }
-    }
-
-    #[test]
-    fn test_server_handler_new_and_subscribe() {
-        let (event_pub, _) = broadcast::channel(10);
-        let (req_sender, _req_receiver) = channel();
-        let (_resp_sender, resp_receiver) = channel();
-
-        let command_sender = CommandSender::new(req_sender, resp_receiver);
-        let handler = ServerHandler::new(event_pub, command_sender, None, None);
-
-        // Test subscribe_events returns a valid receiver
-        let _receiver = handler.subscribe_events();
+        assert!(matches!(
+            ServerEvent::ClientAdded(info.clone()),
+            ServerEvent::ClientAdded(_)
+        ));
+        assert!(matches!(
+            ServerEvent::ClientRemoved(info),
+            ServerEvent::ClientRemoved(_)
+        ));
     }
 }

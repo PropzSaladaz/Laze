@@ -16,7 +16,7 @@ import 'package:laze/services/server_connector.dart';
 ///
 /// - Scroll:    `[2, scroll_amount]`
 /// - MouseMove: `[3, move-x, move_y]`
-/// - Command: `[9, string_size, command_bytes]`
+/// - Command: `[7, UTF-8_byte_count, command_bytes]`
 /// ...
 class Input {
   // ------ KeyPress:  [0, key] -------
@@ -114,19 +114,17 @@ class Input {
   // Command: [7, command_size, command]
   static Uint8List runCommand(Map os_commands) {
     String serverOS = ServerConnector.getServerOS();
-    String command = os_commands[serverOS];
+    String command = os_commands[serverOS] as String? ?? '';
+    final commandBytes = utf8.encode(command);
 
-    if (command.length >= Limits.TERMINAL_COMMAND_MAX_SIZE) {
-      // should never happen - the TextField UI itself limits command size to 256 characters
-      throw const FormatException(
-          "Command length exceeds the 256-character limit");
+    if (commandBytes.length >= Limits.TERMINAL_COMMAND_MAX_SIZE) {
+      // UTF-8 can use several bytes per character, so enforce the wire limit here.
+      throw const FormatException("Command exceeds the 255-byte UTF-8 limit");
     } else if (command.isEmpty) {
       throw FormatException("No command specified for $serverOS OS");
     }
-    // 7 is the command code, then we send command size (nbr of characters) followed
-    // by the command for each suported OS
-    List<int> encoded_commands = [7, command.length];
-    List<int> commandBytes = utf8.encode(command);
+    // 7 is the command code, followed by the UTF-8 byte count and command bytes.
+    List<int> encoded_commands = [7, commandBytes.length];
     encoded_commands.addAll(commandBytes);
     return Uint8List.fromList(encoded_commands);
   }

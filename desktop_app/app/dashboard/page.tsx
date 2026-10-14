@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import styles from "./dashboard.module.css";
+import PairingPanel from "../components/PairingPanel";
 
 interface Timer {
     hours: number;
@@ -191,8 +192,9 @@ export default function Dashboard() {
                 className={styles.removeButton}
                 disabled={selectedClient === null}
             >
-                Remove Client
+                Disconnect Client
             </button>
+            <PairingPanel />
         </main>
     );
 }

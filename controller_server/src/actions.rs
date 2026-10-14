@@ -61,6 +61,52 @@ define_actions!(
 /// Action struct is defined by the define_macros! macro
 /// Here we only define its decoding implementation
 impl Action {
+    pub fn try_decode(encoded: &mut &[u8]) -> Result<Self, &'static str> {
+        let bytes = *encoded;
+        let kind = *bytes.first().ok_or("Empty action")?;
+        let needed = match kind {
+            0 | 1 | 2 | 4 | 8 | 9 => 2,
+            3 => 3,
+            5 | 6 => 1,
+            7 => {
+                let size = *bytes.get(1).ok_or("Missing command length")? as usize;
+                if size == 0 {
+                    return Err("Empty command");
+                }
+                2 + size
+            }
+            _ => return Err("Unknown action"),
+        };
+        if bytes.len() < needed {
+            return Err("Incomplete action");
+        }
+        if kind == 0 && bytes[1] > 12 {
+            return Err("Unknown key");
+        }
+        if matches!(kind, 4 | 8 | 9) && bytes[1] > 1 {
+            return Err("Unknown mouse button");
+        }
+        if kind == 7 && std::str::from_utf8(&bytes[2..needed]).is_err() {
+            return Err("Invalid command encoding");
+        }
+        Ok(Self::decode(encoded))
+    }
+    pub fn validate_batch(mut bytes: &[u8]) -> Result<(), &'static str> {
+        if bytes.is_empty() {
+            return Err("Empty input");
+        }
+        while !bytes.is_empty() {
+            Self::try_decode(&mut bytes)?;
+        }
+        Ok(())
+    }
+    pub fn decode_batch(mut bytes: &[u8]) -> Result<Vec<Self>, &'static str> {
+        let mut actions = Vec::new();
+        while !bytes.is_empty() {
+            actions.push(Self::try_decode(&mut bytes)?);
+        }
+        Ok(actions)
+    }
     pub fn decode(encoded: &mut &[u8]) -> Self {
         let action_type = ActionType::from_u8(encoded[0]);
         *encoded = &encoded[1..];
