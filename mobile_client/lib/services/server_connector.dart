@@ -180,15 +180,17 @@ class ServerConnector {
     return false;
   }
 
-  static Future<bool> findServer() async {
+  static Future<bool> findServer(String serverId) async {
     final generation = _begin();
     try {
       await pairings.init();
       if (!_current(generation)) return false;
-      final computers = pairings.computers;
+      final computers = pairings.computers
+          .where((computer) => computer.serverId == serverId)
+          .toList();
       if (computers.isEmpty) {
         onError(
-            'Pair your computer first: open Pair phone on the desktop, then scan its QR code.');
+            'This computer is no longer paired. Choose another computer or pair it again.');
         setConnectionStatus(AppConnectionStatus.notConnected);
         return false;
       }
@@ -256,7 +258,7 @@ class ServerConnector {
       }
       if (_current(generation)) {
         onError(
-            'No paired computer was found. Start Laze on the computer; pair again if its trusted-phone list was reset.');
+            'Selected computer not found. Start Laze on that computer; pair again if its trusted-phone list was reset.');
       }
     } on AuthException catch (error) {
       if (_current(generation)) onError(error.message);

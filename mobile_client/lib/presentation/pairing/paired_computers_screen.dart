@@ -82,7 +82,7 @@ class _PairedComputersScreenState extends State<PairedComputersScreen> {
                           fontWeight: FontWeight.w700)),
                   SizedBox(height: scale.spaceSm),
                   Text(
-                      'Pair once, then reconnect with Connect on the home screen.',
+                      'Pair once, then choose a computer to connect on the home screen.',
                       style: TextStyle(
                           color: colors.textMuted,
                           fontSize: Dimens.text.small,
@@ -218,7 +218,7 @@ class _PairedComputersScreenState extends State<PairedComputersScreen> {
                           Navigator.pushNamed(context, '/pairing')),
                   SizedBox(height: scale.spaceLg),
                   Text(
-                      'Use Connect on the home screen to find a saved computer.',
+                      'Choose a saved computer on the home screen to connect.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: colors.textMuted,

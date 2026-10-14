@@ -78,6 +78,8 @@ pub fn run() {
             commands::start_server,
             commands::stop_server,
             commands::remove_client,
+            commands::get_desktop_name,
+            commands::set_desktop_name,
             commands::create_pairing_invite,
             commands::cancel_pairing_invite,
             commands::list_paired_devices,

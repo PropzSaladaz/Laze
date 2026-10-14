@@ -1,3 +1,5 @@
+use std::fs;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use server::security::{AuthManager, PairingInvite, TrustedDevice};
@@ -14,6 +16,72 @@ pub type SharedCommunicator = Arc<Mutex<Option<ServerHandler>>>;
 pub struct InitResult {
     pub success: bool,
     pub message: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct DesktopNameSettings {
+    name: String,
+}
+
+fn valid_desktop_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.chars().count() <= 64
+        && name.len() <= 128
+        && !name.chars().any(char::is_control)
+}
+
+fn default_desktop_name() -> String {
+    ["COMPUTERNAME", "HOSTNAME"]
+        .into_iter()
+        .filter_map(|key| std::env::var(key).ok())
+        .map(|name| name.trim().to_owned())
+        .find(|name| valid_desktop_name(name))
+        .unwrap_or_else(|| "Laze desktop".into())
+}
+
+fn desktop_name_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app_handle
+        .path()
+        .app_data_dir()
+        .map(|path| path.join("desktop-name.json"))
+        .map_err(|_| "Unable to locate desktop settings".into())
+}
+
+fn load_desktop_name(app_handle: &tauri::AppHandle) -> Result<String, String> {
+    let path = desktop_name_path(app_handle)?;
+    let data = match fs::read_to_string(path) {
+        Ok(data) => data,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(default_desktop_name());
+        }
+        Err(_) => return Err("Unable to read the computer name".into()),
+    };
+    let settings: DesktopNameSettings =
+        serde_json::from_str(&data).map_err(|_| "Saved computer name is invalid")?;
+    if !valid_desktop_name(&settings.name) {
+        return Err("Saved computer name is invalid".into());
+    }
+    Ok(settings.name)
+}
+
+#[tauri::command]
+pub fn get_desktop_name(app_handle: tauri::AppHandle) -> Result<String, String> {
+    load_desktop_name(&app_handle)
+}
+
+#[tauri::command]
+pub fn set_desktop_name(name: String, app_handle: tauri::AppHandle) -> Result<String, String> {
+    let name = name.trim().to_owned();
+    if !valid_desktop_name(&name) {
+        return Err("Use 1–64 characters (up to 128 bytes), without control characters".into());
+    }
+    let path = desktop_name_path(&app_handle)?;
+    fs::create_dir_all(path.parent().ok_or("Unable to locate desktop settings")?)
+        .map_err(|_| "Unable to save the computer name")?;
+    let data = serde_json::to_vec(&DesktopNameSettings { name: name.clone() })
+        .map_err(|_| "Unable to save the computer name")?;
+    fs::write(path, data).map_err(|_| "Unable to save the computer name")?;
+    Ok(name)
 }
 
 /// Check if server is already initialized (quick check, no side effects)
@@ -234,8 +302,10 @@ pub fn remove_client(state: tauri::State<'_, SharedCommunicator>, client_id: usi
 
 #[tauri::command]
 pub fn create_pairing_invite(
+    app_handle: tauri::AppHandle,
     state: tauri::State<'_, SharedCommunicator>,
 ) -> Result<PairingInvite, String> {
+    let name = load_desktop_name(&app_handle)?;
     let guard = state.lock().map_err(|_| "Server state unavailable")?;
     let handler = guard.as_ref().ok_or("Start the server before pairing")?;
     let hosts: Vec<_> = local_ip_address::list_afinet_netifas()
@@ -252,9 +322,6 @@ pub fn create_pairing_invite(
     if hosts.is_empty() {
         return Err("Connect the computer to your local network".into());
     }
-    let name = std::env::var("COMPUTERNAME")
-        .or_else(|_| std::env::var("HOSTNAME"))
-        .unwrap_or_else(|_| "Laze desktop".into());
     handler.create_pairing_invite(hosts, TCP_PORT, name)
 }
 

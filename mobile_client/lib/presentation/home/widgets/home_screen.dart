@@ -71,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
       value: _viewModel,
       child: wrapper.connectionStatus == AppConnectionStatus.notConnected
           ? NotConnectedScreen(
-              onConnect: wrapper.connect,
+              onConnect: wrapper.connectToComputer,
               onOpenSettings: () =>
                   Navigator.pushNamed(context, '/settings').then((_) => _loadSettings()),
             )

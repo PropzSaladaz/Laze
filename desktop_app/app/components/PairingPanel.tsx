@@ -1,7 +1,7 @@
 "use client";
 import { invoke } from "@tauri-apps/api/core";
 import { QRCodeSVG } from "qrcode.react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import styles from "./PairingPanel.module.css";
 interface Invite { id: string; code: string; expires_at: number; }
 interface Phone { device_id: string; device_name: string; paired_at: number; }
@@ -16,6 +16,13 @@ function PairingIcon({ name }: { name: "phone" | "qr" | "close" }) {
 }
 
 export default function PairingPanel() {
+  const [nameValue,setNameValue]=useState("");
+  const [savedName,setSavedName]=useState("");
+  const [nameLoading,setNameLoading]=useState(true);
+  const [nameAvailable,setNameAvailable]=useState(false);
+  const [nameSaving,setNameSaving]=useState(false);
+  const [nameSaved,setNameSaved]=useState(false);
+  const [nameError,setNameError]=useState("");
   const [phones,setPhones]=useState<Phone[]>([]);
   const [invite,setInvite]=useState<Invite|null>(null);
   const [error,setError]=useState("");
@@ -25,6 +32,30 @@ export default function PairingPanel() {
   const currentInvite=useRef<Invite|null>(null);
   const dialog=useRef<HTMLDialogElement>(null);
   const knownPhones=useRef<Set<string>>(new Set());
+  useEffect(() => {
+    let active=true;
+    invoke<string>("get_desktop_name")
+      .then(name => { if(active) { setNameValue(name); setSavedName(name); setNameAvailable(true); } })
+      .catch(() => { if(active) setNameError("Unable to load the computer name. Enter a new name and save it."); })
+      .finally(() => { if(active) setNameLoading(false); });
+    return () => { active=false; };
+  },[]);
+  async function saveName(event:FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name=nameValue.trim();
+    if(nameSaving || name===savedName) return;
+    if(!name || Array.from(name).length>64 || new TextEncoder().encode(name).length>128) {
+      setNameError("Use 1–64 characters, up to 128 bytes.");
+      return;
+    }
+    setNameSaving(true);setNameError("");setNameSaved(false);
+    try {
+      const saved=await invoke<string>("set_desktop_name",{name});
+      if(!alive.current) return;
+      setNameValue(saved);setSavedName(saved);setNameAvailable(true);setNameSaved(true);
+    } catch { if(alive.current) setNameError("Unable to save the computer name. Try again."); }
+    finally { if(alive.current) setNameSaving(false); }
+  }
   const cancel=useCallback(() => {
     const value=currentInvite.current;
     currentInvite.current=null;
@@ -75,14 +106,34 @@ export default function PairingPanel() {
   }
   const secondsRemaining = invite ? Math.max(0, Math.ceil(invite.expires_at - now / 1000)) : 0;
   const expiry = `${Math.floor(secondsRemaining / 60)}:${String(secondsRemaining % 60).padStart(2, "0")}`;
+  const nameChanged=nameValue.trim()!==savedName;
   return (
     <section className={styles.panel} aria-labelledby="paired-phones-title">
+      <div className={styles.nameSection}>
+        <p className={styles.eyebrow}>THIS COMPUTER</p>
+        <label className={styles.nameLabel} htmlFor="desktop-name">Computer name</label>
+        <form className={styles.nameForm} onSubmit={event => void saveName(event)}>
+          <input id="desktop-name" className={styles.nameInput} value={nameValue}
+            maxLength={64} placeholder="Enter a computer name" disabled={nameLoading||nameSaving}
+            onChange={event => {setNameValue(event.target.value);setNameSaved(false);setNameError("");}} />
+          <button className={styles.saveButton} type="submit"
+            disabled={nameLoading||nameSaving||!nameChanged}>
+            {nameSaving ? "Saving…" : "Save name"}
+          </button>
+        </form>
+        <p className={styles.nameHint}>
+          {nameChanged ? "Save the name before creating a pairing code. " : ""}
+          Newly paired phones will see this name. Phones already paired keep their saved name.
+        </p>
+        {nameSaved && <p className={styles.nameSuccess} role="status">Computer name saved.</p>}
+        {nameError && <p className={styles.error} role="alert">{nameError}</p>}
+      </div>
       <div className={styles.heading}>
         <div>
           <p className={styles.eyebrow}>SAVED CONNECTIONS</p>
           <h2 id="paired-phones-title">Paired phones <span className={styles.count}>{phones.length}</span></h2>
         </div>
-        <button className={styles.primaryButton} onClick={() => void pair()} disabled={busy}>
+        <button className={styles.primaryButton} onClick={() => void pair()} disabled={busy||nameLoading||nameSaving||!nameAvailable||nameChanged}>
           <PairingIcon name="qr"/><span>Pair phone</span>
         </button>
       </div>

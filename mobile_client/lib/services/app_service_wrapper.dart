@@ -25,6 +25,7 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   // Tracks whether the user had an active connection — used to auto-reconnect
   // when the app resumes after the screen was locked.
   bool _wasConnected = false;
+  String? _targetServerId;
 
   // Latest app lifecycle state. Used to decide whether a dropped connection
   // can be reconnected immediately (foreground) or should wait for resume
@@ -142,11 +143,17 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<bool> connect() async {
+    final serverId = _targetServerId;
+    if (serverId == null) {
+      _onError('Choose a paired computer on Home to connect.');
+      return false;
+    }
     final operation = ++_operation;
     _setConnectionState(AppConnectionStatus.searching);
-    final success = await ServerConnector.findServer();
+    final success = await ServerConnector.findServer(serverId);
     if (operation != _operation) return false;
     if (success) {
+      _targetServerId = ServerConnector.activeServerId;
       _wasConnected = true;
       _volumeService.setConnected();
       _setConnectionState(AppConnectionStatus.connected);
@@ -156,6 +163,14 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
     return success;
   }
 
+  Future<bool> connectToComputer(String serverId) {
+    // A manual selection starts a new connection intent. Only reconnect it
+    // automatically after it has connected successfully.
+    _wasConnected = false;
+    _targetServerId = serverId;
+    return connect();
+  }
+
   Future<bool> pairWithQr(String code) async {
     final operation = ++_operation;
     _wasConnected = false;
@@ -163,6 +178,7 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
     final success = await ServerConnector.pairWithQr(code);
     if (operation != _operation) return false;
     if (success) {
+      _targetServerId = ServerConnector.activeServerId;
       _wasConnected = true;
       _volumeService.setConnected();
       _setConnectionState(AppConnectionStatus.connected);
@@ -180,6 +196,7 @@ class AppServiceWrapper extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> forgetComputer(String serverId) async {
+    if (_targetServerId == serverId) _targetServerId = null;
     if (ServerConnector.activeServerId == null ||
         ServerConnector.activeServerId == serverId) {
       _operation++;

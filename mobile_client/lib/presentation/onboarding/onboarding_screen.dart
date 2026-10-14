@@ -12,12 +12,11 @@ const String _desktopDownloadUrl =
 const String _websiteShortLabel = 'lazecontroller.vercel.app';
 
 /// First-run onboarding — explains the desktop dependency, network
-/// requirement, and core controls. Can be re-opened from settings via
-/// [OnboardingScreen.replay] which suppresses the persistence write
-/// and pops back to the previous screen on completion.
+/// requirement, and core controls. The final page opens QR pairing.
+/// Replaying from settings does not change the first-launch flag.
 class OnboardingScreen extends StatefulWidget {
-  /// When true, finishing/skipping pops back to the caller and does NOT
-  /// flip the persisted first-launch flag.
+  /// When true, closing returns to the caller without changing the
+  /// persisted first-launch flag.
   final bool replay;
 
   const OnboardingScreen({super.key, this.replay = false});
@@ -29,6 +28,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _finishing = false;
 
   static const List<_OnboardingPageData> _pages = [
     _OnboardingPageData(
@@ -57,11 +57,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           'Use the keyboard, volume controls, custom shortcuts, gestures, and sensitivity settings from your phone.',
     ),
     _OnboardingPageData(
-      icon: Icons.rocket_launch_outlined,
-      title: 'Ready to connect',
-      description:
-          'Open Laze Desktop on your computer, then search for it from the mobile app.',
-      ctaLabel: 'FIND MY COMPUTER',
+      icon: Icons.qr_code_scanner,
+      title: 'Pair your computer',
+      showPairingSteps: true,
+      ctaLabel: 'PAIR COMPUTER',
     ),
   ];
 
@@ -73,23 +72,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   bool get _isLastPage => _currentPage == _pages.length - 1;
 
-  Future<void> _completeOnboarding() async {
-    if (!widget.replay) {
-      final repo =
-          Provider.of<DeviceSettingsRepository>(context, listen: false);
-      await repo.setOnboardingCompleted(true);
-    }
-    if (!mounted) return;
-    if (widget.replay) {
-      Navigator.of(context).pop();
-    } else {
-      Navigator.of(context).pushReplacementNamed('/');
+  Future<void> _completeOnboarding({bool openPairing = false}) async {
+    if (_finishing) return;
+    _finishing = true;
+    try {
+      if (!widget.replay) {
+        final repo =
+            Provider.of<DeviceSettingsRepository>(context, listen: false);
+        await repo.setOnboardingCompleted(true);
+      }
+      if (!mounted) return;
+      final navigator = Navigator.of(context);
+      if (widget.replay) {
+        if (openPairing) {
+          navigator.pushReplacementNamed('/pairing');
+        } else {
+          navigator.pop();
+        }
+      } else {
+        if (openPairing) await navigator.pushNamed('/pairing');
+        if (!mounted) return;
+        navigator.pushReplacementNamed('/');
+      }
+    } finally {
+      _finishing = false;
     }
   }
 
   void _nextPage() {
     if (_isLastPage) {
-      _completeOnboarding();
+      _completeOnboarding(openPairing: true);
       return;
     }
     _pageController.nextPage(
@@ -126,7 +138,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             currentPage: _currentPage,
             totalPages: _pages.length,
             isReplay: widget.replay,
-            onSkip: _completeOnboarding,
+            onSkip: () => _completeOnboarding(),
             appColors: appColors,
             scale: scale,
           ),
@@ -157,7 +169,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 : 'NEXT',
             onPressed: _nextPage,
           ),
-          SizedBox(height: Dimens.spacing.lg),
+          if (_isLastPage && !widget.replay)
+            TextButton(
+              onPressed: () => _completeOnboarding(),
+              child: Text(
+                'Pair later',
+                style: TextStyle(
+                  color: appColors.textMuted,
+                  fontSize: Dimens.text.small,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else
+            SizedBox(height: Dimens.spacing.lg),
         ],
       ),
     );
@@ -167,15 +192,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 class _OnboardingPageData {
   final IconData icon;
   final String title;
-  final String description;
+  final String? description;
   final bool showDownloadLink;
+  final bool showPairingSteps;
   final String? ctaLabel;
 
   const _OnboardingPageData({
     required this.icon,
     required this.title,
-    required this.description,
+    this.description,
     this.showDownloadLink = false,
+    this.showPairingSteps = false,
     this.ctaLabel,
   });
 }
@@ -281,19 +308,55 @@ class _OnboardingPage extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: Dimens.spacing.lg),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: Dimens.spacing.xl),
-            child: Text(
-              data.description,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: appColors.textMuted,
-                fontSize: Dimens.text.body,
-                height: 1.45,
+          if (data.description != null) ...[
+            SizedBox(height: Dimens.spacing.lg),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: Dimens.spacing.xl),
+              child: Text(
+                data.description!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: appColors.textMuted,
+                  fontSize: Dimens.text.body,
+                  height: 1.45,
+                ),
               ),
             ),
-          ),
+          ],
+          if (data.showPairingSteps) ...[
+            SizedBox(height: scale.spaceXl),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: Dimens.spacing.lg),
+              child: Column(children: [
+                _PairingStep(
+                  number: '1',
+                  text: 'On Laze Desktop, select Pair phone.',
+                  appColors: appColors,
+                  scale: scale,
+                ),
+                SizedBox(height: scale.spaceLg),
+                _PairingStep(
+                  number: '2',
+                  text: 'Tap Pair computer below to scan the QR code or enter a pairing code.',
+                  appColors: appColors,
+                  scale: scale,
+                ),
+              ]),
+            ),
+            SizedBox(height: scale.spaceLg),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: Dimens.spacing.xl),
+              child: Text(
+                'Pairing connects immediately. Next time, just tap Connect.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: appColors.textMuted,
+                  fontSize: Dimens.text.label,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
           if (data.showDownloadLink) ...[
             SizedBox(height: scale.spaceXl),
             TextButton.icon(
@@ -324,6 +387,49 @@ class _OnboardingPage extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _PairingStep extends StatelessWidget {
+  final String number;
+  final String text;
+  final AppColors appColors;
+  final DesignScale scale;
+
+  const _PairingStep({
+    required this.number,
+    required this.text,
+    required this.appColors,
+    required this.scale,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: appColors.surface_2,
+          borderRadius: BorderRadius.circular(Dimens.radius.pill),
+          border: Border.all(color: appColors.divider),
+        ),
+        child: Text(number,
+            style: TextStyle(
+                color: appColors.primary,
+                fontSize: Dimens.text.small,
+                fontWeight: FontWeight.w800)),
+      ),
+      SizedBox(width: scale.spaceMd),
+      Expanded(
+        child: Text(text,
+            style: TextStyle(
+                color: appColors.text,
+                fontSize: Dimens.text.body,
+                height: 1.45)),
+      ),
+    ]);
   }
 }
 
