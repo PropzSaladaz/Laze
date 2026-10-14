@@ -3,6 +3,7 @@
 Thumbs.db
 *.log
 *.tmp
+__pycache__/
 .vscode/
 .idea/
 *.swp
@@ -23,7 +24,7 @@ mobile_client/.flutter-plugins
 mobile_client/.flutter-plugins-dependencies
 mobile_client/.metadata
 mobile_client/.pub-cache/
-mobile_client/pubspec.lock
+# Keep mobile_client/pubspec.lock for reproducible application builds.
 
 # Android specifics
 mobile_client/android/local.properties

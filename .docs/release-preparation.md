@@ -2,11 +2,11 @@
 
 Reviewed: 2026-10-13. Authentication implementation update: 2026-10-14.
 
-Findings 1, 3, 4 and 6 are addressed by protocol 2 and its focused checks. Finding 5 is partly addressed; findings 2 and 7 remain open. This is not release approval: signed-artifact and physical Android checks remain pending. See [authentication design and usage](../docs/authentication.md).
+Findings 1, 3, 4 and 6 are addressed by protocol 2 and its focused checks. Finding 2 now has required release signing and artifact certificate verification. Finding 7 has lockfile enforcement and a shared exact Flutter SDK pin. Finding 5 is partly addressed. Production certificate configuration, acceptance of the tagged release workflow, signed-release updates, and physical Android checks remain pending. See [authentication design and usage](../docs/authentication.md).
 
 Source snapshot: repository HEAD `cfc0897fd9df99277cb8165e1e7d7230b2d8b9f4`, including the local working-tree changes present during the review. File and line references refer to that snapshot and may move as fixes are implemented.
 
-**P1** findings should be resolved before public release. **P2** findings are important correctness or release-process improvements. Findings **1, 2, and 4** were the release blockers identified in this review; finding **2** remains unresolved, and the new pairing flow still needs physical-device acceptance.
+**P1** findings should be resolved before public release. **P2** findings are important correctness or release-process improvements. Findings **1, 2, and 4** were the release blockers identified in this review; their code fixes are implemented, while release signing configuration and physical-device acceptance remain pending.
 
 ## 1. Client authentication is missing — P1
 
@@ -41,10 +41,19 @@ Evidence: `.github/workflows/release-mobile.yml:55`, `mobile_client/android/app/
 
 Release work:
 
-- [ ] Fail release builds when required keystore credentials are missing or invalid.
-- [ ] Remove automatic debug signing from the production release path.
-- [ ] Verify the final artifact's signing certificate against the expected release/upload certificate before publishing.
+- [x] Fail release builds when required keystore credentials are missing or invalid.
+- [x] Remove automatic debug signing from the production release path.
+- [x] Verify the final artifact's signing certificate against the expected release/upload certificate before publishing.
 - [ ] Confirm that an installed release APK can update to the next release signed with the intended certificate.
+
+The Gradle release guard checks required settings, keystore readability, and
+the private key/password/alias before release work. CI requires the existing
+signing secrets and an independently pinned `ANDROID_SIGNING_CERT_SHA256`
+environment variable, then verifies both APK and AAB signatures before the
+publish step. Focused checks use disposable keys and cover valid signatures,
+wrong certificates, unsigned artifacts, and tampering. Production credentials
+and update acceptance have not been exercised by these checks. Setup is
+documented in [the mobile README](../mobile_client/README.md#android-release-signing).
 
 ## 3. Clean TCP closure is not handled — P2
 
@@ -117,18 +126,18 @@ Release work:
 
 ## 7. Release dependency locking and SDK alignment need attention — P2
 
-**Verdict:** Dependency reproducibility risk confirmed. SDK incompatibility has not been established.
+**Status:** Dependency locking and SDK alignment are implemented. Acceptance of the tagged signed release remains pending.
 
-Git confirms that `mobile_client/pubspec.lock` is untracked and the ignore rules explicitly exclude it. Existing local builds can reuse their local lockfile; fresh CI checkouts resolve dependencies without that committed lockfile. This permits release dependency versions to change without an explicit reviewed lockfile change.
+The original review found that `mobile_client/pubspec.lock` was excluded from version control. Its ignore rule is now removed, and the existing lockfile is included in the repository changes. Dependency versions and hosted package hashes are preserved. All mobile CI and release jobs resolve with `flutter pub get --enforce-lockfile` and use `--no-pub` for subsequent Flutter commands.
 
-The working PC uses Flutter 3.47.4, release CI specifies Flutter 3.29.3, and the main Flutter CI workflow specifies 3.29.x. This is a release-validation gap, not proof that the older workflow fails. The Android configuration and dependency fixes made during local setup are still uncommitted, so the locally tested source also differs from the current GitHub checkout.
+Flutter 3.47.4 stable is pinned once in `mobile_client/pubspec.yaml` as `environment.flutter`. All four CI/release jobs use `flutter-version-file` to read that value. The Dart lower bound now matches the existing lockfile's 3.12.0 requirement; the pinned Flutter SDK supplies Dart 3.13.3. A shared Python guard verifies the exact stable Flutter version in CI and the local release script, since Pub only enforces the Flutter constraint's lower bound.
 
-Evidence: `.gitignore:26`, `.github/workflows/release-mobile.yml:43`, `.github/workflows/release-mobile.yml:49`, `.github/workflows/flutter-ci.yml:25`, local SDK metadata, and Git working-tree status. [Dart recommends committing the lockfile for applications](https://dart.dev/tools/pub/private-files#pubspeclock).
+Evidence: `mobile_client/pubspec.yaml`, `mobile_client/pubspec.lock`, both mobile workflows, `scripts/check_flutter_version.py`, and `scripts/build-release.sh`. See [Dart's lockfile enforcement](https://dart.dev/tools/pub/cmd/pub-get#--enforce-lockfile) and [flutter-action's version-file support](https://github.com/subosito/flutter-action#use-version-from-pubspecyaml-or-fvm-config).
 
 Release work:
 
-- [ ] Track `mobile_client/pubspec.lock` and enforce its resolution in release CI.
-- [ ] Choose and pin one supported Flutter SDK baseline for development and release validation.
+- [x] Include `mobile_client/pubspec.lock` and enforce its resolution in release CI.
+- [x] Choose and pin one supported Flutter SDK baseline for development and release validation.
 - [ ] Review and commit the intended local Android/dependency changes before tagging a release.
 - [ ] Validate the exact release commit through the release workflow and test its signed artifact on Android.
 
@@ -153,9 +162,26 @@ The earlier validation record describes the original review. Protocol 2 changes 
 
 Authentication checks use isolated recording applications, public fixed test keys, ephemeral sockets and a disposable Windows Credential Manager entry. They do not move the desktop pointer or execute received controller commands. The nearest existing Rust test still invokes its pre-existing `echo test` command.
 
-Physical Android QR scanning, lock/unlock behavior, real-device latency, signed release builds and macOS/Linux/iOS integration remain unverified. Findings 2 and 7 require separate release work.
+Physical Android QR scanning, lock/unlock behavior, real-device latency, signed release builds and macOS/Linux/iOS integration remain unverified. Production signing configuration, acceptance of the tagged release workflow, and update acceptance remain pending after findings 2 and 7's code fixes.
 
 ### Physical QR pairing follow-up — 2026-10-14
 
 The first phone attempt exposed inherited nonblocking sockets on Windows. Client workers now restore blocking mode before reading the handshake. Both apps rebuilt successfully, the updated Android app was installed with data preserved, and the user confirmed that a fresh QR scan connects. One trusted phone was persisted. Input/latency, lock/unlock reconnect, revocation and signed-release acceptance remain pending.
+
+### Drag cleanup
+
+Mouse-down ownership is tracked per authenticated session. EOF, explicit
+disconnect, desktop removal, revocation, and server stop release that session's
+held buttons; a button held by another session stays pressed. Teardown paths
+are serialized so socket cleanup cannot discard an administrative disconnect
+event. On mobile, pointer cancellation, backgrounding, fullscreen closure,
+and touchpad disposal cancel pending long presses and release active drags.
+Cleanup sends to the original connection so it cannot release a drag on a
+later connection.
+
+Focused checks passed: three button-ownership tests, five authenticated
+client-pool tests (including the READY/disconnect race), and nine Flutter
+gesture tests. These use recording applications and injected input senders,
+without generating desktop mouse input. Physical-phone drag interruption and
+Wi-Fi-loss acceptance remain pending.
 

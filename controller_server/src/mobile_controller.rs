@@ -6,12 +6,15 @@ use crate::{
     actions::{Action, TerminalCommand},
     keybinds::KeyBindings,
     logger::Loggable,
+    mouse_buttons::HeldMouseButtons,
+    security::SessionId,
     server::application::{Application, ConnectionStatus},
 };
 
 pub struct MobileController {
     enigo: Enigo,
     key_bindings: KeyBindings,
+    held_buttons: HeldMouseButtons,
 }
 
 // now device can be shared across threads
@@ -23,6 +26,7 @@ impl MobileController {
         Ok(MobileController {
             enigo: Enigo::new(&Settings::default())?,
             key_bindings: KeyBindings::new(),
+            held_buttons: HeldMouseButtons::default(),
         })
     }
 
@@ -53,22 +57,39 @@ impl MobileController {
     }
 
     fn mouse_button(&mut self, button: enigo::Button) {
-        self.enigo.button(button, Direction::Click).unwrap();
+        // A click from another phone must not release an ongoing drag.
+        if !self.held_buttons.is_held(button) {
+            self.enigo.button(button, Direction::Click).unwrap();
+        }
     }
 
-    fn mouse_button_down(&mut self, button: enigo::Button) {
-        self.enigo.button(button, Direction::Press).unwrap();
+    fn mouse_button_down(&mut self, session: Option<SessionId>, button: enigo::Button) -> bool {
+        if self.held_buttons.press(session, button) {
+            if let Err(error) = self.enigo.button(button, Direction::Press) {
+                self.log_warn(&format!("Unable to press mouse button: {error}"));
+                return false;
+            }
+        }
+        true
     }
 
-    fn mouse_button_up(&mut self, button: enigo::Button) {
-        self.enigo.button(button, Direction::Release).unwrap();
+    fn mouse_button_up(&mut self, session: Option<SessionId>, button: enigo::Button) -> bool {
+        if self.held_buttons.release(session, button) {
+            if let Err(error) = self.enigo.button(button, Direction::Release) {
+                // Keep ownership so disconnect cleanup can attempt the release again.
+                self.held_buttons.press(session, button);
+                self.log_warn(&format!("Unable to release mouse button: {error}"));
+                return false;
+            }
+        }
+        true
     }
 
     fn type_string(&mut self, text: &str) {
         self.enigo.text(text).unwrap();
     }
 
-    fn handle_input(&mut self, action: Action) -> ConnectionStatus {
+    fn handle_input(&mut self, session: Option<SessionId>, action: Action) -> ConnectionStatus {
         match action {
             Action::KeyPress(key) => {
                 if let Some(key_combo) = self.key_bindings.translate_to_os_key(&key) {
@@ -88,13 +109,17 @@ impl MobileController {
 
             Action::MouseDown(button) => {
                 if let Some(button) = self.key_bindings.translate_to_os_button(&button) {
-                    self.mouse_button_down(button);
+                    if !self.mouse_button_down(session, button) {
+                        return ConnectionStatus::Disconnected;
+                    }
                 }
             }
 
             Action::MouseUp(button) => {
                 if let Some(button) = self.key_bindings.translate_to_os_button(&button) {
-                    self.mouse_button_up(button);
+                    if !self.mouse_button_up(session, button) {
+                        return ConnectionStatus::Disconnected;
+                    }
                 }
             }
 
@@ -115,22 +140,39 @@ impl MobileController {
 
         ConnectionStatus::Connected
     }
-}
-
-impl Application for MobileController {
-    fn dispatch_to_device(&mut self, input: &[u8]) -> ConnectionStatus {
+    fn dispatch_input(&mut self, session: Option<SessionId>, input: &[u8]) -> ConnectionStatus {
         let actions = match Action::decode_batch(input) {
             Ok(actions) => actions,
             Err(_) => return ConnectionStatus::Disconnected,
         };
         for action in actions {
             self.log_debug(&format!("Action received: {:?}", action));
-            match self.handle_input(action) {
+            match self.handle_input(session, action) {
                 ConnectionStatus::Disconnected => return ConnectionStatus::Disconnected,
                 _ => (),
             };
         }
         ConnectionStatus::Connected
+    }
+}
+
+impl Application for MobileController {
+    fn dispatch_to_device(&mut self, input: &[u8]) -> ConnectionStatus {
+        self.dispatch_input(None, input)
+    }
+
+    fn dispatch_session_input(&mut self, session: &SessionId, input: &[u8]) -> ConnectionStatus {
+        self.dispatch_input(Some(*session), input)
+    }
+
+    fn release_session_input(&mut self, session: &SessionId) {
+        for button in self.held_buttons.release_session(Some(*session)) {
+            if let Err(error) = self.enigo.button(button, Direction::Release) {
+                self.log_warn(&format!(
+                    "Unable to release mouse button after disconnect: {error}"
+                ));
+            }
+        }
     }
 }
 

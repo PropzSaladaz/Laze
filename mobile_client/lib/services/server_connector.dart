@@ -99,6 +99,18 @@ class ServerConnector {
     }
   }
 
+  /// Keep a gesture's cleanup tied to the connection that received its press.
+  static void Function(Uint8List) captureInputSender() {
+    final connection = _active;
+    return (payload) {
+      if (connection != null &&
+          identical(_active, connection) &&
+          _current(connection.generation)) {
+        sendInput(payload);
+      }
+    };
+  }
+
   static void sendMotionInput(Uint8List payload) {
     final connection = _active;
     if (connection == null) return;

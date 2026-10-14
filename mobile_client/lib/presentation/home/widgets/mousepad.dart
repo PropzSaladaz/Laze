@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,11 +14,13 @@ import '../../../services/server_connector.dart';
 class MousePad extends StatefulWidget {
   final bool fullscreen;
   final int sensitivity;
+  final ValueChanged<Uint8List>? sendInput;
 
   const MousePad({
     super.key,
     required this.fullscreen,
     required this.sensitivity,
+    this.sendInput,
   });
 
   @override
@@ -26,8 +29,9 @@ class MousePad extends StatefulWidget {
 
 class _FullscreenMousePadPage extends StatefulWidget {
   final int sensitivity;
+  final ValueChanged<Uint8List>? sendInput;
 
-  const _FullscreenMousePadPage({required this.sensitivity});
+  const _FullscreenMousePadPage({required this.sensitivity, this.sendInput});
 
   @override
   State<_FullscreenMousePadPage> createState() =>
@@ -65,6 +69,7 @@ class _FullscreenMousePadPageState extends State<_FullscreenMousePadPage> {
           child: MousePad(
             fullscreen: true,
             sensitivity: widget.sensitivity,
+            sendInput: widget.sendInput,
           ),
         ),
       ),
@@ -72,7 +77,7 @@ class _FullscreenMousePadPageState extends State<_FullscreenMousePadPage> {
   }
 }
 
-class _MousePadState extends State<MousePad> {
+class _MousePadState extends State<MousePad> with WidgetsBindingObserver {
   bool _isTwoFingerTouch = false;
   bool _hasScrolledTwoFinger = false;
   DateTime? _twoFingerStartTime;
@@ -91,6 +96,7 @@ class _MousePadState extends State<MousePad> {
 
   // Drag mode state
   bool _isDragging = false;
+  ValueChanged<Uint8List>? _dragSender;
   Timer? _longPressTimer;
   Offset? _initialTouchPosition;
   static const _longPressDuration = Duration(milliseconds: 400);
@@ -98,10 +104,54 @@ class _MousePadState extends State<MousePad> {
       3.0; // pixels - very small, any real movement cancels
 
   // 2-finger tap detection (done at the raw pointer level to beat the gesture arena)
-  int _activePointers = 0;
+  final Set<int> _pointers = {};
+  int get _activePointers => _pointers.length;
   int _maxActivePointers = 0;
   DateTime? _firstPointerDownTime;
   bool _suppressNextTap = false;
+  bool _gestureCancelled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _cancelGesture();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cancelGesture();
+    super.dispose();
+  }
+
+  void _sendInput(Uint8List input) =>
+      (widget.sendInput ?? ServerConnector.sendInput)(input);
+
+  void _cancelGesture() {
+    _gestureCancelled = true;
+    _cancelLongPressTimer();
+    _deactivateDragMode();
+    _pointers.clear();
+    _maxActivePointers = 0;
+    _firstPointerDownTime = null;
+    _initialTouchPosition = null;
+    _suppressNextTap = false;
+    _isTwoFingerTouch = false;
+    _hasScrolledTwoFinger = false;
+    _twoFingerStartTime = null;
+    _maxPointerCount = 0;
+    _isThreeFingerSwipe = false;
+    _hasTriggeredThreeFinger = false;
+    _accumulatedThreeFingerY = 0;
+    _accumulatedX = 0;
+    _accumulatedY = 0;
+    _accumulatedScrollY = 0;
+  }
 
   // --------- MOUSE EVENT HANDLERS -------- //
   void _handleMouseMove(ScaleUpdateDetails details) {
@@ -188,12 +238,13 @@ class _MousePadState extends State<MousePad> {
   }
 
   void _handleMouseClick() {
+    if (_gestureCancelled) return;
     if (_suppressNextTap) {
       _suppressNextTap = false;
       return;
     }
     var input = Input.leftClick();
-    ServerConnector.sendInput(input);
+    _sendInput(input);
   }
 
   void _cancelLongPressTimer() {
@@ -204,20 +255,28 @@ class _MousePadState extends State<MousePad> {
   void _activateDragMode() {
     if (!_isDragging) {
       _isDragging = true;
-      ServerConnector.sendInput(Input.mouseDown());
+      _suppressNextTap = true;
+      _dragSender = widget.sendInput ?? ServerConnector.captureInputSender();
+      _dragSender!(Input.mouseDown());
     }
   }
 
   void _deactivateDragMode() {
     if (_isDragging) {
       _isDragging = false;
-      ServerConnector.sendInput(Input.mouseUp());
+      final sender = _dragSender;
+      _dragSender = null;
+      sender?.call(Input.mouseUp());
     }
   }
 
   // --------- RAW POINTER HANDLERS (for long press detection) -------- //
   void _onPointerDown(PointerDownEvent event) {
-    _activePointers++;
+    if (_pointers.isEmpty) {
+      _gestureCancelled = false;
+      _suppressNextTap = false;
+    }
+    _pointers.add(event.pointer);
     _maxActivePointers = math.max(_maxActivePointers, _activePointers);
     _firstPointerDownTime ??= DateTime.now();
 
@@ -226,7 +285,9 @@ class _MousePadState extends State<MousePad> {
       _initialTouchPosition = event.position;
       _cancelLongPressTimer();
       _longPressTimer = Timer(_longPressDuration, () {
-        if (_activePointers == 1) _activateDragMode();
+        if (mounted && !_gestureCancelled && _activePointers == 1) {
+          _activateDragMode();
+        }
       });
     } else {
       // Multi-finger: cancel long press
@@ -245,7 +306,7 @@ class _MousePadState extends State<MousePad> {
   }
 
   void _onPointerUp(PointerUpEvent event) {
-    _activePointers = math.max(0, _activePointers - 1);
+    if (!_pointers.remove(event.pointer)) return;
 
     if (_activePointers == 0) {
       // All fingers lifted — check for 2-finger tap
@@ -254,7 +315,7 @@ class _MousePadState extends State<MousePad> {
           : 999;
       if (_maxActivePointers == 2 && !_hasScrolledTwoFinger && elapsed < 400) {
         _suppressNextTap = true;
-        ServerConnector.sendInput(Input.rightClick());
+        _sendInput(Input.rightClick());
       }
 
       // Reset pointer tracking
@@ -266,8 +327,13 @@ class _MousePadState extends State<MousePad> {
     }
   }
 
+  void _onPointerCancel(PointerCancelEvent event) {
+    if (_pointers.contains(event.pointer)) _cancelGesture();
+  }
+
   // --------- FINGER GESTURES HANDLERS -------- //
   void _handleScaleStart(ScaleStartDetails details) {
+    if (_gestureCancelled) return;
     _maxPointerCount = math.max(_maxPointerCount, details.pointerCount);
 
     if (details.pointerCount == 2) {
@@ -286,6 +352,7 @@ class _MousePadState extends State<MousePad> {
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
+    if (_gestureCancelled) return;
     _maxPointerCount = math.max(_maxPointerCount, details.pointerCount);
 
     if (_isThreeFingerSwipe && _maxPointerCount == 3) {
@@ -294,7 +361,7 @@ class _MousePadState extends State<MousePad> {
         // Trigger if swipe distance exceeds a threshold (e.g. 40 pixels up or down)
         if (_accumulatedThreeFingerY.abs() > 40.0) {
           _hasTriggeredThreeFinger = true;
-          ServerConnector.sendInput(Input.altTab());
+          _sendInput(Input.altTab());
         }
       }
     } else if (_isTwoFingerTouch && _maxPointerCount == 2) {
@@ -305,6 +372,7 @@ class _MousePadState extends State<MousePad> {
   }
 
   void _handleScaleEnd(ScaleEndDetails details) {
+    if (_gestureCancelled) return;
     final elapsed = _twoFingerStartTime != null
         ? DateTime.now().difference(_twoFingerStartTime!).inMilliseconds
         : -1;
@@ -315,7 +383,7 @@ class _MousePadState extends State<MousePad> {
         !_hasScrolledTwoFinger &&
         _twoFingerStartTime != null &&
         elapsed < 300) {
-      ServerConnector.sendInput(Input.rightClick());
+      _sendInput(Input.rightClick());
     }
 
     // Always reset all gesture state when scale gesture ends
@@ -426,6 +494,7 @@ class _MousePadState extends State<MousePad> {
                 onPointerDown: _onPointerDown,
                 onPointerMove: _onPointerMove,
                 onPointerUp: _onPointerUp,
+                onPointerCancel: _onPointerCancel,
                 child: GestureDetector(
                   onTap: _handleMouseClick,
                   // scale gestures handle mouse move and scroll
@@ -538,12 +607,14 @@ class _MousePadState extends State<MousePad> {
                       color: appColors.textMuted,
                       iconSize: Dimens.icon.large,
                       onPressed: () {
+                        _cancelGesture();
                         widget.fullscreen
                             ? Navigator.of(context).pop()
                             : Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (context) => _FullscreenMousePadPage(
                                     sensitivity: widget.sensitivity,
+                                    sendInput: widget.sendInput,
                                   ),
                                 ),
                               );
@@ -554,7 +625,10 @@ class _MousePadState extends State<MousePad> {
                       color: appColors.textMuted,
                       iconSize: Dimens.icon.medium,
                       tooltip: 'Gesture guide',
-                      onPressed: () => _showGestureGuide(context, appColors),
+                      onPressed: () {
+                        _cancelGesture();
+                        _showGestureGuide(context, appColors);
+                      },
                     ),
                   ],
                 ),

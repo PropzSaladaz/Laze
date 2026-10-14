@@ -148,7 +148,7 @@ Pre-built binaries are available on the [GitHub Releases](https://github.com/Pro
 
 ### Prerequisites
 - **Desktop:** Rust, Node.js (for Tauri/Next.js)
-- **Mobile:** Flutter SDK
+- **Mobile:** the exact stable Flutter SDK pinned in `mobile_client/pubspec.yaml`, and Python 3 for the version check
 
 ### 1. Run the Desktop App
 ```bash
@@ -161,8 +161,9 @@ The dashboard will appear. Your server is now running.
 ### 2. Run the Mobile App
 ```bash
 cd mobile_client
-flutter pub get
-flutter run
+python ../scripts/check_flutter_version.py
+flutter pub get --enforce-lockfile
+flutter run --no-pub
 ```
 On the desktop dashboard, select **Pair phone**. On the mobile app, select
 **Pair computer** and scan the QR code. Pairing connects immediately; subsequent

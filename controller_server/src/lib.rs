@@ -3,6 +3,7 @@ mod actions;
 mod keybinds;
 pub mod logger;
 mod mobile_controller;
+mod mouse_buttons;
 mod server;
 
 // Re-exported types

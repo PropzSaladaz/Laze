@@ -99,9 +99,7 @@ impl ServerHandler {
         self.auth.trusted_devices()
     }
     pub fn revoke_phone(&self, id: &str) -> Result<(), String> {
-        let frames = self.auth.revoke(id)?;
-        self.clients.close_sessions(frames);
-        Ok(())
+        self.clients.revoke_phone(id)
     }
     pub fn connected_clients(&self) -> Vec<ClientInfo> {
         self.clients.connected_clients()
@@ -109,7 +107,7 @@ impl ServerHandler {
 }
 impl Drop for ServerHandler {
     fn drop(&mut self) {
-        self.clients.close_sessions(self.auth.stop());
+        self.clients.stop_sessions();
         let _ = self
             .command_sender
             .send_request(ServerRequest::TerminateServer);
@@ -159,11 +157,11 @@ impl<A: Application + 'static> Server<A> {
                     Ok(ServerResponse::ServerStarted(ServerStarted {}))
                 }
                 ServerRequest::StopServer => {
-                    clients.close_sessions(auth.stop());
+                    clients.stop_sessions();
                     Ok(ServerResponse::ServerStopped(ServerStopped {}))
                 }
                 ServerRequest::TerminateServer => {
-                    clients.close_sessions(auth.stop());
+                    clients.stop_sessions();
                     terminated.store(true, Ordering::SeqCst);
                     Ok(ServerResponse::ServerTerminated(ServerTerminated {}))
                 }

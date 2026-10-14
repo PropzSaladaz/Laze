@@ -40,47 +40,81 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.3'
+          flutter-version-file: mobile_client/pubspec.yaml
           channel: 'stable'
           cache: true
 
-      - name: Get dependencies
+      - name: Verify pinned Flutter SDK
+        run: python3 scripts/check_flutter_version.py
+
+      - name: Get locked dependencies
         working-directory: mobile_client
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
+
+      - name: Test Android signing verification
+        run: python3 scripts/test_android_signing.py
 
       - name: Run code generation
         working-directory: mobile_client
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Decode keystore
+      - name: Require release signing credentials and decode keystore
         working-directory: mobile_client/android
+        shell: bash
         run: |
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > app/upload-keystore.jks
-            # Set KEYSTORE_PATH only when the keystore is actually available,
-            # so the env var is never an empty string (which breaks Gradle's file()).
-            echo "KEYSTORE_PATH=upload-keystore.jks" >> $GITHUB_ENV
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD ANDROID_SIGNING_CERT_SHA256; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required Android release signing setting: $name"
+              exit 1
+            fi
+          done
+          fingerprint="${ANDROID_SIGNING_CERT_SHA256//:/}"
+          if [[ ! "$fingerprint" =~ ^[[:xdigit:]]{64}$ ]]; then
+            echo "::error::ANDROID_SIGNING_CERT_SHA256 must be the expected release/upload certificate SHA-256 fingerprint."
+            exit 1
           fi
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/upload-keystore.jks
+          test -s app/upload-keystore.jks
+          echo "KEYSTORE_PATH=upload-keystore.jks" >> "$GITHUB_ENV"
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
 
       - name: Build APK
         working-directory: mobile_client
-        run: flutter build apk --release --no-tree-shake-icons
+        run: flutter build apk --release --no-tree-shake-icons --no-pub
         env:
-          # KEYSTORE_PATH is set via $GITHUB_ENV above only when the keystore exists.
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Build App Bundle (AAB)
         working-directory: mobile_client
-        run: flutter build appbundle --release --no-tree-shake-icons
+        run: flutter build appbundle --release --no-tree-shake-icons --no-pub
         env:
-          # KEYSTORE_PATH is set via $GITHUB_ENV above only when the keystore exists.
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Verify APK and AAB release signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          export APKSIGNER_JAR="$(find "$ANDROID_HOME/build-tools" -path '*/lib/apksigner.jar' -type f | sort -V | tail -n 1)"
+          java scripts/VerifyAndroidSigning.java \
+            mobile_client/build/app/outputs/flutter-apk/app-release.apk \
+            mobile_client/build/app/outputs/bundle/release/app-release.aab
+        env:
+          ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
+
+      - name: Remove temporary release keystore
+        if: always()
+        run: rm -f mobile_client/android/app/upload-keystore.jks
 
       - name: Get version from tag
         id: get_version
@@ -121,13 +155,16 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.3'
+          flutter-version-file: mobile_client/pubspec.yaml
           channel: 'stable'
           cache: true
 
-      - name: Get dependencies
+      - name: Verify pinned Flutter SDK
+        run: python3 scripts/check_flutter_version.py
+
+      - name: Get locked dependencies
         working-directory: mobile_client
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Run code generation
         working-directory: mobile_client
@@ -172,12 +209,12 @@ jobs:
         working-directory: mobile_client
         run: |
           flutter build ipa --release --no-tree-shake-icons \
-            --export-options-plist=ios/ExportOptions.plist
+            --export-options-plist=ios/ExportOptions.plist --no-pub
 
       - name: Build iOS (unsigned — verify compilation)
         if: env.IOS_SIGNING != 'true'
         working-directory: mobile_client
-        run: flutter build ios --release --no-codesign --no-tree-shake-icons
+        run: flutter build ios --release --no-codesign --no-tree-shake-icons --no-pub
 
       # ── Upload artifacts ──
       - name: Get version from tag

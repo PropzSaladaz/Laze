@@ -6,11 +6,22 @@ use crate::security::{
 use std::{io::Write, net::TcpListener, time::Instant};
 
 #[derive(Default)]
-struct Recorder(Vec<Vec<u8>>);
+struct Recorder(Vec<Vec<u8>>, Vec<SessionId>, Vec<SessionId>);
 impl Application for Recorder {
     fn dispatch_to_device(&mut self, payload: &[u8]) -> ConnectionStatus {
         self.0.push(payload.to_vec());
-        ConnectionStatus::Connected
+        if payload == [5] {
+            ConnectionStatus::Disconnected
+        } else {
+            ConnectionStatus::Connected
+        }
+    }
+    fn dispatch_session_input(&mut self, session: &SessionId, payload: &[u8]) -> ConnectionStatus {
+        self.2.push(*session);
+        self.dispatch_to_device(payload)
+    }
+    fn release_session_input(&mut self, session: &SessionId) {
+        self.1.push(*session);
     }
 }
 fn frame(bytes: &[u8]) -> Vec<u8> {
@@ -30,6 +41,112 @@ fn wait_until(check: impl Fn() -> bool) {
         assert!(Instant::now() < deadline, "Timed out waiting for pool");
         thread::sleep(Duration::from_millis(5));
     }
+}
+
+fn connect_phone(
+    pool: &ClientPool,
+    auth: &AuthManager,
+    app: &Arc<Mutex<Recorder>>,
+    device: &str,
+) -> (TcpStream, SessionId, crate::security::SessionKeys) {
+    let (hello, key) = invitation(auth, device);
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let mut client = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+    let (stream, addr) = listener.accept().unwrap();
+    pool.admit(stream, addr, app.clone(), 0);
+    wire::write_json(&mut client, &hello).unwrap();
+    let challenge: ServerChallenge = wire::read_json(&mut client).unwrap();
+    let finish = ClientFinish {
+        proof: encode(&tag(
+            &key,
+            &transcript(
+                "laze-v2/client-finish",
+                &[&challenge_bytes(&hello, &challenge).unwrap()],
+            ),
+        )),
+    };
+    wire::write_json(&mut client, &finish).unwrap();
+    read(&mut client);
+    let id = decode::<16>(&challenge.session_id).unwrap();
+    let keys = derive_keys(&key, &hello, &challenge).unwrap();
+    (client, id, keys)
+}
+
+#[test]
+fn session_cleanup_runs_once_for_disconnect_revoke_and_stop() {
+    for reason in ["client-action", "desktop-remove", "revoke", "stop"] {
+        let auth = manager();
+        let (events, _) = broadcast::channel(32);
+        let pool = ClientPool::new(10, events, auth.clone());
+        let app = Arc::new(Mutex::new(Recorder::default()));
+        let (mut client, session, keys) = connect_phone(&pool, &auth, &app, "held-phone");
+        wire::write_frame(
+            &mut client,
+            &make_record(&session, 0, &[8, 0], &keys.client_tcp),
+        )
+        .unwrap();
+        wait_until(|| app.lock().unwrap().0.len() == 1);
+        let client_id = pool.connected_clients()[0].id;
+        match reason {
+            "client-action" => wire::write_frame(
+                &mut client,
+                &make_record(&session, 1, &[5], &keys.client_tcp),
+            )
+            .unwrap(),
+            "desktop-remove" => pool.terminate_client(client_id).unwrap(),
+            "revoke" => pool.revoke_phone("held-phone").unwrap(),
+            "stop" => pool.stop_sessions(),
+            _ => unreachable!(),
+        }
+        wait_until(|| app.lock().unwrap().1 == vec![session]);
+        assert!(!auth.is_live(&session));
+        let expected_event = match reason {
+            "desktop-remove" => Some(EVENT_DISCONNECTED),
+            "revoke" => Some(crate::security::EVENT_REVOKED),
+            "stop" => Some(crate::security::EVENT_STOPPED),
+            _ => None,
+        };
+        if let Some(event) = expected_event {
+            assert_eq!(
+                read(&mut client),
+                make_record(&session, 1, &[event], &keys.server_tcp)
+            );
+        }
+        // The receive thread and a repeated removal must not release twice.
+        pool.remove(client_id, None);
+        client.shutdown(Shutdown::Both).ok();
+        assert_eq!(app.lock().unwrap().1, vec![session], "{reason}");
+    }
+}
+
+#[test]
+fn removing_a_phone_does_not_cleanup_another_live_session() {
+    let auth = manager();
+    let (events, _) = broadcast::channel(32);
+    let pool = ClientPool::new(10, events, auth.clone());
+    let app = Arc::new(Mutex::new(Recorder::default()));
+    let (mut first, first_session, first_keys) = connect_phone(&pool, &auth, &app, "first-phone");
+    let (mut second, second_session, second_keys) =
+        connect_phone(&pool, &auth, &app, "second-phone");
+    for (client, session, keys) in [
+        (&mut first, first_session, &first_keys),
+        (&mut second, second_session, &second_keys),
+    ] {
+        wire::write_frame(client, &make_record(&session, 0, &[8, 0], &keys.client_tcp)).unwrap();
+    }
+    wait_until(|| app.lock().unwrap().0.len() == 2);
+    first.shutdown(Shutdown::Both).unwrap();
+    wait_until(|| app.lock().unwrap().1 == vec![first_session]);
+    assert!(auth.is_live(&second_session));
+    wire::write_frame(
+        &mut second,
+        &make_record(&second_session, 1, &[9, 0], &second_keys.client_tcp),
+    )
+    .unwrap();
+    wait_until(|| app.lock().unwrap().0.len() == 3);
+    assert_eq!(app.lock().unwrap().2.last(), Some(&second_session));
+    second.shutdown(Shutdown::Both).unwrap();
+    wait_until(|| app.lock().unwrap().1.len() == 2);
 }
 #[test]
 fn fragmented_handshake_coalesced_input_eof_and_rejected_client_are_isolated() {
@@ -93,6 +210,8 @@ fn fragmented_handshake_coalesced_input_eof_and_rejected_client_are_isolated() {
     client.shutdown(Shutdown::Write).unwrap();
     wait_until(|| pool.connected_clients().is_empty() && !auth.is_live(&id));
     assert_eq!(app.lock().unwrap().0.len(), 2);
+    assert_eq!(app.lock().unwrap().1, vec![id]);
+    assert_eq!(app.lock().unwrap().2, vec![id, id]);
 }
 #[test]
 fn malformed_authenticated_input_disconnects_only_its_owner() {

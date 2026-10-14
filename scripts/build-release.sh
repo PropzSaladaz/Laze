@@ -50,8 +50,17 @@ build_flutter() {
         fail "flutter not found — install Flutter SDK"
     fi
 
-    flutter pub get || fail "flutter pub get failed"
-    flutter build apk --release --no-tree-shake-icons || fail "flutter build apk --release failed"
+    local python_command
+    if command -v python3 &>/dev/null; then
+        python_command=python3
+    elif command -v python &>/dev/null; then
+        python_command=python
+    else
+        fail "Python 3 is required to check the pinned Flutter SDK"
+    fi
+    "$python_command" "$ROOT/scripts/check_flutter_version.py" || fail "Flutter SDK does not match the project pin"
+    flutter pub get --enforce-lockfile || fail "Locked Flutter dependencies could not be resolved"
+    flutter build apk --release --no-tree-shake-icons --no-pub || fail "flutter build apk --release failed"
     pass "flutter release APK"
 }
 
